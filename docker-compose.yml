@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "YourStrong!Password"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssqldata:/var/opt/mssql
+
+  ai-service:
+    build: ./ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+  server-dotnet:
+    build: ./server-dotnet
+    ports:
+      - "5000:8080"
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=mssql,1433;Database=InterviewProAI;User Id=sa;Password=YourStrong!Password;TrustServerCertificate=True;"
+      Jwt__Key: "YourSuperSecretKeyMustBe32CharactersLong!!"
+      Jwt__Issuer: "InterviewProAPI"
+      Jwt__Audience: "InterviewProClient"
+      AiService__BaseUrl: "http://ai-service:8000"
+    depends_on:
+      - mssql
+      - ai-service
+
+  client:
+    build: ./client
+    ports:
+      - "5173:80"
+    depends_on:
+      - server-dotnet
+
+volumes:
+  mssqldata:
