@@ -10,6 +10,7 @@ namespace InterviewPro.API.Data
         public DbSet<User> Users { get; set; }
         public DbSet<InterviewSession> InterviewSessions { get; set; }
         public DbSet<InterviewQuestion> InterviewQuestions { get; set; }
+        public DbSet<UserCV> UserCVs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

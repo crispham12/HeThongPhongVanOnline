@@ -50,4 +50,23 @@ namespace InterviewPro.API.Entities
         public string EvaluationCriteria { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
+
+    public class UserCV
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string TemplateId { get; set; } = "nexus-pro";
+        public string Title { get; set; } = string.Empty;
+        public string PersonalInfo { get; set; } = "{}"; // JSON string containing name, title, email, phone, address, website, summary
+        public string Experience { get; set; } = "[]";   // JSON string containing list of experiences
+        public string Education { get; set; } = "[]";    // JSON string containing list of educations
+        public string Skills { get; set; } = "[]";       // JSON string containing list of skills
+        public string Languages { get; set; } = "[]";    // JSON string containing list of languages
+        public string CoreStack { get; set; } = "[]";    // JSON string containing core stack technologies
+        public string Proficiencies { get; set; } = "[]"; // JSON string containing visual systems, proficiency items
+        public int AiScore { get; set; } = 80;
+        public string AiFeedback { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
 }

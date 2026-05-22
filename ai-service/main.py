@@ -163,5 +163,76 @@ async def generate_report(request: InterviewReportRequest):
         print(f"Error in generate_report: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Report Generation failed: {str(e)}")
 
+class CVAnalysisRequest(BaseModel):
+    cv_title: str
+    personal_info: dict
+    experiences: List[dict]
+    educations: List[dict]
+    skills: List[str]
+
+@app.post("/ai/analyze-cv")
+async def analyze_cv(request: CVAnalysisRequest):
+    """
+    Logic: Phân tích nội dung CV và đưa ra điểm số kèm lời khuyên cải thiện.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key or api_key.startswith("AIza"):
+        # Fallback Mock Logic
+        score = 85
+        has_metrics = False
+        feedback = "Chúc mừng! CV của bạn có cấu trúc tốt và nội dung rõ ràng. "
+        
+        # Check for numbers/percentages in experiences as standard quantification
+        for exp in request.experiences:
+            desc = exp.get("description", "")
+            if any(char.isdigit() for char in desc):
+                has_metrics = True
+                break
+        
+        if not has_metrics:
+            score = 82
+            feedback += "Tuy nhiên, để đạt điểm xuất sắc, hãy bổ sung chỉ số định lượng vào mô tả kinh nghiệm (ví dụ: 'tối ưu tốc độ tải trang 40%', 'quản lý đội ngũ 3 người')."
+        else:
+            score = 92
+            feedback += "Điểm cộng lớn là phần kinh nghiệm của bạn đã có số liệu thực tế đo lường hiệu quả (đáp ứng chuẩn ATS tối ưu)."
+            
+        if len(request.skills) < 4:
+            score = max(70, score - 5)
+            feedback += " Hãy bổ sung thêm các kỹ năng chuyên môn quan trọng và từ khóa công nghệ ở mục Skills & Stack."
+            
+        return {"score": score, "feedback": feedback}
+
+    try:
+        # Construct detailed OpenAI prompt
+        prompt = f"""
+        You are an expert HR recruiter and ATS optimizer. Analyze this candidate resume details:
+        Resume Title: {request.cv_title}
+        Personal Info: {json.dumps(request.personal_info, ensure_ascii=False)}
+        Experiences: {json.dumps(request.experiences, ensure_ascii=False)}
+        Educations: {json.dumps(request.educations, ensure_ascii=False)}
+        Skills: {", ".join(request.skills)}
+
+        Please evaluate the CV on a scale of 0 to 100 based on structure, readability, spelling, and how well it communicates technical achievements and quantifiable impact (metrics).
+        Suggest 1-2 practical improvements to increase their ATS compatibility and recruiting appeal.
+
+        Your response MUST be in Vietnamese and formatted as a JSON object with the following structure:
+        {{
+          "score": <integer score from 0 to 100>,
+          "feedback": "<detailed feedback in Vietnamese. Point out specifically which experience section could be improved with metrics or which skills to highlight. Keep it professional and under 150 words.>"
+        }}
+        """
+        
+        ai_response = await call_openai(prompt)
+        return {
+            "score": ai_response.get("score", 80),
+            "feedback": ai_response.get("feedback", "Đã đánh giá thành công.")
+        }
+    except Exception as e:
+        print(f"Error in analyze_cv: {str(e)}")
+        return {
+            "score": 75,
+            "feedback": f"Không thể gọi API đánh giá AI thực tế do lỗi: {str(e)}. Hãy kiểm tra API key của bạn."
+        }
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
