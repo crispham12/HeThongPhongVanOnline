@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BrainCircuit, Timer, ChevronRight, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../lib/axios';
+import api from '../../../lib/axios';
 
 export default function TechnicalInterview() {
   const { state } = useLocation();

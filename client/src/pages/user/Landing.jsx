@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { BrainCircuit, Zap, GitBranch, Code2, BarChart3, ChevronRight, Globe, Shield, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -47,7 +47,7 @@ export default function Landing() {
             transition={{ delay: 0.1 }}
             className="text-5xl lg:text-7xl font-black text-gray-900 mb-6 leading-[1.1]"
           >
-            Nâng tầm kỹ năng <br /> 
+            Nâng tầm kỹ năng <br />
             <span className="text-primary-600">Phỏng vấn Kỹ thuật</span>
           </motion.h1>
           <motion.p
@@ -56,7 +56,7 @@ export default function Landing() {
             transition={{ delay: 0.2 }}
             className="text-lg text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Luyện tập phỏng vấn với AI thông minh. Nhận đánh giá chi tiết về mã nguồn, 
+            Luyện tập phỏng vấn với AI thông minh. Nhận đánh giá chi tiết về mã nguồn,
             tư duy kiến trúc và kỹ năng mềm để chinh phục các tập đoàn công nghệ lớn.
           </motion.p>
           <motion.div
@@ -65,8 +65,8 @@ export default function Landing() {
             transition={{ delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <button 
-              onClick={() => navigate(isAuthenticated ? '/setup' : '/register')} 
+            <button
+              onClick={() => navigate(isAuthenticated ? '/setup' : '/register')}
               className="btn-primary px-10 py-4 text-lg shadow-xl shadow-primary-100 flex items-center gap-2"
             >
               Bắt đầu ngay bây giờ <ChevronRight className="w-5 h-5" />

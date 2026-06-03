@@ -1,6 +1,7 @@
 using InterviewPro.API.Data;
 using InterviewPro.API.Interfaces;
 using InterviewPro.API.Repositories;
+using InterviewPro.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -35,6 +36,11 @@ builder.Services.AddAuthorization();
 // ──────────────── DI (Dependency Injection) ────────────────
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IInterviewRepository, InterviewRepository>();
+builder.Services.AddScoped<ICvTemplateRepository, CvTemplateRepository>();
+builder.Services.AddScoped<ICvTemplateService, CvTemplateService>();
+// HR Interview services
+builder.Services.AddScoped<IHrAiClient, HrAiClient>();
+builder.Services.AddScoped<IHrInterviewService, HrInterviewService>();
 
 builder.Services.AddHttpClient("AIService", client => {
     client.BaseAddress = new Uri("http://localhost:8000");
@@ -64,9 +70,10 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddControllers();
 builder.Services.AddCors(opts =>
     opts.AddPolicy("AllowFrontend", p =>
-        p.WithOrigins(builder.Configuration["AllowedOrigins"] ?? "http://localhost:5173")
+        p.WithOrigins("http://localhost:5173", "http://localhost:5174")
          .AllowAnyMethod()
-         .AllowAnyHeader()));
+         .AllowAnyHeader()
+         .AllowCredentials()));
 
 var app = builder.Build();
 

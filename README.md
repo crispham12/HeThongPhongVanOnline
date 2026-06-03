@@ -1,173 +1,101 @@
-# InterviewPro AI – Fullstack AI Interview Simulator Platform
+# InterviewPro AI – Nền Tảng Luyện Tập & Phỏng Vấn AI
 
-## 🏗️ Project Structure
-
-```
-duantotnghiepmoi/
-├── client/           → React + Vite + TailwindCSS frontend
-├── server-dotnet/    → ASP.NET Core 8 Web API (Clean Architecture)
-├── ai-service/       → Python FastAPI AI service (OpenAI integration)
-└── docker-compose.yml
-```
+InterviewPro là một nền tảng fullstack (React + ASP.NET Core + FastAPI) mô phỏng các buổi phỏng vấn bằng AI, bao gồm phỏng vấn Nhân sự (HR), Kỹ thuật (Technical), và Đánh giá lập trình (Coding Assessment) với khả năng phân tích Github và đưa ra lộ trình học tập.
 
 ---
 
-## ⚡ Quick Start
+## 🚀 Hướng Dẫn Sử Dụng Nhanh (Quick Start)
 
-### Prerequisites
-- Node.js 18+
-- .NET SDK 8.0
-- Python 3.11+
-- PostgreSQL 15+ (or Docker)
+### Yêu Cầu Cài Đặt (Prerequisites)
+- **Node.js** 18+
+- **.NET SDK** 8.0
+- **Python** 3.11+
+- **SQL Server** hoặc **PostgreSQL** (Tuỳ cấu hình trong `appsettings.json`)
 
-### 1. Frontend (React)
-```bash
-cd client
-cp .env.example .env          # Edit VITE_API_URL and VITE_AI_URL
-npm install
-npm run dev                   # → http://localhost:5173
-```
-
-### 2. Backend (ASP.NET Core)
+### 1. Khởi Động Backend (ASP.NET Core)
+Backend xử lý toàn bộ logic về Auth, Quản lý tài khoản, Ngân hàng câu hỏi và Lịch sử phỏng vấn.
 ```bash
 cd server-dotnet
-# Edit appsettings.json with your DB credentials
+# Mở file appsettings.json và cấu hình chuỗi kết nối Database tại "DefaultConnection"
 dotnet restore
-dotnet ef database update     # requires: dotnet ef tool
-dotnet run                    # → http://localhost:5000
+dotnet ef database update     # Chạy migrations để tự động tạo Database
+dotnet run                    # API sẽ chạy tại http://localhost:5000
 ```
 
-### 3. AI Service (Python)
+### 2. Khởi Động AI Service (Python FastAPI)
+AI Service kết nối với OpenAI để tạo câu hỏi động và chấm điểm câu trả lời của ứng viên.
 ```bash
 cd ai-service
-cp .env.example .env          # Add your OPENAI_API_KEY
+# Cấu hình biến môi trường
+cp .env.example .env          # Mở file .env và điền OPENAI_API_KEY của bạn vào
 pip install -r requirements.txt
-uvicorn main:app --reload     # → http://localhost:8000
+uvicorn main:app --reload     # AI Service sẽ chạy tại http://localhost:8000
 ```
 
-### 🐳 Docker (All-in-one)
+### 3. Khởi Động Frontend (React Vite)
+Giao diện người dùng (Client) và bảng điều khiển Quản trị (Admin Panel).
 ```bash
-cp ai-service/.env.example ai-service/.env  # Set OPENAI_API_KEY
-docker-compose up --build
+cd client
+# Cấu hình biến môi trường
+cp .env.example .env          # Điền VITE_API_URL và VITE_AI_URL nếu khác mặc định
+npm install
+npm run dev                   # Web sẽ chạy tại http://localhost:5173
 ```
 
 ---
 
-## 🎯 Features
+## 📖 Hướng Dẫn Sử Dụng (User Guide)
 
-| Module | Status |
-|--------|--------|
-| JWT Authentication | ✅ |
-| Dashboard + Analytics | ✅ |
-| Interview Setup | ✅ |
-| HR Interview (Chat UI) | ✅ |
-| Technical Interview | ✅ |
-| Coding Assessment (Monaco Editor) | ✅ |
-| GitHub Repository Analysis | ✅ |
-| AI Evaluation + Radar Chart | ✅ |
-| Interview History | ✅ |
+Hệ thống có hai phân quyền chính: **Admin** và **User**.
 
----
+### 🛠️ Dành cho Admin (Quản trị viên)
+1. **Đăng nhập quyền Admin**: Đảm bảo tài khoản của bạn được set `Role = 1` trong Database (Bảng `Users`).
+2. **Quản lý Ngân Hàng Câu Hỏi (Question Bank)**:
+   - Truy cập trang Admin Panel -> **Ngân hàng câu hỏi**.
+   - Admin có thể **Thêm mới, Chỉnh sửa, Xoá, và Tìm kiếm** các câu hỏi HR / Kỹ thuật.
+   - Bấm **Lưu & Công khai (Publish)**: Câu hỏi ngay lập tức được đẩy sang cho ứng viên tự do luyện tập.
+3. **Quản lý Ngân Hàng Lập Trình (Coding Bank)**:
+   - Truy cập **Ngân hàng bài coding** để thêm các bài thuật toán. Tương tự như câu hỏi thường, Admin có thể định nghĩa số lượng test cases, ngôn ngữ hỗ trợ.
 
-## 🔌 API Reference
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/auth/register | Register new user |
-| POST | /api/auth/login | Login, returns JWT |
-
-### Interviews
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/interviews | Create interview session |
-| GET | /api/interviews/{id} | Get interview by ID |
-| GET | /api/interviews/history | Paginated history |
-| GET | /api/dashboard/stats | Dashboard statistics |
-| POST | /api/github/analyze | Analyze GitHub repo |
-
-### AI Service (port 8000)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /generate-question | AI question generation |
-| POST | /evaluate-answer | AI answer evaluation |
-| POST | /analyze-github | GitHub analysis |
-| POST | /generate-roadmap | Personalized learning path |
-| GET | /health | Health check |
+### 🎓 Dành cho User (Ứng viên / Người dùng)
+1. **Đăng ký / Đăng nhập**: User có thể tạo tài khoản và đăng nhập vào hệ thống.
+2. **Dashboard & Thống kê**: Màn hình chính theo dõi chuỗi luyện tập (Daily Streak), số câu hỏi đã giải quyết.
+3. **Phỏng vấn trực tiếp với AI**:
+   - Truy cập phần Setup Phỏng vấn, chọn Role và JD.
+   - Chat trực tiếp hoặc viết code cùng AI, nhận feedback real-time.
+4. **Luyện tập Ngân Hàng Câu Hỏi**:
+   - Truy cập **Ngân hàng luyện tập**. User sẽ thấy toàn bộ câu hỏi (Đã Publish) từ Admin.
+   - Trả lời các câu hỏi HR, Kỹ thuật (Text) hoặc Lập trình (Trình soạn thảo Monaco Editor).
+5. **Phân tích GitHub**:
+   - Dán link GitHub Profile, AI sẽ phân tích source code và đưa ra điểm mạnh, điểm yếu.
 
 ---
 
-## 🎨 Tech Stack
+## 🏗️ Cấu Trúc Thư Mục Dự Án
 
-**Frontend:** React 18, Vite, TailwindCSS 3, React Router, Framer Motion, Recharts, Monaco Editor, Lucide Icons, Axios
+```
+HeThongPhongVanOnline/
+├── client/                 → React (Frontend)
+│   ├── src/pages/admin/    → Giao diện quản lý cho Admin
+│   ├── src/pages/user/     → Giao diện cho Ứng viên
+│   └── src/services/       → Các file tích hợp Axios gọi Backend API
+│
+├── server-dotnet/          → ASP.NET Core 8 Web API (Backend)
+│   ├── Controllers/        → Chứa các REST API endpoints
+│   ├── Entities/           → Các Model ánh xạ xuống Database (EF Core)
+│   └── DTOs/               → Data Transfer Objects
+│
+└── ai-service/             → Python FastAPI (AI Layer)
+    ├── routes/             → API xử lý AI Generate/Evaluate
+    └── prompts/            → Các file lưu trữ kỹ thuật Prompt Engineering
+```
 
-**Backend:** ASP.NET Core 8, Entity Framework Core 8, PostgreSQL, JWT Bearer Auth, Swagger/OpenAPI, BCrypt, Clean Architecture
-
-**AI Service:** FastAPI, OpenAI SDK, Pydantic v2, Python 3.12, uvicorn
+## 🔌 Danh Sách API (Overview)
+- **Xác thực**: `/api/auth/register`, `/api/auth/login`
+- **Người dùng (Client)**: `/api/practice/questions`, `/api/practice/coding`, `/api/practice/progress`
+- **Quản trị (Admin)**: `/api/admin/questions`, `/api/admin/coding`
+- **Trí tuệ nhân tạo (AI - Python)**: `/generate-question`, `/evaluate-answer`, `/analyze-github`
 
 ---
 
-## 📂 Folder Details
-
-### `client/src/`
-```
-pages/
-  auth/         → Login, Register
-  interview/    → InterviewSetup, HRInterview, TechnicalInterview, CodingAssessment
-  Dashboard.jsx
-  GithubAnalysis.jsx
-  EvaluationResult.jsx
-  History.jsx
-  Landing.jsx
-components/
-  layout/       → AppLayout, Sidebar
-  ui/           → StatCard
-context/        → AuthContext (JWT)
-lib/            → axios.js (Axios instances)
-```
-
-### `server-dotnet/`
-```
-Controllers/   → Auth, Interviews, Dashboard, Github
-Services/      → AuthService, InterviewService, AiService
-Repositories/  → UserRepository, InterviewRepository
-Entities/      → User, Interview, Question, Answer, GithubAnalysis
-DTOs/          → Request/Response types
-Interfaces/    → Service & Repository contracts
-Data/          → AppDbContext (EF Core)
-```
-
-### `ai-service/`
-```
-routes/        → questions.py, answers.py, github.py, roadmap.py
-services/      → openai_service.py
-prompts/       → prompts.py (all OpenAI prompts)
-models/        → schemas.py (Pydantic models)
-analyzers/     → (extendable analyzers)
-utils/         → (utilities)
-main.py        → FastAPI app entry
-```
-
----
-
-## 🔐 Environment Variables
-
-### client/.env
-```
-VITE_API_URL=http://localhost:5000/api
-VITE_AI_URL=http://localhost:8000
-```
-
-### server-dotnet/appsettings.json
-```json
-{
-  "ConnectionStrings": { "DefaultConnection": "Host=...;Database=interviewpro;..." },
-  "Jwt": { "Key": "32-char-secret", "Issuer": "InterviewProAPI", "Audience": "InterviewProClient" },
-  "AiService": { "BaseUrl": "http://localhost:8000" }
-}
-```
-
-### ai-service/.env
-```
-OPENAI_API_KEY=sk-...
-```
+*Lưu ý: Nếu bạn gặp lỗi khi chạy `dotnet run`, hãy thử đóng Terminal cũ, hoặc kiểm tra xem port `5000` có bị chiếm dụng không.*

@@ -5,7 +5,7 @@ import {
   ArrowRight, CheckCircle2, Code2, Cpu, Globe, Server
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../lib/axios';
+import api from '../../../lib/axios';
 
 const roles = [
   { id: 'backend', name: 'Backend Developer', icon: Server, desc: 'Tập trung vào hệ thống, API và cơ sở dữ liệu.' },
@@ -49,6 +49,22 @@ const types = [
   { id: 'coding', name: 'Đánh giá toàn diện', desc: 'Toàn bộ quy trình 9 bước AI.', path: '/interview/coding', recommended: true },
 ];
 
+const LANG_TO_FRAMEWORK = {
+  'C#': 'ASP.NET Core',
+  'Java': 'Spring Boot',
+  'Node.js': 'ExpressJS',
+  'Python': 'FastAPI',
+  'Go': 'Gin'
+};
+
+const FRAMEWORK_TO_LANG = {
+  'ASP.NET Core': 'C#',
+  'Spring Boot': 'Java',
+  'ExpressJS': 'Node.js',
+  'FastAPI': 'Python',
+  'Gin': 'Go'
+};
+
 export default function InterviewSetup() {
   const navigate = useNavigate();
   const [config, setConfig] = useState({ 
@@ -57,6 +73,26 @@ export default function InterviewSetup() {
     level: 'fresher', 
     type: 'technical' 
   });
+
+  const isOptionDisabled = (opt) => {
+    // If it's a language
+    if (LANG_TO_FRAMEWORK[opt]) {
+      const selectedFrameworks = config.stack.filter(item => FRAMEWORK_TO_LANG[item]);
+      if (selectedFrameworks.length > 0) {
+        const allowedLangs = selectedFrameworks.map(f => FRAMEWORK_TO_LANG[f]);
+        return !allowedLangs.includes(opt);
+      }
+    }
+    // If it's a framework
+    if (FRAMEWORK_TO_LANG[opt]) {
+      const selectedLangs = config.stack.filter(item => LANG_TO_FRAMEWORK[item]);
+      if (selectedLangs.length > 0) {
+        const allowedFrameworks = selectedLangs.map(l => LANG_TO_FRAMEWORK[l]);
+        return !allowedFrameworks.includes(opt);
+      }
+    }
+    return false;
+  };
 
   const toggleStack = (tech) => {
     setConfig(prev => ({
@@ -69,17 +105,34 @@ export default function InterviewSetup() {
 
   const handleStart = async () => {
     try {
-      const response = await api.post('/interview/start', {
-        role: config.role,
-        stack: config.stack,
-        difficulty: config.level,
-        type: config.type
-      });
-      const { sessionId } = response.data;
-      const target = types.find(t => t.id === config.type)?.path;
-      navigate(target, { state: { ...config, sessionId } });
+      if (config.type === 'hr') {
+        const response = await api.post('/hr-interviews/start', {
+          role: config.role === 'backend' ? 'Lập trình viên Backend' : 
+                config.role === 'frontend' ? 'Lập trình viên Frontend' :
+                config.role === 'fullstack' ? 'Lập trình viên Fullstack' : 'AI Engineer',
+          difficulty: config.level,
+          techStack: config.stack
+        });
+        const { sessionId } = response.data;
+        const target = types.find(t => t.id === config.type)?.path;
+        navigate(target, { state: { ...config, sessionId } });
+      } else {
+        const response = await api.post('/interview/start', {
+          role: config.role,
+          stack: config.stack,
+          difficulty: config.level,
+          type: config.type
+        });
+        const { sessionId } = response.data;
+        const target = types.find(t => t.id === config.type)?.path;
+        navigate(target, { state: { ...config, sessionId } });
+      }
     } catch (error) {
-      alert("Lỗi khởi tạo phiên phỏng vấn.");
+      if (error.response && error.response.status === 402) {
+        alert(error.response.data.message || "Bạn đã dùng hết 3 lượt phỏng vấn miễn phí hôm nay. Vui lòng nâng cấp Premium để tiếp tục.");
+      } else {
+        alert("Lỗi khởi tạo phiên phỏng vấn.");
+      }
     }
   };
 
@@ -127,19 +180,25 @@ export default function InterviewSetup() {
                 <div key={i}>
                   <p className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-4">{cat.category}</p>
                   <div className="flex flex-wrap gap-2">
-                    {cat.options.map(opt => (
-                      <button
-                        key={opt}
-                        onClick={() => toggleStack(opt)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                          config.stack.includes(opt) 
-                            ? 'bg-primary-600 border-primary-600 text-white' 
-                            : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100'
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+                    {cat.options.map(opt => {
+                      const disabled = isOptionDisabled(opt);
+                      return (
+                        <button
+                          key={opt}
+                          disabled={disabled}
+                          onClick={() => !disabled && toggleStack(opt)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
+                            config.stack.includes(opt) 
+                              ? 'bg-primary-600 border-primary-600 text-white' 
+                              : disabled
+                                ? 'bg-gray-100 border-transparent text-gray-300 cursor-not-allowed opacity-50'
+                                : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -204,7 +263,7 @@ export default function InterviewSetup() {
       </div>
 
       {/* Bottom Floating Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 z-50 py-6">
+      <div className="fixed bottom-0 left-64 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 z-50 py-6">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="px-4 py-2 bg-gray-50 rounded-lg">

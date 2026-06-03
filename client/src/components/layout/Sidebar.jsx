@@ -2,11 +2,12 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, History, GitBranch, Plus,
-  Settings, LogOut, BrainCircuit, FileText
+  Settings, LogOut, BrainCircuit, FileText, Database
 } from 'lucide-react';
 
 const menuItems = [
   { to: '/dashboard',       icon: LayoutDashboard, label: 'Bảng điều khiển' },
+  { to: '/question-bank',   icon: Database,         label: 'Ngân hàng câu hỏi' },
   { to: '/history',         icon: History,          label: 'Lịch sử phỏng vấn' },
   { to: '/github-analysis', icon: GitBranch,          label: 'Phân tích GitHub' },
   { to: '/create-cv',       icon: FileText,           label: 'Tạo CV' },

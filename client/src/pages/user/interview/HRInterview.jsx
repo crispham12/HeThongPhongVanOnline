@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Send, User, Bot, Loader2, Timer, CheckCircle, ArrowRight } from 'lucide-react';
+import api from '../../../lib/axios';
 
 export default function HRInterview() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: `Chào bạn! Tôi là trợ lý HR AI. Rất vui được phỏng vấn bạn cho vị trí ${state?.role || 'Developer'}. Bạn đã sẵn sàng chưa?` }
-  ]);
+  const sessionId = state?.sessionId;
+
+  const [questions, setQuestions] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(900); // 15 mins
+  const [timeLeft, setTimeLeft] = useState(1200); // 20 mins
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -22,18 +25,81 @@ export default function HRInterview() {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch session questions on load
+  useEffect(() => {
+    if (!sessionId) return;
+    const fetchQuestions = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/hr-interviews/${sessionId}`);
+        const list = response.data.questions || [];
+        setQuestions(list);
+        if (list.length > 0) {
+          setMessages([
+            {
+              role: 'assistant',
+              content: `Chào bạn! Tôi là trợ lý HR AI. Hãy cùng bắt đầu buổi phỏng vấn cho vị trí ${response.data.role} (${response.data.difficulty}).\n\nCâu 1 (${list[0].category}): ${list[0].questionText}`
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Không thể tải danh sách câu hỏi phỏng vấn HR.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, [sessionId]);
+
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading || currentQuestionIndex >= questions.length) return;
+
     const userMsg = input;
+    const currentQ = questions[currentQuestionIndex];
+    
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
 
-    // Simulated AI response (In real app, call aiApi)
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Cảm ơn câu trả lời của bạn. Bạn có thể chia sẻ thêm về một tình huống cụ thể mà bạn đã giải quyết xung đột trong nhóm không?" }]);
+    try {
+      // Gửi câu trả lời lên server C# để AI đánh giá
+      const response = await api.post(`/hr-interviews/${sessionId}/answers`, {
+        questionId: currentQ.questionId,
+        answerText: userMsg
+      });
+
+      const data = response.data;
+      const nextIdx = currentQuestionIndex + 1;
+
+      if (data.isCompleted || nextIdx >= questions.length) {
+        // Hoàn thành buổi phỏng vấn
+        setMessages(prev => [
+          ...prev,
+          { 
+            role: 'assistant', 
+            content: `Cảm ơn câu trả lời của bạn!\n\nChúc mừng bạn đã hoàn thành xuất sắc tất cả ${questions.length} câu hỏi phỏng vấn HR. Hệ thống đã tổng hợp kết quả chi tiết. Vui lòng bấm nút "Xem kết quả đánh giá" bên dưới.`
+          }
+        ]);
+        setCurrentQuestionIndex(questions.length);
+      } else {
+        // Sang câu hỏi tiếp theo
+        const nextQ = questions[nextIdx];
+        setMessages(prev => [
+          ...prev,
+          { 
+            role: 'assistant', 
+            content: `[Nhận xét nhanh của AI: ${data.feedback} - Điểm: ${data.questionScore}/10]\n\nCâu ${nextIdx + 1} (${nextQ.category}): ${nextQ.questionText}`
+          }
+        ]);
+        setCurrentQuestionIndex(nextIdx);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Lỗi khi gửi câu trả lời.");
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
@@ -52,9 +118,25 @@ export default function HRInterview() {
           <div className="px-4 py-2 bg-orange-50 border border-orange-100 rounded-xl flex items-center gap-2 text-orange-700 font-mono font-bold">
             <Timer className="w-4 h-4" /> {formatTime(timeLeft)}
           </div>
-          <button onClick={() => navigate('/evaluation/123')} className="btn-primary bg-green-600 hover:bg-green-700 border-green-700">
-            Hoàn thành buổi phỏng vấn
-          </button>
+          {currentQuestionIndex >= questions.length && questions.length > 0 ? (
+            <button 
+              onClick={() => navigate(`/evaluation/${sessionId}`)} 
+              className="btn-primary bg-primary-600 hover:bg-primary-700 border-primary-700 font-bold px-6 py-2 rounded-xl text-white animate-bounce"
+            >
+              Xem kết quả đánh giá <ArrowRight className="w-4 h-4 inline-block ml-1" />
+            </button>
+          ) : (
+            <button 
+              onClick={() => {
+                if (window.confirm("Bạn có chắc chắn muốn thoát? Kết quả sẽ không được lưu nếu chưa hoàn thành 10 câu hỏi.")) {
+                  navigate('/dashboard');
+                }
+              }} 
+              className="btn-primary bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-600 font-bold px-4 py-2 rounded-xl"
+            >
+              Thoát phỏng vấn
+            </button>
+          )}
         </div>
       </div>
 

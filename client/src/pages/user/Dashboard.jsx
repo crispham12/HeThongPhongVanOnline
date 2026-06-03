@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import StatCard from '../components/ui/StatCard';
+import { useAuth } from '../../context/AuthContext';
+import StatCard from '../../components/ui/StatCard';
 import { Trophy, Target, Zap, Star, BrainCircuit } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
 

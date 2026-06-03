@@ -17,8 +17,12 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(form.email, form.password);
-      navigate('/dashboard');
+      const data = await login(form.email, form.password);
+      if (data?.user?.role === 1) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

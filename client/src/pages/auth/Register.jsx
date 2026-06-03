@@ -18,8 +18,12 @@ export default function Register() {
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
     setLoading(true);
     try {
-      await register(form.name, form.email, form.password);
-      navigate('/dashboard');
+      const data = await register(form.name, form.email, form.password);
+      if (data?.user?.role === 1) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {

@@ -39,7 +39,7 @@ namespace InterviewPro.API.Controllers
             return Ok(new 
             { 
                 token = token,
-                user = new { createdUser.Id, createdUser.Name, createdUser.Email }
+                user = new { createdUser.Id, createdUser.Name, createdUser.Email, createdUser.Role }
             });
         }
 
@@ -56,7 +56,7 @@ namespace InterviewPro.API.Controllers
             return Ok(new
             {
                 token = token,
-                user = new { user.Id, user.Name, user.Email }
+                user = new { user.Id, user.Name, user.Email, user.Role }
             });
         }
 
@@ -66,7 +66,8 @@ namespace InterviewPro.API.Controllers
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name)
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Role, user.Role == 1 ? "Admin" : "User")
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));

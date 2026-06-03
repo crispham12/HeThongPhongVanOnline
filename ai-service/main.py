@@ -8,6 +8,7 @@ import os
 
 from services.openai_service import call_openai
 from prompts.prompts import QUESTION_PROMPTS, EVALUATION_PROMPTS, ROADMAP_PROMPT
+from routes.hr import router as hr_router
 
 app = FastAPI(title="InterviewPro AI Service")
 
@@ -19,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register HR Interview router
+app.include_router(hr_router)
 
 class InterviewSetup(BaseModel):
     role: str

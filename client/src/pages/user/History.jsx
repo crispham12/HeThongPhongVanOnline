@@ -65,7 +65,7 @@ export default function History() {
                 <td className="px-6 py-4">
                   <button
                     id={`btn-review-${s.id}`}
-                    onClick={() => navigate(`/result/${s.id}`)}
+                    onClick={() => navigate(`/evaluation/${s.id}`)}
                     className="flex items-center gap-1 text-primary-600 text-xs font-semibold hover:underline"
                   >
                     <Eye className="w-3.5 h-3.5" /> Review
