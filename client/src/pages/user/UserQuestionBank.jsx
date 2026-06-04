@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search, ChevronRight, CheckCircle2, Circle, BookOpen,
   Code2, Users, Flame, Trophy, Star, ArrowRight,
@@ -17,10 +18,12 @@ const TABS = [
 ];
 
 export default function UserQuestionBank() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('HR');
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [items, setItems] = useState([]);
   const [progress, setProgress] = useState({
@@ -40,6 +43,10 @@ export default function UserQuestionBank() {
     fetchData();
   }, [activeTab, difficultyFilter, searchQuery]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [difficultyFilter, statusFilter, searchQuery]);
+
   const fetchProgress = async () => {
     try {
       const data = await practiceProgressApi.getProgress();
@@ -55,7 +62,7 @@ export default function UserQuestionBank() {
       const params = {
         search: searchQuery || undefined,
         difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
-        pageSize: 50 // Load more to allow client-side status filtering
+        pageSize: 200 // Load more to allow client-side status filtering and pagination
       };
 
       const currentTab = TABS.find(t => t.key === activeTab);
@@ -82,6 +89,7 @@ export default function UserQuestionBank() {
     setDifficultyFilter('all');
     setStatusFilter('all');
     setSearchQuery('');
+    setCurrentPage(1);
   };
 
   /* Filter items by status on client side since backend doesn't support it directly yet */
@@ -94,6 +102,15 @@ export default function UserQuestionBank() {
       return true;
     });
   }, [items, statusFilter]);
+
+  const ITEMS_PER_PAGE = 10;
+
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
 
   const getDifficultyStyle = (diff) => {
     switch (diff?.toLowerCase()) {
@@ -292,7 +309,7 @@ export default function UserQuestionBank() {
                 <p className="text-xs text-gray-300 mt-1">Thử thay đổi bộ lọc hoặc tìm kiếm khác.</p>
               </div>
             ) : (
-              filteredItems.map((q) => {
+              paginatedItems.map((q) => {
                 const isCompleted = q.practiceStatus === 'Practiced' || q.practiceStatus === 'Completed';
                 return (
                   <div key={q.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors group">
@@ -328,7 +345,10 @@ export default function UserQuestionBank() {
                           Xem chi tiết
                         </button>
                       )}
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-[11px] font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                      <button
+                        onClick={() => navigate(`/question-bank/practice/${q.id}`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-[11px] font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                      >
                         <Play className="w-3.5 h-3.5" />
                         Luyện tập
                       </button>
@@ -339,10 +359,73 @@ export default function UserQuestionBank() {
             )}
           </div>
 
-          <div className="p-4 border-t border-gray-100 bg-gray-50/20 mt-auto">
+          <div className="p-4 border-t border-gray-100 bg-gray-50/20 mt-auto flex flex-col items-center gap-4">
             <p className="text-xs font-semibold text-gray-400 text-center">
-              Hiển thị <span className="font-bold text-gray-600">{filteredItems.length}</span> câu hỏi
+              Hiển thị từ <span className="font-bold text-gray-600">{filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> đến <span className="font-bold text-gray-600">{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> trong số <span className="font-bold text-gray-600">{filteredItems.length}</span> câu hỏi
             </p>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2 justify-center">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  &lt;
+                </button>
+                
+                {(() => {
+                  const pages = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (currentPage > 3) pages.push('...');
+                    
+                    const start = Math.max(2, currentPage - 1);
+                    const end = Math.min(totalPages - 1, currentPage + 1);
+                    for (let i = start; i <= end; i++) {
+                      if (!pages.includes(i)) pages.push(i);
+                    }
+                    
+                    if (currentPage < totalPages - 2) pages.push('...');
+                    if (!pages.includes(totalPages)) pages.push(totalPages);
+                  }
+                  
+                  return pages.map((page, idx) => {
+                    if (page === '...') {
+                      return (
+                        <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400 font-semibold">
+                          ...
+                        </span>
+                      );
+                    }
+                    const isActive = currentPage === page;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl border text-sm font-bold transition-all ${
+                          isActive
+                            ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  });
+                })()}
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

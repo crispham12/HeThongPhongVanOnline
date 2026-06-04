@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,15 +37,17 @@ const DEFAULT_TECH_STACK = [
 
 export default function AdminAddQuestion() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [tags, setTags] = useState(['React', 'Frontend']);
   const [tagInput, setTagInput] = useState('');
   const [techStack, setTechStack] = useState(['TypeScript', 'Node.js']);
   const [techSearch, setTechSearch] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const { register, handleSubmit, control, watch, formState: { errors, isDirty } } = useForm({
+  const { register, handleSubmit, control, watch, reset, setValue, formState: { errors, isDirty } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       title: '',
@@ -66,6 +68,58 @@ export default function AdminAddQuestion() {
     }
   });
 
+  useEffect(() => {
+    if (id) {
+      const fetchDetail = async () => {
+        setFetching(true);
+        try {
+          const data = await adminQuestionBankApi.getById(id);
+          reset({
+            title: data.title || '',
+            content: data.content || '',
+            expectedAnswerGuide: data.expectedAnswerGuide || '',
+            exampleAnswer: data.exampleAnswer || '',
+            category: data.category === 'Technical' ? 'Kỹ thuật (Technical)' : (data.category || 'Kỹ thuật (Technical)'),
+            role: data.role || 'Software Engineer',
+            difficulty: data.difficulty || 'Vừa',
+            source: data.source || 'Human',
+            aiModel: data.aiModel || 'GPT-4o',
+            generationPrompt: data.generationPrompt || '',
+            confidenceScore: data.confidenceScore || 92,
+            status: data.status || 'Published',
+            allowAIUse: data.allowAIUse !== false,
+            allowRandomSelection: data.allowRandomSelection !== false,
+            adminOnly: data.isClientVisible === false
+          });
+          
+          if (data.tagsJson) {
+            try {
+              setTags(JSON.parse(data.tagsJson));
+            } catch (e) {
+              setTags([]);
+            }
+          }
+          if (data.techStackJson) {
+            try {
+              setTechStack(JSON.parse(data.techStackJson));
+            } catch (e) {
+              setTechStack([]);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch question details", error);
+          setToast({
+            type: 'error',
+            message: 'Không thể tải chi tiết câu hỏi.'
+          });
+        } finally {
+          setFetching(false);
+        }
+      };
+      fetchDetail();
+    }
+  }, [id, reset]);
+
   const watchContent = watch('content') || '';
   const watchTitle = watch('title') || '';
   const watchExpectedAnswerGuide = watch('expectedAnswerGuide') || '';
@@ -81,6 +135,13 @@ export default function AdminAddQuestion() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // Set default role to 'All' when category is HR
+  useEffect(() => {
+    if (watchCategory === 'HR') {
+      setValue('role', 'All');
+    }
+  }, [watchCategory, setValue]);
 
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
@@ -106,9 +167,6 @@ export default function AdminAddQuestion() {
 
   const onSubmit = async (data, actionType) => {
     setLoading(true);
-    // Simulate API request delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setLoading(false);
 
     try {
       const payload = {
@@ -116,28 +174,33 @@ export default function AdminAddQuestion() {
         content: `${data.content}`,
         expectedAnswerGuide: data.expectedAnswerGuide || '',
         exampleAnswer: data.exampleAnswer || '',
-        category: data.category === 'Kỹ thuật (Technical)' ? 'Technical' : data.category, // Map back to Technical
-        role: data.role,
+        category: data.category === 'Kỹ thuật (Technical)' ? 'Technical' : data.category,
+        role: data.category === 'HR' ? 'All' : data.role,
         difficulty: data.difficulty,
         techStackJson: JSON.stringify(techStack),
         tagsJson: JSON.stringify(tags),
-        source: data.source,
+        source: data.source || 'Human',
         status: actionType === 'draft' ? 'Draft' : 'Published',
         allowAIUse: data.allowAIUse,
         allowRandomSelection: data.allowRandomSelection,
         isClientVisible: !data.adminOnly
       };
 
-      await adminQuestionBankApi.create(payload);
+      if (id) {
+        await adminQuestionBankApi.update(id, payload);
+      } else {
+        await adminQuestionBankApi.create(payload);
+      }
 
       setToast({
         type: 'success',
-        message: actionType === 'draft' 
-          ? 'Lưu câu hỏi nháp thành công!' 
-          : 'Xuất bản câu hỏi mới thành công!'
+        message: id 
+          ? 'Cập nhật câu hỏi thành công!' 
+          : (actionType === 'draft' 
+            ? 'Lưu câu hỏi nháp thành công!' 
+            : 'Xuất bản câu hỏi mới thành công!')
       });
 
-      // Navigate back to the list page after showing toast
       setTimeout(() => {
         navigate('/admin/question-bank');
       }, 1500);
@@ -147,6 +210,8 @@ export default function AdminAddQuestion() {
         type: 'error',
         message: 'Đã có lỗi xảy ra khi lưu câu hỏi.'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -194,14 +259,14 @@ export default function AdminAddQuestion() {
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="hover:text-gray-900 cursor-pointer transition-colors" onClick={() => navigate('/admin/question-bank')}>Ngân hàng câu hỏi</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#2563EB]">Thêm câu hỏi</span>
+          <span className="text-[#2563EB]">{id ? 'Sửa câu hỏi' : 'Thêm câu hỏi'}</span>
         </nav>
 
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Thêm câu hỏi</h1>
-            <p className="text-sm text-gray-500 mt-1">Tạo câu hỏi mới cho hệ thống phỏng vấn AI.</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">{id ? 'Sửa câu hỏi' : 'Thêm câu hỏi'}</h1>
+            <p className="text-sm text-gray-500 mt-1">{id ? 'Chỉnh sửa chi tiết câu hỏi cho hệ thống phỏng vấn AI.' : 'Tạo câu hỏi mới cho hệ thống phỏng vấn AI.'}</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
@@ -223,7 +288,7 @@ export default function AdminAddQuestion() {
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              Publish Question
+              {id ? 'Cập nhật câu hỏi' : 'Publish Question'}
             </button>
           </div>
         </div>
@@ -266,28 +331,6 @@ export default function AdminAddQuestion() {
               </div>
             </div>
 
-            {/* Section B: Expected Answer Guide */}
-            <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-[#E2E8F0] flex justify-between items-center bg-gray-50/50">
-                <span className="text-xs font-black text-gray-600 tracking-wider">HƯỚNG DẪN ĐÁP ÁN</span>
-                <div className="flex items-center gap-1 text-gray-500">
-                  <button type="button" className="p-1.5 hover:bg-gray-200 hover:text-gray-800 rounded transition-colors"><Bold className="w-4 h-4" /></button>
-                  <button type="button" className="p-1.5 hover:bg-gray-200 hover:text-gray-800 rounded transition-colors"><Italic className="w-4 h-4" /></button>
-                  <button type="button" className="p-1.5 hover:bg-gray-200 hover:text-gray-800 rounded transition-colors"><List className="w-4 h-4" /></button>
-                  <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                  <button type="button" className="p-1.5 hover:bg-gray-200 hover:text-gray-800 rounded transition-colors"><Code className="w-4 h-4" /></button>
-                  <button type="button" className="p-1.5 hover:bg-gray-200 hover:text-gray-800 rounded transition-colors"><Link className="w-4 h-4" /></button>
-                </div>
-              </div>
-              <div className="p-6">
-                <textarea 
-                  rows={5}
-                  {...register('expectedAnswerGuide')}
-                  placeholder="Viết các ý chính hoặc tiêu chí đánh giá cho câu trả lời đúng..."
-                  className="w-full px-4 py-3 bg-white border border-[#E2E8F0] rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-[#2563EB] transition-all resize-none"
-                />
-              </div>
-            </div>
 
             {/* Section C: Optional Example Answer */}
             <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-sm">
@@ -344,7 +387,6 @@ export default function AdminAddQuestion() {
                     <option value="Kỹ thuật (Technical)">Kỹ thuật (Technical)</option>
                     <option value="HR">HR</option>
                     <option value="Coding">Coding</option>
-                    <option value="GitHub">GitHub</option>
                   </select>
                 </div>
 
@@ -353,13 +395,20 @@ export default function AdminAddQuestion() {
                   <label className="block text-xs font-black text-gray-500 mb-2 tracking-wide uppercase">Vai trò (Role)</label>
                   <select 
                     {...register('role')}
-                    className="w-full py-3 px-4 bg-white border border-[#E2E8F0] rounded-xl text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-[#2563EB] transition-all cursor-pointer"
+                    disabled={watchCategory === 'HR'}
+                    className="w-full py-3 px-4 bg-white border border-[#E2E8F0] rounded-xl text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-[#2563EB] transition-all cursor-pointer disabled:bg-gray-50 disabled:cursor-not-allowed"
                   >
-                    <option value="Software Engineer">Software Engineer</option>
-                    <option value="Backend Developer">Backend Developer</option>
-                    <option value="Frontend Developer">Frontend Developer</option>
-                    <option value="Fullstack Developer">Fullstack Developer</option>
-                    <option value="AI Engineer">AI Engineer</option>
+                    {watchCategory === 'HR' ? (
+                      <option value="All">All</option>
+                    ) : (
+                      <>
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Backend Developer">Backend Developer</option>
+                        <option value="Frontend Developer">Frontend Developer</option>
+                        <option value="Fullstack Developer">Fullstack Developer</option>
+                        <option value="AI Engineer">AI Engineer</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -425,76 +474,7 @@ export default function AdminAddQuestion() {
               </div>
             </div>
 
-            {/* Card 3: Question Source & Conditional AI Settings */}
-            <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-sm space-y-4">
-              <h2 className="text-sm font-black text-gray-800 tracking-wide uppercase">Nguồn câu hỏi</h2>
-              
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    value="Human"
-                    {...register('source')}
-                    className="w-4.5 h-4.5 text-[#2563EB] border-gray-300 focus:ring-[#2563EB]/25"
-                  />
-                  <span className="text-xs font-bold text-gray-700">Human</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    value="AI Assistant"
-                    {...register('source')}
-                    className="w-4.5 h-4.5 text-[#2563EB] border-gray-300 focus:ring-[#2563EB]/25"
-                  />
-                  <span className="text-xs font-bold text-gray-700">AI Assistant</span>
-                </label>
-              </div>
 
-              {/* Conditional AI Fields */}
-              <AnimatePresence>
-                {watchSource === 'AI Assistant' && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden space-y-3 pt-3 border-t border-gray-100"
-                  >
-                    <div>
-                      <label className="block text-[11px] font-black text-gray-500 mb-1.5 uppercase">AI Model</label>
-                      <select 
-                        {...register('aiModel')}
-                        className="w-full py-2 px-3 bg-white border border-[#E2E8F0] rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-[#2563EB] transition-all cursor-pointer"
-                      >
-                        <option value="GPT-4o">GPT-4o</option>
-                        <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet</option>
-                        <option value="Gemini Pro 1.5">Gemini Pro 1.5</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-black text-gray-500 mb-1.5 uppercase">Generation Prompt</label>
-                      <textarea 
-                        rows={3}
-                        {...register('generationPrompt')}
-                        placeholder="Prompt được sử dụng để generate..."
-                        className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-[#2563EB] transition-all resize-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-black text-gray-500 mb-1.5 uppercase">Confidence Score: {watch('confidenceScore')}%</label>
-                      <input 
-                        type="range"
-                        min="0"
-                        max="100"
-                        {...register('confidenceScore', { valueAsNumber: true })}
-                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
 
             {/* Card 4: Status Selector & Permissions */}
             <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-sm space-y-5">
@@ -576,14 +556,16 @@ export default function AdminAddQuestion() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
-            type="button"
-            onClick={handleSubmit(data => onSubmit(data, 'draft'), onInvalid)}
-            disabled={loading}
-            className="px-6 py-2.5 bg-gray-100 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-200 transition-all disabled:opacity-75"
-          >
-            Lưu bản nháp
-          </button>
+          {!id && (
+            <button 
+              type="button"
+              onClick={handleSubmit(data => onSubmit(data, 'draft'), onInvalid)}
+              disabled={loading}
+              className="px-6 py-2.5 bg-gray-100 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-200 transition-all disabled:opacity-75"
+            >
+              Lưu bản nháp
+            </button>
+          )}
           <button 
             type="button"
             onClick={handleSubmit(data => onSubmit(data, 'publish'), onInvalid)}
@@ -591,7 +573,7 @@ export default function AdminAddQuestion() {
             className="flex items-center gap-2 px-6 py-2.5 bg-[#2563EB] text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 disabled:opacity-75"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Lưu & Công khai
+            {id ? 'Cập nhật thay đổi' : 'Lưu & Công khai'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

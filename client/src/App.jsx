@@ -14,6 +14,7 @@ import EvaluationResult from './pages/user/EvaluationResult';
 import History from './pages/user/History';
 import CreateCV from './pages/user/CreateCV';
 import UserQuestionBank from './pages/user/UserQuestionBank';
+import PracticeQuestion from './pages/user/PracticeQuestion';
 import AdminTemplates from './pages/admin/AdminTemplates';
 import AdminTemplateEditor from './pages/admin/AdminTemplateEditor';
 import AdminLayout from './components/layout/AdminLayout';
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/history" element={<History />} />
             <Route path="/create-cv" element={<CreateCV />} />
             <Route path="/question-bank" element={<UserQuestionBank />} />
+            <Route path="/question-bank/practice/:id" element={<PracticeQuestion />} />
 
             {/* Admin template management inside standard layout */}
           </Route>
@@ -83,6 +85,7 @@ export default function App() {
             <Route path="/admin/ai-monitor" element={<AdminAIMonitor />} />
             <Route path="/admin/question-bank" element={<AdminQuestionBank />} />
             <Route path="/admin/question-bank/add" element={<AdminAddQuestion />} />
+            <Route path="/admin/question-bank/edit/:id" element={<AdminAddQuestion />} />
             <Route path="/admin/coding-bank" element={<AdminCodingBank />} />
             <Route path="/admin/templates" element={<AdminTemplates />} />
             <Route path="/admin/logs" element={<AdminSystemLogs />} />

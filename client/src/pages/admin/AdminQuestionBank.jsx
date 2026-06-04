@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MoreVertical, CheckCircle2, XCircle, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, CheckCircle2, XCircle, MoreHorizontal, Trash2, Pencil, MoreVertical } from 'lucide-react';
 
 import { adminQuestionBankApi } from '../../services/questionBankApi';
 
@@ -43,6 +43,8 @@ function StatusBadge({ status }) {
 export default function AdminQuestionBank() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
   
   // Filter States
   const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
@@ -54,6 +56,21 @@ export default function AdminQuestionBank() {
   
   // Filtered List state
   const [filteredQuestions, setFilteredQuestions] = useState([]);
+
+  // Pagination
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchQuestions = async () => {
     try {
@@ -125,6 +142,7 @@ export default function AdminQuestionBank() {
     }
 
     setFilteredQuestions(result);
+    setCurrentPage(1);
   };
 
   // Run filter on click or when search query is cleared
@@ -146,6 +164,25 @@ export default function AdminQuestionBank() {
         alert('Xóa thất bại');
       }
     }
+  };
+
+  const totalPages = Math.ceil(filteredQuestions.length / PAGE_SIZE);
+  const paginatedQuestions = filteredQuestions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
@@ -248,7 +285,7 @@ export default function AdminQuestionBank() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredQuestions.map((q, idx) => (
+              {paginatedQuestions.map((q, idx) => (
                 <tr key={q.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-6 px-6 text-sm font-black text-gray-900">#Q-{q.id}</td>
                   <td className="py-6 px-6">
@@ -274,13 +311,31 @@ export default function AdminQuestionBank() {
                     <StatusBadge status={q.status} />
                   </td>
                   <td className="py-6 px-6 text-right">
-                    <button 
-                      onClick={() => handleDelete(q.id)}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Xóa câu hỏi"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="relative inline-block" ref={openMenuId === q.id ? menuRef : null}>
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
+                        className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Tùy chọn"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                      {openMenuId === q.id && (
+                        <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden">
+                          <button
+                            onClick={() => { setOpenMenuId(null); navigate(`/admin/question-bank/edit/${q.id}`); }}
+                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" /> Sửa
+                          </button>
+                          <button
+                            onClick={() => { setOpenMenuId(null); handleDelete(q.id); }}
+                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" /> Xóa
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -296,10 +351,48 @@ export default function AdminQuestionBank() {
         </div>
         
         {/* Pagination */}
-        <div className="p-6 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
+        <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30">
           <p className="text-sm font-medium text-gray-500">
-            Hiển thị <span className="font-bold text-gray-900">{filteredQuestions.length}</span> câu hỏi
+            Hiển thị <span className="font-bold text-gray-900">{Math.min(currentPage * PAGE_SIZE, filteredQuestions.length)}</span> / <span className="font-bold text-gray-900">{filteredQuestions.length}</span> câu hỏi
           </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              {/* Prev */}
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                &lt;
+              </button>
+              {/* Page numbers */}
+              {getPageNumbers().map((p, i) =>
+                p === '...' ? (
+                  <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-colors border ${
+                      currentPage === p
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+              {/* Next */}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

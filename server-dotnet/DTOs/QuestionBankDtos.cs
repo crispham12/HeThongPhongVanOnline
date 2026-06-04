@@ -154,6 +154,8 @@ public class QuestionDetailDto
     public string? TechStackJson { get; set; }
     public string? TagsJson { get; set; }
     public string PracticeStatus { get; set; } = "NotStarted";
+    public float? HighestScore { get; set; }
+    public string? LastAttemptAt { get; set; }
 }
 
 public record SubmitQuestionAnswerRequest(string Answer);
@@ -166,6 +168,13 @@ public class SubmitQuestionAnswerResult
     public string? StrengthsJson { get; set; }
     public string? WeaknessesJson { get; set; }
     public string? ImprovementSuggestionsJson { get; set; }
+    
+    // STAR fields
+    public int StarCompletion { get; set; }
+    public InterviewPro.API.Interfaces.StarChecklist StarChecklist { get; set; } = new();
+    public InterviewPro.API.Interfaces.StarAnalysisResult StarAnalysis { get; set; } = new();
+    public InterviewPro.API.Interfaces.ImprovedAnswerResult ImprovedAnswer { get; set; } = new();
+    public string NextRecommendation { get; set; } = string.Empty;
 }
 
 // ══════════════════════════════════════════════════

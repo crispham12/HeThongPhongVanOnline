@@ -68,17 +68,57 @@ namespace InterviewPro.API.Interfaces
 
     public class AiEvaluationResult
     {
+        // Legacy fields (kept for compatibility)
+        public double QuestionScore { get; set; }
         public double CommunicationScore { get; set; }
         public double ClarityScore { get; set; }
         public double StarScore { get; set; }
         public double ProfessionalMindsetScore { get; set; }
         public double RelevanceScore { get; set; }
-        public double QuestionScore { get; set; }
         public string Level { get; set; } = string.Empty;
         public string Feedback { get; set; } = string.Empty;
         public List<string> Strengths { get; set; } = new();
         public List<string> Weaknesses { get; set; } = new();
         public List<string> ImprovementSuggestions { get; set; } = new();
+
+        // New STAR fields
+        public double OverallScore { get; set; }
+        public string Summary { get; set; } = string.Empty;
+        public int StarCompletion { get; set; }
+        public StarChecklist StarChecklist { get; set; } = new();
+        public StarAnalysisResult StarAnalysis { get; set; } = new();
+        public ImprovedAnswerResult ImprovedAnswer { get; set; } = new();
+        public string NextRecommendation { get; set; } = string.Empty;
+    }
+
+    public class StarChecklist
+    {
+        public bool Situation { get; set; }
+        public bool Task { get; set; }
+        public bool Action { get; set; }
+        public bool Result { get; set; }
+    }
+
+    public class StarScoreItem
+    {
+        public double Score { get; set; }
+        public string Feedback { get; set; } = string.Empty;
+    }
+
+    public class StarAnalysisResult
+    {
+        public StarScoreItem Situation { get; set; } = new();
+        public StarScoreItem Task { get; set; } = new();
+        public StarScoreItem Action { get; set; } = new();
+        public StarScoreItem Result { get; set; } = new();
+    }
+
+    public class ImprovedAnswerResult
+    {
+        public string Situation { get; set; } = string.Empty;
+        public string Task { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string Result { get; set; } = string.Empty;
     }
 
     public class AiAnswerSummary

@@ -108,6 +108,21 @@ namespace InterviewPro.API.Services
                 var result = JsonSerializer.Deserialize<AiEvaluationResult>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
+                if (result != null)
+                {
+                    result.QuestionScore = result.OverallScore;
+                    result.CommunicationScore = result.OverallScore;
+                    result.ClarityScore = result.OverallScore;
+                    result.StarScore = result.StarAnalysis != null ? 
+                        (result.StarAnalysis.Situation.Score * 0.20 + 
+                         result.StarAnalysis.Task.Score * 0.20 + 
+                         result.StarAnalysis.Action.Score * 0.30 + 
+                         result.StarAnalysis.Result.Score * 0.30) : result.OverallScore;
+                    result.ProfessionalMindsetScore = result.OverallScore;
+                    result.RelevanceScore = result.OverallScore;
+                    result.Feedback = result.Summary;
+                }
+
                 sw.Stop();
                 log.ResponseTimeMs = sw.ElapsedMilliseconds;
                 return result ?? BuildFallbackEvaluation();

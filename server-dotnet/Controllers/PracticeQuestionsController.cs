@@ -1,5 +1,6 @@
 using InterviewPro.API.Data;
 using InterviewPro.API.DTOs;
+using InterviewPro.API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +18,13 @@ namespace InterviewPro.API.Controllers
     public class PracticeQuestionsController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly IHrAiClient _aiClient;
 
-        public PracticeQuestionsController(AppDbContext db) => _db = db;
+        public PracticeQuestionsController(AppDbContext db, IHrAiClient aiClient)
+        {
+            _db = db;
+            _aiClient = aiClient;
+        }
 
         private int GetUserId() =>
             int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -118,6 +124,12 @@ namespace InterviewPro.API.Controllers
                 .OrderByDescending(h => h.CreatedAt)
                 .FirstOrDefaultAsync();
 
+            var maxScoreQuery = await _db.UserQuestionPracticeHistories
+                .Where(h => h.UserId == userId && h.QuestionId == id)
+                .Select(h => (float?)h.AiScore)
+                .ToListAsync();
+            float? maxScore = maxScoreQuery.Any() ? maxScoreQuery.Max() : null;
+
             return Ok(new QuestionDetailDto
             {
                 Id = q.Id,
@@ -130,13 +142,12 @@ namespace InterviewPro.API.Controllers
                 Difficulty = q.Difficulty,
                 TechStackJson = q.TechStackJson,
                 TagsJson = q.TagsJson,
-                PracticeStatus = latestHistory?.PracticeStatus ?? "NotStarted"
+                PracticeStatus = latestHistory?.PracticeStatus ?? "NotStarted",
+                HighestScore = maxScore,
+                LastAttemptAt = latestHistory?.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
             });
         }
 
-        // ─────────────────────────────────────────────
-        // POST /api/practice/questions/{id}/submit
-        // ─────────────────────────────────────────────
         [HttpPost("{id}/submit")]
         public async Task<IActionResult> Submit(int id, [FromBody] SubmitQuestionAnswerRequest req)
         {
@@ -151,13 +162,36 @@ namespace InterviewPro.API.Controllers
             if (string.IsNullOrWhiteSpace(req.Answer))
                 return BadRequest(new { message = "Câu trả lời không được để trống." });
 
-            // Save practice history (AI evaluation can be added here later)
+            var techStack = new List<string>();
+            if (!string.IsNullOrEmpty(q.TechStackJson))
+            {
+                try
+                {
+                    techStack = System.Text.Json.JsonSerializer.Deserialize<List<string>>(q.TechStackJson) ?? new List<string>();
+                }
+                catch {}
+            }
+
+            var aiResult = await _aiClient.EvaluateHrAnswerAsync(
+                q.Role ?? "Developer",
+                q.Difficulty ?? "Fresher",
+                techStack,
+                q.Content,
+                req.Answer
+            );
+
+            // Save practice history
             var history = new Entities.UserQuestionPracticeHistory
             {
                 UserId = userId,
                 QuestionId = id,
                 UserAnswer = req.Answer,
                 PracticeStatus = "Practiced",
+                AiScore = (float)aiResult.QuestionScore,
+                AiFeedback = aiResult.Feedback,
+                StrengthsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Strengths),
+                WeaknessesJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Weaknesses),
+                ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.ImprovementSuggestions),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -167,11 +201,16 @@ namespace InterviewPro.API.Controllers
             return Ok(new SubmitQuestionAnswerResult
             {
                 PracticeId = history.Id,
-                Score = null,
-                Feedback = "Câu trả lời đã được lưu. AI đánh giá sẽ được cập nhật sau.",
-                StrengthsJson = "[]",
-                WeaknessesJson = "[]",
-                ImprovementSuggestionsJson = "[]"
+                Score = history.AiScore,
+                Feedback = history.AiFeedback,
+                StrengthsJson = history.StrengthsJson,
+                WeaknessesJson = history.WeaknessesJson,
+                ImprovementSuggestionsJson = history.ImprovementSuggestionsJson,
+                StarCompletion = aiResult.StarCompletion,
+                StarChecklist = aiResult.StarChecklist,
+                StarAnalysis = aiResult.StarAnalysis,
+                ImprovedAnswer = aiResult.ImprovedAnswer,
+                NextRecommendation = aiResult.NextRecommendation
             });
         }
     }
