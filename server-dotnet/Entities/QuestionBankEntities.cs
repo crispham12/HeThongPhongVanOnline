@@ -56,7 +56,10 @@ namespace InterviewPro.API.Entities
     // ─────────────────────────────────────────────────
     public class CodingProblem
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        public string ProblemCode { get; set; } = string.Empty;
 
         [Required]
         public string Title { get; set; } = string.Empty;
@@ -69,29 +72,34 @@ namespace InterviewPro.API.Entities
         /// <summary>Easy | Medium | Hard</summary>
         public string Difficulty { get; set; } = "Easy";
 
-        public string Category { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        /// <summary>JSON array of category strings, e.g. ["Array", "HashMap"]</summary>
+        public string CategoriesJson { get; set; } = "[]";
 
-        /// <summary>JSON array of tag strings</summary>
-        public string? TagsJson { get; set; }
+        public string RecommendedLevel { get; set; } = string.Empty;
 
         public string? InputFormat { get; set; }
         public string? OutputFormat { get; set; }
 
         /// <summary>JSON array of constraint strings</summary>
-        public string? ConstraintsJson { get; set; }
+        public string ConstraintsJson { get; set; } = "[]";
 
         /// <summary>JSON array of {input, output, explanation} objects</summary>
-        public string? ExamplesJson { get; set; }
+        public string ExamplesJson { get; set; } = "[]";
+
+        /// <summary>JSON array of test case objects (public)</summary>
+        public string PublicTestCasesJson { get; set; } = "[]";
 
         /// <summary>JSON array of test case objects (hidden)</summary>
-        public string? TestCasesJson { get; set; }
+        public string HiddenTestCasesJson { get; set; } = "[]";
+
+        /// <summary>JSON array of supported languages, e.g. ["Java", "Python"]</summary>
+        public string SupportedLanguagesJson { get; set; } = "[]";
 
         /// <summary>JSON map: {"Java": "...", "Python": "..."}</summary>
-        public string? StarterCodeJson { get; set; }
+        public string StarterCodeJson { get; set; } = "{}";
 
-        /// <summary>JSON map of solutions (hidden from client until submit)</summary>
-        public string? SolutionJson { get; set; }
+        /// <summary>JSON map of solutions: {"idea": "...", "timeComplexity": "...", "spaceComplexity": "...", "code": "..."}</summary>
+        public string SolutionJson { get; set; } = "{}";
 
         /// <summary>Draft | Published | Disabled</summary>
         public string Status { get; set; } = "Draft";
@@ -100,10 +108,20 @@ namespace InterviewPro.API.Entities
 
         /// <summary>Controls whether Client can see this problem</summary>
         public bool IsClientVisible { get; set; } = true;
+        
+        /// <summary>JSON array of target skills, e.g. ["Array", "HashMap"]</summary>
+        public string TargetSkillsJson { get; set; } = "[]";
 
-        public int CreatedByAdminId { get; set; }
+        public int EstimatedMinutes { get; set; } = 15;
+
+        public string FunctionName { get; set; } = string.Empty;
+        public string MethodSignature { get; set; } = string.Empty;
+        public string ReturnType { get; set; } = string.Empty;
+
+        public Guid CreatedByAdminId { get; set; }
+        public string CreatedByAdminName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
     }
 
     // ─────────────────────────────────────────────────
@@ -133,13 +151,16 @@ namespace InterviewPro.API.Entities
     }
 
     // ─────────────────────────────────────────────────
-    // User Coding Practice History
+    // Coding Practice Attempt
     // ─────────────────────────────────────────────────
-    public class UserCodingPracticeHistory
+    public class CodingPracticeAttempt
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public int CodingProblemId { get; set; }
+        public Guid CodingProblemId { get; set; }
+
+        /// <summary>Sequential number per user per problem: 1, 2, 3...</summary>
+        public int AttemptNumber { get; set; } = 1;
 
         public string Language { get; set; } = string.Empty;
         public string SubmittedCode { get; set; } = string.Empty;
@@ -147,14 +168,57 @@ namespace InterviewPro.API.Entities
         public int PassedTestCases { get; set; }
         public int TotalTestCases { get; set; }
 
-        /// <summary>Accepted | Failed | RuntimeError | CompileError</summary>
+        public float? Score { get; set; }
+
+        /// <summary>Estimated execution time in milliseconds</summary>
+        public int? RuntimeMs { get; set; }
+
+        /// <summary>Estimated memory usage in MB</summary>
+        public float? MemoryUsageMb { get; set; }
+
+        /// <summary>JSON: {strengths[], weaknesses[], suggestions[], timeComplexity, spaceComplexity}</summary>
+        public string AiFeedbackJson { get; set; } = "{}";
+
+        /// <summary>Accepted | Failed | RuntimeError | CompileError | Timeout</summary>
         public string Status { get; set; } = "Failed";
 
-        public float? AiScore { get; set; }
-        public string? AiFeedback { get; set; }
-        public string? TimeComplexity { get; set; }
-        public string? SpaceComplexity { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // Navigation
+        public CodingProblem? CodingProblem { get; set; }
+    }
+
+    // ─────────────────────────────────────────────────
+    // User Coding Problem Progress (per user per problem)
+    // ─────────────────────────────────────────────────
+    public class UserCodingProblemProgress
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public Guid CodingProblemId { get; set; }
+
+        public float? BestScore { get; set; }
+        public float? LatestScore { get; set; }
+        public int AttemptCount { get; set; }
+
+        /// <summary>True when at least one attempt has Status = Accepted</summary>
+        public bool IsSolved { get; set; }
+
+        public DateTime? LastAttemptAt { get; set; }
+
+        // Navigation
+        public CodingProblem? CodingProblem { get; set; }
+    }
+
+    // ─────────────────────────────────────────────────
+    // Coding Assessment History (per user per problem/session)
+    // ─────────────────────────────────────────────────
+    public class CodingAssessmentHistory
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public Guid CodingProblemId { get; set; }
+        public Guid InterviewSessionId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation

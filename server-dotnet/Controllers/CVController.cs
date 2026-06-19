@@ -6,6 +6,9 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
+using System.Diagnostics;
+using InterviewPro.API.Interfaces;
+using InterviewPro.API.DTOs;
 
 namespace InterviewPro.API.Controllers
 {
@@ -16,11 +19,16 @@ namespace InterviewPro.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IAiRequestLogService _aiRequestLogService;
 
-        public CVController(AppDbContext context, IHttpClientFactory httpClientFactory)
+        public CVController(
+            AppDbContext context,
+            IHttpClientFactory httpClientFactory,
+            IAiRequestLogService aiRequestLogService)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
+            _aiRequestLogService = aiRequestLogService;
         }
 
         [HttpGet]
@@ -118,6 +126,12 @@ namespace InterviewPro.API.Controllers
                 skills = JsonSerializer.Deserialize<List<string>>(request.Skills)
             };
 
+            var sw = Stopwatch.StartNew();
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            string model = "gpt-4o-mini";
+            string status = "Success";
+            string? errorMessage = null;
+
             int score = 80;
             string feedback = "API Key OpenAI chưa cấu hình. Đây là phản hồi giả lập từ hệ thống phân tích CV.";
 
@@ -126,7 +140,10 @@ namespace InterviewPro.API.Controllers
                 var response = await aiClient.PostAsJsonAsync("/ai/analyze-cv", aiRequest);
                 if (response.IsSuccessStatusCode)
                 {
-                    var eval = await response.Content.ReadFromJsonAsync<AiServiceResponse>();
+                    var json = await response.Content.ReadAsStringAsync();
+                    ParseTokenUsage(json, out model, out inputTokens, out outputTokens, out totalTokens);
+
+                    var eval = JsonSerializer.Deserialize<AiServiceResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     if (eval != null)
                     {
                         score = eval.score;
@@ -135,12 +152,33 @@ namespace InterviewPro.API.Controllers
                 }
                 else
                 {
-                    Console.WriteLine($"⚠️ AI Service returned non-success status: {response.StatusCode}");
+                    status = "Failed";
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"AI Service returned non-success status: {response.StatusCode}. Details: {errorMsg}";
+                    Console.WriteLine($"⚠️ {errorMessage}");
                 }
             }
             catch (Exception ex)
             {
+                status = "Failed";
+                errorMessage = ex.Message;
                 Console.WriteLine($"⚠️ Error calling AI Service: {ex.Message}");
+            }
+            finally
+            {
+                sw.Stop();
+                await _aiRequestLogService.LogAsync(new AiRequestLogCreateDto
+                {
+                    Feature = "CVAnalysis",
+                    RequestType = "AnalyzeCV",
+                    Model = model,
+                    Status = status,
+                    InputTokens = inputTokens,
+                    OutputTokens = outputTokens,
+                    TotalTokens = totalTokens,
+                    ResponseTimeMs = sw.ElapsedMilliseconds,
+                    ErrorMessage = errorMessage
+                });
             }
 
             // Save the AI insights to the database
@@ -171,6 +209,36 @@ namespace InterviewPro.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { score = cv.AiScore, feedback = cv.AiFeedback });
+        }
+
+        private void ParseTokenUsage(string json, out string model, out int inputTokens, out int outputTokens, out int totalTokens)
+        {
+            model = "gpt-4o-mini";
+            inputTokens = 0;
+            outputTokens = 0;
+            totalTokens = 0;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("usage", out var usageElem))
+                {
+                    if (usageElem.TryGetProperty("inputTokens", out var inProp)) inputTokens = inProp.GetInt32();
+                    else if (usageElem.TryGetProperty("input_tokens", out var inProp2)) inputTokens = inProp2.GetInt32();
+
+                    if (usageElem.TryGetProperty("outputTokens", out var outProp)) outputTokens = outProp.GetInt32();
+                    else if (usageElem.TryGetProperty("output_tokens", out var outProp2)) outputTokens = outProp2.GetInt32();
+
+                    if (usageElem.TryGetProperty("totalTokens", out var totProp)) totalTokens = totProp.GetInt32();
+                    else if (usageElem.TryGetProperty("total_tokens", out var totProp2)) totalTokens = totProp2.GetInt32();
+                }
+
+                if (doc.RootElement.TryGetProperty("model", out var modelElem))
+                {
+                    model = modelElem.GetString() ?? model;
+                }
+            }
+            catch { }
         }
     }
 

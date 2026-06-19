@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, CheckCircle2, XCircle, MoreHorizontal, Trash2, Pencil, MoreVertical } from 'lucide-react';
+import { Plus, Search, Filter, CheckCircle2, XCircle, MoreHorizontal, Trash2, Pencil, MoreVertical, Loader2 } from 'lucide-react';
 
 import { adminQuestionBankApi } from '../../services/questionBankApi';
 
@@ -45,6 +45,7 @@ export default function AdminQuestionBank() {
   const [questions, setQuestions] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
+  const [loading, setLoading] = useState(true);
   
   // Filter States
   const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
@@ -73,6 +74,7 @@ export default function AdminQuestionBank() {
   }, []);
 
   const fetchQuestions = async () => {
+    setLoading(true);
     try {
       // In a real scenario we might fetch coding problems here too and merge, 
       // but for now let's just fetch from the questions endpoint.
@@ -106,6 +108,8 @@ export default function AdminQuestionBank() {
       setFilteredQuestions(mapped);
     } catch (error) {
       console.error('Failed to load questions:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -145,12 +149,10 @@ export default function AdminQuestionBank() {
     setCurrentPage(1);
   };
 
-  // Run filter on click or when search query is cleared
+  // Run filter automatically when search query, filters or raw questions list changes
   useEffect(() => {
-    if (!searchQuery) {
-      handleFilter();
-    }
-  }, [searchQuery, questions]);
+    handleFilter();
+  }, [searchQuery, roleFilter, difficultyFilter, categoryFilter, questions]);
 
   const handleDelete = async (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này khỏi Ngân hàng câu hỏi?')) {
@@ -285,66 +287,76 @@ export default function AdminQuestionBank() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {paginatedQuestions.map((q, idx) => (
-                <tr key={q.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-6 px-6 text-sm font-black text-gray-900">#Q-{q.id}</td>
-                  <td className="py-6 px-6">
-                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold ${
-                      q.category.includes('Coding') ? 'bg-indigo-100 text-indigo-700' :
-                      q.category.includes('HR') ? 'bg-purple-100 text-purple-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {q.category}
-                    </span>
-                  </td>
-                  <td className="py-6 px-6">
-                    <p className="text-sm font-bold text-gray-900">{q.role}</p>
-                    <p className="text-xs font-medium text-gray-500 mt-1.5">{q.tech}</p>
-                  </td>
-                  <td className="py-6 px-6">
-                    <DifficultyDots level={q.difficultyLevel || 2} label={q.difficulty} />
-                  </td>
-                  <td className="py-6 px-6 text-sm font-medium text-gray-700 leading-relaxed max-w-md">
-                    {q.content}
-                  </td>
-                  <td className="py-6 px-6">
-                    <StatusBadge status={q.status} />
-                  </td>
-                  <td className="py-6 px-6 text-right">
-                    <div className="relative inline-block" ref={openMenuId === q.id ? menuRef : null}>
-                      <button
-                        onClick={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
-                        className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Tùy chọn"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-                      {openMenuId === q.id && (
-                        <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden">
-                          <button
-                            onClick={() => { setOpenMenuId(null); navigate(`/admin/question-bank/edit/${q.id}`); }}
-                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" /> Sửa
-                          </button>
-                          <button
-                            onClick={() => { setOpenMenuId(null); handleDelete(q.id); }}
-                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" /> Xóa
-                          </button>
-                        </div>
-                      )}
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-sm font-medium text-gray-400">
+                    <div className="flex items-center justify-center gap-2 text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                      Đang tải dữ liệu câu hỏi từ database...
                     </div>
                   </td>
                 </tr>
-              ))}
-              {filteredQuestions.length === 0 && (
+              ) : filteredQuestions.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-sm font-medium text-gray-400">
                     Không tìm thấy câu hỏi nào phù hợp với bộ lọc.
                   </td>
                 </tr>
+              ) : (
+                paginatedQuestions.map((q, idx) => (
+                  <tr key={q.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-6 px-6 text-sm font-black text-gray-900">#Q-{q.id}</td>
+                    <td className="py-6 px-6">
+                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold ${
+                        q.category.includes('Coding') ? 'bg-indigo-100 text-indigo-700' :
+                        q.category.includes('HR') ? 'bg-purple-100 text-purple-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {q.category}
+                      </span>
+                    </td>
+                    <td className="py-6 px-6">
+                      <p className="text-sm font-bold text-gray-900">{q.role}</p>
+                      <p className="text-xs font-medium text-gray-500 mt-1.5">{q.tech}</p>
+                    </td>
+                    <td className="py-6 px-6">
+                      <DifficultyDots level={q.difficultyLevel || 2} label={q.difficulty} />
+                    </td>
+                    <td className="py-6 px-6 text-sm font-medium text-gray-700 leading-relaxed max-w-md">
+                      {q.content}
+                    </td>
+                    <td className="py-6 px-6">
+                      <StatusBadge status={q.status} />
+                    </td>
+                    <td className="py-6 px-6 text-right">
+                      <div className="relative inline-block" ref={openMenuId === q.id ? menuRef : null}>
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
+                          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Tùy chọn"
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+                        {openMenuId === q.id && (
+                          <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden">
+                            <button
+                              onClick={() => { setOpenMenuId(null); navigate(`/admin/question-bank/edit/${q.id}`); }}
+                              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" /> Sửa
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenuId(null); handleDelete(q.id); }}
+                              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" /> Xóa
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

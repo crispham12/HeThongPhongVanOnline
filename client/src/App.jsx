@@ -15,6 +15,7 @@ import History from './pages/user/History';
 import CreateCV from './pages/user/CreateCV';
 import UserQuestionBank from './pages/user/UserQuestionBank';
 import PracticeQuestion from './pages/user/PracticeQuestion';
+import CodingPracticeWorkspace from './pages/user/CodingPracticeWorkspace';
 import AdminTemplates from './pages/admin/AdminTemplates';
 import AdminTemplateEditor from './pages/admin/AdminTemplateEditor';
 import AdminLayout from './components/layout/AdminLayout';
@@ -24,6 +25,7 @@ import AdminPayments from './pages/admin/AdminPayments';
 import AdminQuestionBank from './pages/admin/AdminQuestionBank';
 import AdminAddQuestion from './pages/admin/AdminAddQuestion';
 import AdminCodingBank from './pages/admin/AdminCodingBank';
+import AdminAddCodingProblem from './pages/admin/AdminAddCodingProblem';
 import AdminAIMonitor from './pages/admin/AdminAIMonitor';
 import AdminInterviewData from './pages/admin/AdminInterviewData';
 import AdminSystemLogs from './pages/admin/AdminSystemLogs';
@@ -87,6 +89,8 @@ export default function App() {
             <Route path="/admin/question-bank/add" element={<AdminAddQuestion />} />
             <Route path="/admin/question-bank/edit/:id" element={<AdminAddQuestion />} />
             <Route path="/admin/coding-bank" element={<AdminCodingBank />} />
+            <Route path="/admin/coding-bank/add" element={<AdminAddCodingProblem />} />
+            <Route path="/admin/coding-bank/edit/:id" element={<AdminAddCodingProblem />} />
             <Route path="/admin/templates" element={<AdminTemplates />} />
             <Route path="/admin/logs" element={<AdminSystemLogs />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
@@ -95,6 +99,7 @@ export default function App() {
 
           {/* Full-screen Editor outside Sidebar layout */}
           <Route path="/admin/templates/editor/:id" element={<ProtectedRoute><AdminRoute><AdminTemplateEditor /></AdminRoute></ProtectedRoute>} />
+          <Route path="/coding-practice/:id" element={<ProtectedRoute><CodingPracticeWorkspace /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

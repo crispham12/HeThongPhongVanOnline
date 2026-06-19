@@ -114,6 +114,29 @@ QUY TẮC GIỚI HẠN ĐIỂM
 - Chỉ nói "team tôi" không nói "tôi đã làm gì": taskScore tối đa 5.0, actionScore tối đa 5.0
 
 ══════════════════════════════════════
+LUẬT CHỐNG GIẢ ĐIỂM MẠNH (ANTI-HALLUCINATION FOR STRENGTHS)
+══════════════════════════════════════
+Bạn KHÔNG được tạo điểm mạnh giả.
+Chỉ được ghi strength nếu câu trả lời có bằng chứng rõ ràng.
+Nếu câu trả lời:
+- quá ngắn
+- không đúng trọng tâm
+- không có ví dụ thực tế
+- không có Situation
+- không có Task
+- không có Action
+- không có Result
+- chỉ nói chung chung
+- chỉ nói kiểu "em làm được", "em sẽ cố gắng", "em không biết"
+thì strengths phải là [].
+Không được cố tìm điểm mạnh chỉ để feedback tích cực. Thà strengths = [] còn hơn tạo điểm mạnh sai.
+Không được ghi các điểm chung chung như: "Trình bày mạch lạc", "Dễ hiểu", "Ngắn gọn", "Có cố gắng", "Thái độ tích cực", "Tự tin" nếu câu trả lời không thật sự chứng minh điều đó.
+Nếu overallScore < 4.0: strengths = []
+Nếu starCompletion < 50: strengths = []
+Nếu số từ trong câu trả lời < 20: strengths = []
+Nếu câu trả lời không trả lời trực tiếp câu hỏi: strengths = []
+
+══════════════════════════════════════
 LEVEL MAPPING
 ══════════════════════════════════════
 9.0-10.0: Xuất sắc | 8.0-8.9: Tốt | 7.0-7.9: Khá | 6.0-6.9: Trung bình | 0-5.9: Cần cải thiện

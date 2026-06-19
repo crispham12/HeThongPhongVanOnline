@@ -7,11 +7,52 @@ namespace InterviewPro.API.Entities
     public class User
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        
+        [Required]
+        [MaxLength(256)]
+        public string FullName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public string Name 
+        { 
+            get => FullName; 
+            set => FullName = value; 
+        }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(256)]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
         public string PasswordHash { get; set; } = string.Empty;
+
         public int Role { get; set; } = 0; // 0 = User, 1 = Admin
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [MaxLength(50)]
+        public string UserCode { get; set; } = string.Empty;
+
+        public string? AvatarUrl { get; set; }
+
+        [MaxLength(50)]
+        public string Plan { get; set; } = "Free"; // Free, Premium
+
+        [MaxLength(50)]
+        public string Status { get; set; } = "Active"; // Active, Locked, Inactive
+
+        public bool IsLocked { get; set; } = false;
+
+        public string? LockReason { get; set; }
+
+        public int DailyInterviewUsed { get; set; } = 0;
+
+        public int DailyGithubAnalysisUsed { get; set; } = 0;
+
+        public DateTime? LastLoginAt { get; set; }
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class InterviewSession

@@ -20,7 +20,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-from services.openai_service import call_openai
+from services.openai_service import call_openai, call_openai_with_usage
 from prompts.hr_prompts import (
     HR_GENERATE_QUESTIONS_PROMPT,
     HR_EVALUATE_ANSWER_PROMPT,
@@ -46,8 +46,15 @@ class GeneratedQuestion(BaseModel):
     questionText: str
     expectedAnswerGuide: str
 
+class TokenUsageInfo(BaseModel):
+    inputTokens: int = 0
+    outputTokens: int = 0
+    totalTokens: int = 0
+    model: str = "gpt-4o-mini"
+
 class GenerateHrQuestionsResponse(BaseModel):
     questions: List[GeneratedQuestion]
+    usage: Optional[TokenUsageInfo] = None
 
 class EvaluateHrAnswerRequest(BaseModel):
     role: str
@@ -93,6 +100,7 @@ class EvaluateHrAnswerResponse(BaseModel):
     # Legacy fields (kept for backward compatibility with C# parsing)
     questionScore: float = 0
     feedback: str = ""
+    usage: Optional[TokenUsageInfo] = None
 
 class AnswerSummaryItem(BaseModel):
     question: str
@@ -119,6 +127,7 @@ class FinalEvaluationResponse(BaseModel):
     improvementRoadmap: List[RoadmapItem]
     readinessLevel: str
     status: str = "completed"
+    usage: Optional[TokenUsageInfo] = None
 
 
 # ═══════════════════════════════════════════════
@@ -148,19 +157,20 @@ async def generate_hr_questions(req: GenerateHrQuestionsRequest):
             tech_stack=tech_str,
             total_questions=req.total_questions
         )
-        
-        result = await call_openai(prompt)
+
+        result, usage_data = await call_openai_with_usage(prompt)
         questions = result.get("questions", [])
-        
+
         # Validate minimum count
         if len(questions) < req.total_questions:
             # Bổ sung câu hỏi fallback nếu AI trả thiếu
             fallback = _build_fallback_questions(req.role, req.difficulty)
             for i in range(len(questions), req.total_questions):
                 questions.append(fallback[i].__dict__ if hasattr(fallback[i], '__dict__') else fallback[i])
-        
+
         return GenerateHrQuestionsResponse(
-            questions=[GeneratedQuestion(**q) for q in questions[:req.total_questions]]
+            questions=[GeneratedQuestion(**q) for q in questions[:req.total_questions]],
+            usage=TokenUsageInfo(**usage_data)
         )
     except Exception as e:
         print(f"[HR] Error generating questions: {e}")
@@ -178,9 +188,17 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
     Đánh giá câu trả lời HR theo framework STAR với rubric đầy đủ.
     Output gồm: starAnalysis, starChecklist, improvedAnswer, nextRecommendation.
     """
+    # 2. CHẶN CÂU TRẢ LỜI QUÁ NGẮN TRƯỚC KHI GỌI AI
+    if not req.answer or len(req.answer.strip()) < 30:
+        return _build_short_answer_evaluation(req.question, req.role, req.difficulty)
+
+    # 4. THÊM HELPER PHÁT HIỆN CÂU TRẢ LỜI VÔ NGHĨA / QUA LOA
+    if _is_low_quality_answer(req.answer):
+        return _build_low_quality_answer_evaluation(req.question, req.answer)
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or api_key.startswith("AIza"):
-        return _build_fallback_evaluation()
+        return _build_fallback_evaluation(question=req.question, answer=req.answer, role=req.role, difficulty=req.difficulty)
 
     try:
         tech_str = ", ".join(req.tech_stack) if req.tech_stack else "General IT"
@@ -191,16 +209,16 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
             question=req.question,
             answer=req.answer
         )
-        
-        result = await call_openai(prompt)
+
+        result, usage_data = await call_openai_with_usage(prompt)
 
         # Parse starAnalysis
         star_raw = result.get("starAnalysis", {})
         def _parse_star_item(data, key):
             item = data.get(key, {})
             return StarScoreItem(
-                score=float(item.get("score", 0)),
-                feedback=item.get("feedback", "")
+                score=_clamp_score(item.get("score", 0)),
+                feedback=item.get("feedback") or "Chưa có nhận xét chi tiết."
             )
 
         star_analysis = StarAnalysis(
@@ -209,17 +227,6 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
             action=_parse_star_item(star_raw, "action"),
             result=_parse_star_item(star_raw, "result")
         )
-
-        # Tính lại overallScore theo trọng số STAR để đảm bảo chính xác
-        s_score = star_analysis.situation.score
-        t_score = star_analysis.task.score
-        a_score = star_analysis.action.score
-        r_score = star_analysis.result.score
-        recalculated_score = round(s_score * 0.20 + t_score * 0.20 + a_score * 0.30 + r_score * 0.30, 1)
-
-        # Ưưu tiên dùng overallScore từ AI, nhưng fallback về giá trị tính lại
-        overall = float(result.get("overallScore", recalculated_score))
-        level = _get_level(overall)
 
         # Parse starChecklist
         checklist_raw = result.get("starChecklist", {})
@@ -230,39 +237,89 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
             result=bool(checklist_raw.get("result", False))
         )
 
-        # starCompletion
+        # 7. STAR COMPLETION PHẢI TÍNH THEO CHECKLIST
         completion_count = sum([
             checklist.situation, checklist.task, checklist.action, checklist.result
         ])
-        star_completion = int(result.get("starCompletion", completion_count * 25))
+        star_completion = completion_count * 25
+
+        # 5. BACKEND PHẢI TỰ TÍNH LẠI OVERALL SCORE
+        s_score = star_analysis.situation.score
+        t_score = star_analysis.task.score
+        a_score = star_analysis.action.score
+        r_score = star_analysis.result.score
+        overall = s_score * 0.20 + t_score * 0.20 + a_score * 0.30 + r_score * 0.30
+
+        # 6. THÊM LUẬT GIỚI HẠN ĐIỂM THEO STAR CHECKLIST
+        if not checklist.result:
+            overall = min(overall, 7.0)
+        if not checklist.action:
+            overall = min(overall, 6.5)
+        if not checklist.task:
+            overall = min(overall, 7.0)
+        if not checklist.situation:
+            overall = min(overall, 7.0)
+
+        # Nếu thiếu cả Action và Result:
+        if not checklist.action and not checklist.result:
+            overall = min(overall, 6.0)
+
+        # Nếu starCompletion <= 25:
+        if star_completion <= 25:
+            overall = min(overall, 4.0)
+
+        overall = round(_clamp_score(overall), 1)
+        level = _get_level(overall)
+
+        # 10. SUMMARY PHẢI PHẢN ÁNH ĐÚNG STAR
+        if star_completion == 100:
+            summary = "Câu trả lời có đủ 4 phần STAR. Bạn đã trình bày khá rõ bối cảnh, nhiệm vụ, hành động và kết quả."
+        elif not checklist.action:
+            summary = "Câu trả lời chưa làm rõ hành động cá nhân, vì vậy AI chưa thể đánh giá tốt năng lực xử lý tình huống."
+        elif not checklist.result:
+            summary = "Câu trả lời có một số ý tốt nhưng phần Result chưa rõ, nên mức độ thuyết phục chưa cao."
+        else:
+            summary = result.get("summary") or "Đánh giá hoàn thành một phần cấu trúc STAR."
+
+        # 3. THÊM BACKEND POST-PROCESSING ĐỂ CHẶN STRENGTH GIẢ
+        word_count = len(req.answer.strip().split())
+        strengths = _sanitize_strengths(
+            result.get("strengths", []),
+            overall,
+            star_completion,
+            word_count,
+            checklist
+        )
 
         # Parse improvedAnswer
         improved_raw = result.get("improvedAnswer", {})
+        # If AI didn't return, fallback to generic
         improved = ImprovedAnswer(
-            situation=improved_raw.get("situation", ""),
-            task=improved_raw.get("task", ""),
-            action=improved_raw.get("action", ""),
-            result=improved_raw.get("result", "")
+            situation=improved_raw.get("situation") or "Trong một dự án hoặc tình huống học tập, tôi từng gặp một vấn đề cần xử lý liên quan đến câu hỏi này.",
+            task=improved_raw.get("task") or "Nhiệm vụ của tôi là xác định vấn đề, chịu trách nhiệm phần việc được giao và đóng góp giải pháp phù hợp.",
+            action=improved_raw.get("action") or "Tôi chủ động trao đổi với các thành viên, phân tích nguyên nhân, ưu tiên việc quan trọng và thực hiện các bước cần thiết để cải thiện tình huống.",
+            result=improved_raw.get("result") or "Kết quả là vấn đề được xử lý tốt hơn, nhóm phối hợp hiệu quả hơn và tôi rút ra bài học về cách làm việc chuyên nghiệp."
         )
 
         return EvaluateHrAnswerResponse(
             overallScore=overall,
             level=level,
-            summary=result.get("summary", ""),
+            summary=summary,
             starCompletion=star_completion,
             starChecklist=checklist,
             starAnalysis=star_analysis,
-            strengths=result.get("strengths", []),
+            strengths=strengths,
             weaknesses=result.get("weaknesses", []),
             improvementSuggestions=result.get("improvementSuggestions", []),
             improvedAnswer=improved,
             nextRecommendation=result.get("nextRecommendation", ""),
             questionScore=overall,
-            feedback=result.get("summary", "")
+            feedback=summary,
+            usage=TokenUsageInfo(**usage_data)
         )
     except Exception as e:
         print(f"[HR] Error evaluating answer: {e}")
-        return _build_fallback_evaluation()
+        return _build_fallback_evaluation(question=req.question, answer=req.answer, role=req.role, difficulty=req.difficulty)
 
 
 # ═══════════════════════════════════════════════
@@ -273,12 +330,6 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
 async def final_evaluation(req: FinalEvaluationRequest):
     """
     Tổng kết toàn bộ phiên phỏng vấn HR sau 10 câu.
-    
-    Logic:
-    1. Tổng hợp 10 cặp câu hỏi-trả lời thành summary text
-    2. Gọi AI tạo đánh giá tổng quan + roadmap cải thiện
-    3. Tính hrFinalScore = trung bình 10 questionScore
-    4. Xác định readinessLevel dựa trên điểm
     """
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or api_key.startswith("AIza"):
@@ -294,20 +345,20 @@ async def final_evaluation(req: FinalEvaluationRequest):
             answers_text += f"  Trả lời: {ans.answer[:300]}{'...' if len(ans.answer) > 300 else ''}\n"
             answers_text += f"  Điểm: {ans.score}/10\n"
             answers_text += f"  Nhận xét: {ans.feedback}\n"
-        
+
         prompt = HR_FINAL_EVALUATION_PROMPT.format(
             role=req.role,
             difficulty=req.difficulty,
             session_id=req.session_id,
             answers_summary=answers_text
         )
-        
-        result = await call_openai(prompt)
-        
-        # Tính điểm trung bình thực tế từ dữ liệu (không tin hoàn toàn AI)
+
+        result, usage_data = await call_openai_with_usage(prompt)
+
+        # 12. FINAL EVALUATION: Ưu tiên actual_avg
         actual_avg = round(sum(a.score for a in req.answers) / max(len(req.answers), 1), 1)
-        final_score = result.get("hrFinalScore", actual_avg)
-        
+        final_score = actual_avg
+
         # Xử lý improvementRoadmap
         roadmap_raw = result.get("improvementRoadmap", [])
         roadmap = []
@@ -317,23 +368,24 @@ async def final_evaluation(req: FinalEvaluationRequest):
                     title=item.get("title", "Luyện tập"),
                     description=item.get("description", "Tiếp tục cải thiện kỹ năng phỏng vấn.")
                 ))
-        
+
         if not roadmap:
             roadmap = [
                 RoadmapItem(title="Luyện STAR method", description="Chuẩn bị mỗi câu trả lời theo 4 phần."),
                 RoadmapItem(title="Bổ sung ví dụ thực tế", description="Dùng dự án cá nhân hoặc nhóm để minh họa."),
                 RoadmapItem(title="Mock interview", description="Luyện phỏng vấn giả định để tăng phản xạ.")
             ]
-        
+
         return FinalEvaluationResponse(
             hrFinalScore=final_score,
-            level=result.get("level", _get_level(final_score)),
+            level=_get_level(final_score),
             summary=result.get("summary", "Ứng viên đã hoàn thành phỏng vấn HR."),
             overallStrengths=result.get("overallStrengths", ["Hoàn thành đủ 10 câu"]),
             overallWeaknesses=result.get("overallWeaknesses", ["Cần luyện thêm"]),
             improvementRoadmap=roadmap,
-            readinessLevel=result.get("readinessLevel", _get_readiness(final_score, req.difficulty)),
-            status="completed"
+            readinessLevel=_get_readiness(final_score, req.difficulty),
+            status="completed",
+            usage=TokenUsageInfo(**usage_data)
         )
     except Exception as e:
         print(f"[HR] Error in final evaluation: {e}")
@@ -345,6 +397,15 @@ async def final_evaluation(req: FinalEvaluationRequest):
 # ═══════════════════════════════════════════════
 # Helper Functions
 # ═══════════════════════════════════════════════
+
+def _clamp_score(score) -> float:
+    """1. THÊM HELPER CLAMP SCORE"""
+    try:
+        value = float(score)
+        return max(0.0, min(10.0, value))
+    except:
+        return 0.0
+
 
 def _get_level(score: float) -> str:
     """Quy đổi điểm số → mức đánh giá bằng tiếng Việt."""
@@ -396,68 +457,226 @@ def _build_fallback_questions(role: str, difficulty: str) -> list:
     ]
 
 
-def _build_fallback_evaluation(question: str = "", answer: str = "", role: str = "Developer", difficulty: str = "Fresher") -> EvaluateHrAnswerResponse:
-    """Tạo kết quả đánh giá thông minh giả lập (smart fallback) khi không có API key hoặc lỗi quota."""
-    if not answer or len(answer.strip()) < 10:
-        fallback_star = StarScoreItem(score=2.0, feedback="Câu trả lời quá ngắn để đánh giá.")
-        return EvaluateHrAnswerResponse(
-            overallScore=2.0,
-            level="Cần cải thiện",
-            summary="Câu trả lời quá ngắn. Vui lòng cung cấp chi tiết hơn.",
-            starCompletion=0,
-            starChecklist=StarChecklist(situation=False, task=False, action=False, result=False),
-            starAnalysis=StarAnalysis(situation=fallback_star, task=fallback_star, action=fallback_star, result=fallback_star),
-            strengths=["Đã phản hồi câu hỏi"],
-            weaknesses=["Nội dung quá ngắn, thiếu tất cả các phần của STAR"],
-            improvementSuggestions=["Hãy kể chi tiết một tình huống thực tế theo cấu trúc STAR"],
-            improvedAnswer=ImprovedAnswer(
-                situation="Trong dự án X khi tôi làm...",
-                task="Nhiệm vụ của tôi là...",
-                action="Tôi đã thực hiện các bước...",
-                result="Kết quả là dự án hoàn thành..."
-            ),
-            nextRecommendation="Hãy viết câu trả lời dài hơn (từ 150 từ).",
-            questionScore=2.0,
-            feedback="Câu trả lời quá ngắn."
-        )
+def _build_short_answer_evaluation(question: str = "", role: str = "Developer", difficulty: str = "Fresher") -> EvaluateHrAnswerResponse:
+    """3. TẠO HÀM _build_short_answer_evaluation"""
+    fallback_star = StarScoreItem(score=0.0, feedback="Câu trả lời quá ngắn để đánh giá.")
+    summary = "Câu trả lời quá ngắn và chưa đủ thông tin để đánh giá theo STAR."
+    
+    # 8. FALLBACK IMPROVED ANSWER KHÔNG ĐƯỢC BỊA LỆCH CHỦ ĐỀ
+    improved = ImprovedAnswer(
+        situation="Trong một dự án hoặc tình huống học tập, tôi từng gặp một vấn đề cần xử lý liên quan đến câu hỏi này.",
+        task="Nhiệm vụ của tôi là xác định vấn đề, chịu trách nhiệm phần việc được giao và đóng góp giải pháp phù hợp.",
+        action="Tôi chủ động trao đổi với các thành viên, phân tích nguyên nhân, ưu tiên việc quan trọng và thực hiện các bước cần thiết để cải thiện tình huống.",
+        result="Kết quả là vấn đề được xử lý tốt hơn, nhóm phối hợp hiệu quả hơn và tôi rút ra bài học về cách làm việc chuyên nghiệp."
+    )
+    
+    return EvaluateHrAnswerResponse(
+        overallScore=2.0,
+        level="Cần cải thiện nhiều",
+        summary=summary,
+        starCompletion=0,
+        starChecklist=StarChecklist(situation=False, task=False, action=False, result=False),
+        starAnalysis=StarAnalysis(
+            situation=fallback_star,
+            task=fallback_star,
+            action=fallback_star,
+            result=fallback_star
+        ),
+        strengths=[],
+        weaknesses=[
+            "Câu trả lời quá ngắn.",
+            "Không có cấu trúc STAR.",
+            "Không có ví dụ thực tế."
+        ],
+        improvementSuggestions=[
+            "Hãy viết ít nhất 4–6 câu theo cấu trúc Situation, Task, Action, Result.",
+            "Bổ sung một tình huống cụ thể từ dự án, học tập hoặc công việc.",
+            "Nêu rõ bạn đã làm gì và kết quả đạt được."
+        ],
+        improvedAnswer=improved,
+        nextRecommendation="Bạn nên luyện lại câu hỏi này với một ví dụ thực tế và đầy đủ 4 phần STAR.",
+        questionScore=2.0,
+        feedback=summary
+    )
 
-    # Phân tích sơ bộ từ khóa để chấm điểm giả lập
+
+def _is_low_quality_answer(answer: str) -> bool:
+    """4. THÊM HELPER PHÁT HIỆN CÂU TRẢ LỜI VÔ NGHĨA / QUA LOA"""
+    text = (answer or "").strip().lower()
+    words = text.split()
+
+    low_quality_phrases = [
+        "không biết",
+        "em không biết",
+        "chắc là",
+        "làm được",
+        "cứ yên tâm",
+        "không rõ",
+        "khó nói",
+        "em sẽ cố gắng",
+        "tùy tình huống",
+        "bình thường",
+        "ổn thôi",
+        "ok",
+        "dạ",
+        "ừm"
+    ]
+
+    if len(text) < 30:
+        return True
+
+    if len(words) < 20:
+        return True
+
+    if any(p in text for p in low_quality_phrases) and len(words) < 40:
+        return True
+
+    return False
+
+
+def _build_low_quality_answer_evaluation(question: str, answer: str) -> EvaluateHrAnswerResponse:
+    """5. TẠO HÀM _build_low_quality_answer_evaluation"""
+    word_count = len((answer or "").strip().split())
+    overall = 3.0 if word_count < 10 else 4.0
+    fallback_star = StarScoreItem(score=0.0, feedback="Câu trả lời chưa đủ thông tin hoặc đi lệch trọng tâm.")
+    summary = "Câu trả lời chưa trả lời trực tiếp câu hỏi và chưa có đủ cấu trúc STAR để đánh giá tốt."
+    
+    improved = ImprovedAnswer(
+        situation="Trong một dự án hoặc tình huống học tập, tôi từng gặp một vấn đề cần xử lý liên quan đến câu hỏi này.",
+        task="Nhiệm vụ của tôi là xác định vấn đề, chịu trách nhiệm phần việc được giao và đóng góp giải pháp phù hợp.",
+        action="Tôi chủ động trao đổi với các thành viên, phân tích nguyên nhân, ưu tiên việc quan trọng và thực hiện các bước cần thiết để cải thiện tình huống.",
+        result="Kết quả là vấn đề được xử lý tốt hơn, nhóm phối hợp hiệu quả hơn và tôi rút ra bài học về cách làm việc chuyên nghiệp."
+    )
+    
+    return EvaluateHrAnswerResponse(
+        overallScore=overall,
+        level="Cần cải thiện nhiều",
+        summary=summary,
+        starCompletion=0,
+        starChecklist=StarChecklist(situation=False, task=False, action=False, result=False),
+        starAnalysis=StarAnalysis(
+            situation=fallback_star,
+            task=fallback_star,
+            action=fallback_star,
+            result=fallback_star
+        ),
+        strengths=[],
+        weaknesses=[
+            "Câu trả lời chưa đi vào trọng tâm câu hỏi.",
+            "Không có ví dụ thực tế.",
+            "Không có cấu trúc STAR.",
+            "Câu trả lời mang tính cảm tính, chưa chứng minh năng lực xử lý tình huống."
+        ],
+        improvementSuggestions=[
+            "Hãy chọn một tình huống thực tế từ học tập, dự án hoặc công việc.",
+            "Trả lời theo thứ tự Situation → Task → Action → Result.",
+            "Nói rõ bạn đã làm gì thay vì chỉ nói chung chung.",
+            "Kết thúc bằng kết quả cụ thể hoặc bài học rút ra."
+        ],
+        improvedAnswer=improved,
+        nextRecommendation="Bạn nên luyện lại câu hỏi này bằng một ví dụ thực tế và viết đủ 4 phần STAR.",
+        questionScore=overall,
+        feedback=summary
+    )
+
+
+def _sanitize_strengths(strengths: list, overall: float, star_completion: int, word_count: int, checklist: StarChecklist) -> list:
+    """3. THÊM BACKEND POST-PROCESSING ĐỂ CHẶN STRENGTH GIẢ"""
+    banned_generic_strengths = [
+        "trình bày mạch lạc",
+        "dễ hiểu",
+        "ngắn gọn",
+        "có cố gắng",
+        "thái độ tích cực",
+        "tự tin",
+        "khá tốt",
+        "ổn"
+    ]
+
+    if overall < 4.0:
+        return []
+
+    if star_completion < 50:
+        return []
+
+    if word_count < 20:
+        return []
+
+    if not any([checklist.situation, checklist.task, checklist.action, checklist.result]):
+        return []
+
+    clean = []
+    for s in strengths or []:
+        text = s.strip()
+        lower = text.lower()
+
+        if not text:
+            continue
+
+        if any(banned in lower for banned in banned_generic_strengths):
+            continue
+
+        clean.append(text)
+
+    return clean[:5]
+
+
+def _build_fallback_evaluation(question: str = "", answer: str = "", role: str = "Developer", difficulty: str = "Fresher") -> EvaluateHrAnswerResponse:
+    """9. CẢI THIỆN FALLBACK EVALUATION"""
+    if not answer or len(answer.strip()) < 30:
+        return _build_short_answer_evaluation(question, role, difficulty)
+
+    if _is_low_quality_answer(answer):
+        return _build_low_quality_answer_evaluation(question, answer)
+
     ans_lower = answer.lower()
     
-    # 1. Situation check
+    # Phân tích sơ bộ từ khóa để chấm điểm giả lập
     sit_keywords = ["dự án", "bối cảnh", "khi", "lúc", "gặp", "khó khăn", "tình huống", "ở trường", "công ty", "khách hàng"]
     has_sit = any(kw in ans_lower for kw in sit_keywords)
     sit_score = 7.5 if has_sit else 4.0
     if len(answer) > 200: sit_score += 1.0
     sit_score = min(9.5, sit_score)
+    # Giới hạn điểm nếu thiếu phần STAR
+    if not has_sit:
+        sit_score = min(5.0, sit_score)
     sit_feedback = "Mô tả bối cảnh rõ ràng về dự án hoặc vấn đề phát sinh." if has_sit else "Bối cảnh tình huống chưa rõ ràng. Bạn nên nêu rõ dự án nào, xảy ra khi nào."
 
-    # 2. Task check
     task_keywords = ["nhiệm vụ", "trách nhiệm", "vai trò", "cần phải", "yêu cầu", "phần việc", "mục tiêu", "task", "backend", "frontend"]
     has_task = any(kw in ans_lower for kw in task_keywords)
     task_score = 7.0 if has_task else 4.5
     if len(answer) > 250: task_score += 1.0
     task_score = min(9.0, task_score)
+    if not has_task:
+        task_score = min(5.0, task_score)
     task_feedback = "Nêu được vai trò cá nhân hoặc mục tiêu cần đạt được." if has_task else "Chưa làm nổi bật nhiệm vụ cụ thể của bản thân trong tình huống này."
 
-    # 3. Action check
     action_keywords = ["tìm kiếm", "xem lại", "trao đổi", "thảo luận", "sửa", "viết", "lập trình", "code", "khắc phục", "giải quyết", "phân tích", "làm việc", "thực hiện"]
     has_action = any(kw in ans_lower for kw in action_keywords)
     action_score = 7.5 if has_action else 4.0
     if len(answer) > 300: action_score += 1.0
     action_score = min(9.5, action_score)
+    if not has_action:
+        action_score = min(4.0, action_score)
     action_feedback = "Có liệt kê các hành động cụ thể để giải quyết vấn đề." if has_action else "Cần bổ sung các hành động cụ thể của cá nhân bạn để giải quyết vấn đề."
 
-    # 4. Result check
     result_keywords = ["cuối cùng", "kết quả", "đúng hạn", "hoàn thành", "bài học", "rút ra", "học được", "thành công", "đạt được"]
     has_result = any(kw in ans_lower for kw in result_keywords)
     result_score = 7.0 if has_result else 4.0
     if len(answer) > 200: result_score += 1.0
     result_score = min(9.0, result_score)
+    if not has_result:
+        result_score = min(5.0, result_score)
     result_feedback = "Nêu được kết quả đạt được và bài học kinh nghiệm rút ra." if has_result else "Kết quả chưa rõ ràng hoặc thiếu bài học rút ra sau trải nghiệm."
 
+    # Clamp scores
+    sit_score = _clamp_score(sit_score)
+    task_score = _clamp_score(task_score)
+    action_score = _clamp_score(action_score)
+    result_score = _clamp_score(result_score)
+
     # Tính điểm tổng
-    overall = round(sit_score * 0.20 + task_score * 0.20 + action_score * 0.30 + result_score * 0.30, 1)
+    overall = sit_score * 0.20 + task_score * 0.20 + action_score * 0.30 + result_score * 0.30
     
     # Checklist
     checklist = StarChecklist(
@@ -470,17 +689,57 @@ def _build_fallback_evaluation(question: str = "", answer: str = "", role: str =
     completion_count = sum([has_sit, has_task, has_action, has_result])
     star_completion = completion_count * 25
 
+    # Áp dụng cap giống mục 6
+    if not checklist.result:
+        overall = min(overall, 7.0)
+    if not checklist.action:
+        overall = min(overall, 6.5)
+    if not checklist.task:
+        overall = min(overall, 7.0)
+    if not checklist.situation:
+        overall = min(overall, 7.0)
+
+    # Nếu thiếu cả Action và Result:
+    if not checklist.action and not checklist.result:
+        overall = min(overall, 6.0)
+
+    # Nếu starCompletion <= 25:
+    if star_completion <= 25:
+        overall = min(overall, 4.0)
+
+    # Nếu câu trả lời dưới 150 ký tự thì overall tối đa 6.5
+    if len(answer.strip()) < 150:
+        overall = min(overall, 6.5)
+
+    overall = round(_clamp_score(overall), 1)
     level = _get_level(overall)
 
-    # Tạo feedback động
-    strengths = []
-    if has_sit: strengths.append("Bối cảnh tình huống được đặt ra cụ thể, giúp người nghe dễ hình dung.")
-    if has_action: strengths.append("Liệt kê các bước hành động thực tế để giải quyết vấn đề.")
-    if len(strengths) < 2: strengths.append("Trình bày mạch lạc, dễ hiểu.")
+    # 10. SUMMARY PHẢI PHẢN ÁNH ĐÚNG STAR
+    if star_completion == 100:
+        summary = "Câu trả lời có đủ 4 phần STAR. Bạn đã trình bày khá rõ bối cảnh, nhiệm vụ, hành động và kết quả."
+    elif not checklist.action:
+        summary = "Câu trả lời chưa làm rõ hành động cá nhân, vì vậy AI chưa thể đánh giá tốt năng lực xử lý tình huống."
+    elif not checklist.result:
+        summary = "Câu trả lời có một số ý tốt nhưng phần Result chưa rõ, nên mức độ thuyết phục chưa cao."
+    else:
+        summary = f"Ứng viên trả lời khá tốt câu hỏi. Cấu trúc đạt {star_completion}% chuẩn STAR."
 
+    # 6. SỬA FALLBACK EVALUATION KHÔNG ĐƯỢC THÊM STRENGTH GIẢ
+    strengths = []
+    if has_sit:
+        strengths.append("Có đề cập đến bối cảnh tình huống (Situation).")
+    if has_action:
+        strengths.append("Có nêu một số hành động xử lý vấn đề (Action).")
+        
+    word_count = len(answer.strip().split())
+    strengths = _sanitize_strengths(strengths, overall, star_completion, word_count, checklist)
+
+    # Weaknesses matching the quality
     weaknesses = []
-    if not has_task: weaknesses.append("Chưa làm rõ trách nhiệm cụ thể của bản thân trong nhiệm vụ đó.")
-    if not has_result: weaknesses.append("Thiếu số liệu minh họa kết quả cụ thể hoặc bài học đúc kết.")
+    if not has_sit: weaknesses.append("Chưa làm rõ bối cảnh tình huống (Situation).")
+    if not has_task: weaknesses.append("Chưa làm rõ trách nhiệm cụ thể của bản thân trong nhiệm vụ đó (Task).")
+    if not has_action: weaknesses.append("Chưa làm rõ các hành động cụ thể bạn đã làm (Action).")
+    if not has_result: weaknesses.append("Thiếu số liệu minh họa kết quả cụ thể hoặc bài học đúc kết (Result).")
     if len(answer) < 150: weaknesses.append("Câu trả lời hơi ngắn, có thể bổ sung chi tiết để thuyết phục hơn.")
     if not weaknesses: weaknesses.append("Có thể tối ưu thêm bằng cách đưa vào các số liệu đo lường cụ thể.")
 
@@ -490,18 +749,18 @@ def _build_fallback_evaluation(question: str = "", answer: str = "", role: str =
         "Nhấn mạnh bài học kinh nghiệm hoặc kỹ năng đã cải thiện được sau sự cố."
     ]
 
-    # Gợi ý bài làm cải thiện (STAR)
+    # Gợi ý bài làm cải thiện (STAR) generic
     improved = ImprovedAnswer(
-        situation=f"Trong một dự án {role} gần đây, hệ thống gặp sự cố kết nối database nghiêm trọng ngay trước ngày demo.",
-        task="Nhiệm vụ của tôi là định vị nguyên nhân và khắc phục sự cố trong vòng 2 tiếng để kịp bàn giao.",
-        action="Tôi đã kiểm tra connection pool, phát hiện rò rỉ kết nối, tối ưu lại câu lệnh config và trao đổi với team để phân chia công việc kiểm thử.",
-        result="Kết quả là lỗi được xử lý sau 1.5 giờ, hệ thống hoạt động ổn định và buổi demo thành công tốt đẹp."
+        situation="Trong một dự án hoặc tình huống học tập, tôi từng gặp một vấn đề cần xử lý liên quan đến câu hỏi này.",
+        task="Nhiệm vụ của tôi là xác định vấn đề, chịu trách nhiệm phần việc được giao và đóng góp giải pháp phù hợp.",
+        action="Tôi chủ động trao đổi với các thành viên, phân tích nguyên nhân, ưu tiên việc quan trọng và thực hiện các bước cần thiết để cải thiện tình huống.",
+        result="Kết quả là vấn đề được xử lý tốt hơn, nhóm phối hợp hiệu quả hơn và tôi rút ra bài học về cách làm việc chuyên nghiệp."
     )
 
     return EvaluateHrAnswerResponse(
         overallScore=overall,
         level=level,
-        summary=f"Ứng viên trả lời khá tốt câu hỏi về khó khăn. Cấu trúc đạt {star_completion}% chuẩn STAR.",
+        summary=summary,
         starCompletion=star_completion,
         starChecklist=checklist,
         starAnalysis=StarAnalysis(
@@ -514,9 +773,9 @@ def _build_fallback_evaluation(question: str = "", answer: str = "", role: str =
         weaknesses=weaknesses,
         improvementSuggestions=suggestions,
         improvedAnswer=improved,
-        nextRecommendation="Hãy tiếp tục luyện tập thêm các câu hỏi xử lý mâu thuẫn sử dụng cấu trúc STAR.",
+        nextRecommendation="Hãy tiếp tục luyện tập thêm các câu hỏi sử dụng cấu trúc STAR.",
         questionScore=overall,
-        feedback=f"Ứng viên có kỹ năng tốt, đạt điểm tổng quan {overall}/10."
+        feedback=summary
     )
 
 

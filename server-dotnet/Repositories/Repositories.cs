@@ -45,5 +45,11 @@ namespace InterviewPro.API.Repositories
             await _context.SaveChangesAsync();
             return question;
         }
+
+        public async Task UpdateSession(InterviewSession session)
+        {
+            _context.InterviewSessions.Update(session);
+            await _context.SaveChangesAsync();
+        }
     }
 }

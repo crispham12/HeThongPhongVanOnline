@@ -24,21 +24,33 @@ namespace InterviewPro.API.Migrations
 
             modelBuilder.Entity("InterviewPro.API.Entities.AiRequestLog", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal>("EstimatedCost")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Feature")
                         .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Model")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("int");
 
                     b.Property<string>("RequestType")
                         .IsRequired()
@@ -49,20 +61,32 @@ namespace InterviewPro.API.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("TokensUsed")
+                    b.Property<int>("TotalTokens")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Feature");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("AiRequestLogs");
                 });
 
-            modelBuilder.Entity("InterviewPro.API.Entities.CodingProblem", b =>
+            modelBuilder.Entity("InterviewPro.API.Entities.CodingAssessmentHistory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -70,21 +94,115 @@ namespace InterviewPro.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<Guid>("CodingProblemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("InterviewSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodingProblemId");
+
+                    b.HasIndex("UserId", "InterviewSessionId");
+
+                    b.ToTable("CodingAssessmentHistories");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CodingPracticeAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiFeedbackJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CodingProblemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<float?>("MemoryUsageMb")
+                        .HasColumnType("real");
+
+                    b.Property<int>("PassedTestCases")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RuntimeMs")
+                        .HasColumnType("int");
+
+                    b.Property<float?>("Score")
+                        .HasColumnType("real");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SubmittedCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalTestCases")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodingProblemId");
+
+                    b.HasIndex("UserId", "CodingProblemId");
+
+                    b.HasIndex("UserId", "CodingProblemId", "AttemptNumber");
+
+                    b.ToTable("CodingPracticeAttempts");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CodingProblem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("AllowRandomSelection")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Category")
+                    b.Property<string>("CategoriesJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ConstraintsJson")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CreatedByAdminId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CreatedByAdminId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByAdminName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -94,7 +212,19 @@ namespace InterviewPro.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int>("EstimatedMinutes")
+                        .HasColumnType("int");
+
                     b.Property<string>("ExamplesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FunctionName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HiddenTestCasesJson")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("InputFormat")
@@ -103,10 +233,26 @@ namespace InterviewPro.API.Migrations
                     b.Property<bool>("IsClientVisible")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MethodSignature")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("OutputFormat")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Role")
+                    b.Property<string>("ProblemCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PublicTestCasesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RecommendedLevel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReturnType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -115,26 +261,30 @@ namespace InterviewPro.API.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SolutionJson")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StarterCodeJson")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("TagsJson")
+                    b.Property<string>("SupportedLanguagesJson")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("TestCasesJson")
+                    b.Property<string>("TargetSkillsJson")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -565,6 +715,155 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("InterviewSessions");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Score")
+                        .HasColumnType("float");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Score");
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("PracticeAttempts");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttemptQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiFeedback")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AttemptId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Score")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("SourceQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserAnswer")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("Category");
+
+                    b.ToTable("PracticeAttemptQuestions");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<double>("BestScore")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("LatestScore")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SkillType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SkillType");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "SkillType");
+
+                    b.ToTable("PracticeSessions");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.Question", b =>
                 {
                     b.Property<int>("Id")
@@ -650,23 +949,61 @@ namespace InterviewPro.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DailyGithubAnalysisUsed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DailyInterviewUsed")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("FullName")
                         .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LockReason")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Plan")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("Role")
                         .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -741,7 +1078,7 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("UserCVs");
                 });
 
-            modelBuilder.Entity("InterviewPro.API.Entities.UserCodingPracticeHistory", b =>
+            modelBuilder.Entity("InterviewPro.API.Entities.UserCodingProblemProgress", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -749,41 +1086,23 @@ namespace InterviewPro.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AiFeedback")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
 
-                    b.Property<float?>("AiScore")
+                    b.Property<float?>("BestScore")
                         .HasColumnType("real");
 
-                    b.Property<int>("CodingProblemId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CodingProblemId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<bool>("IsSolved")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastAttemptAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PassedTestCases")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SpaceComplexity")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SubmittedCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TimeComplexity")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TotalTestCases")
-                        .HasColumnType("int");
+                    b.Property<float?>("LatestScore")
+                        .HasColumnType("real");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -792,9 +1111,10 @@ namespace InterviewPro.API.Migrations
 
                     b.HasIndex("CodingProblemId");
 
-                    b.HasIndex("UserId", "CodingProblemId");
+                    b.HasIndex("UserId", "CodingProblemId")
+                        .IsUnique();
 
-                    b.ToTable("UserCodingPracticeHistories");
+                    b.ToTable("UserCodingProblemProgresses");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.UserQuestionPracticeHistory", b =>
@@ -846,6 +1166,28 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("UserQuestionPracticeHistories");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.CodingAssessmentHistory", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.CodingProblem", "CodingProblem")
+                        .WithMany()
+                        .HasForeignKey("CodingProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CodingProblem");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CodingPracticeAttempt", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.CodingProblem", "CodingProblem")
+                        .WithMany()
+                        .HasForeignKey("CodingProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CodingProblem");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateComponent", b =>
                 {
                     b.HasOne("InterviewPro.API.Entities.CvTemplate", "Template")
@@ -893,7 +1235,29 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("InterviewPro.API.Entities.UserCodingPracticeHistory", b =>
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.PracticeSession", "Session")
+                        .WithMany("Attempts")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttemptQuestion", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.PracticeAttempt", "Attempt")
+                        .WithMany("Questions")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.UserCodingProblemProgress", b =>
                 {
                     b.HasOne("InterviewPro.API.Entities.CodingProblem", "CodingProblem")
                         .WithMany()
@@ -932,6 +1296,16 @@ namespace InterviewPro.API.Migrations
             modelBuilder.Entity("InterviewPro.API.Entities.InterviewSession", b =>
                 {
                     b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>
+                {
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.PracticeSession", b =>
+                {
+                    b.Navigation("Attempts");
                 });
 #pragma warning restore 612, 618
         }

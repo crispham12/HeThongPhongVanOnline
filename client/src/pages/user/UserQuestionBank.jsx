@@ -17,12 +17,46 @@ const TABS = [
   { key: 'Lập trình', label: 'Lập trình', icon: Code2, apiCategory: 'Coding' },
 ];
 
+const DIFF_COLORS = {
+  Easy: 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/50',
+  Medium: 'bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100/50',
+  Hard: 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100/50'
+};
+
+const STATUS_BADGES = {
+  Solved: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  Completed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  InProgress: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  NotStarted: 'bg-slate-100 text-slate-400 border-slate-200'
+};
+
+const STATUS_TEXT = {
+  Solved: 'Đã hoàn thành',
+  Completed: 'Đã hoàn thành',
+  InProgress: 'Đang làm',
+  NotStarted: 'Chưa làm'
+};
+
+const POPULAR_CATEGORIES = [
+  { value: 'all', label: 'Chủ đề' },
+  { value: 'Array', label: 'Array (Mảng)' },
+  { value: 'String', label: 'String (Chuỗi)' },
+  { value: 'HashMap', label: 'Hash Table (Bảng băm)' },
+  { value: 'Two Pointers', label: 'Two Pointers (Con trỏ kép)' },
+  { value: 'Binary Search', label: 'Binary Search' },
+  { value: 'Dynamic Programming', label: 'Dynamic Programming' },
+  { value: 'Recursion', label: 'Recursion (Đệ quy)' },
+  { value: 'Sorting', label: 'Sorting (Sắp xếp)' }
+];
+
 export default function UserQuestionBank() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('HR');
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [recommendedLevelFilter, setRecommendedLevelFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const [items, setItems] = useState([]);
@@ -41,11 +75,11 @@ export default function UserQuestionBank() {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab, difficultyFilter, searchQuery]);
+  }, [activeTab, difficultyFilter, categoryFilter, searchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [difficultyFilter, statusFilter, searchQuery]);
+  }, [difficultyFilter, statusFilter, categoryFilter, recommendedLevelFilter, searchQuery]);
 
   const fetchProgress = async () => {
     try {
@@ -62,13 +96,16 @@ export default function UserQuestionBank() {
       const params = {
         search: searchQuery || undefined,
         difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
-        pageSize: 200 // Load more to allow client-side status filtering and pagination
+        pageSize: 200 // Load more to allow client-side status/level filtering and pagination
       };
 
       const currentTab = TABS.find(t => t.key === activeTab);
       
       let data;
       if (currentTab.apiCategory === 'Coding') {
+        if (categoryFilter !== 'all') {
+          params.category = categoryFilter;
+        }
         data = await practiceCodingApi.getAll(params);
       } else {
         params.category = currentTab.apiCategory;
@@ -88,20 +125,30 @@ export default function UserQuestionBank() {
     setActiveTab(tab);
     setDifficultyFilter('all');
     setStatusFilter('all');
+    setCategoryFilter('all');
+    setRecommendedLevelFilter('all');
     setSearchQuery('');
     setCurrentPage(1);
   };
 
   /* Filter items by status on client side since backend doesn't support it directly yet */
   const filteredItems = useMemo(() => {
-    if (statusFilter === 'all') return items;
     return items.filter(item => {
-      const isCompleted = item.practiceStatus === 'Practiced' || item.practiceStatus === 'Completed';
-      if (statusFilter === 'completed') return isCompleted;
-      if (statusFilter === 'incomplete') return !isCompleted;
+      // Status filter
+      if (statusFilter !== 'all') {
+        const isCompleted = item.practiceStatus === 'Practiced' || item.practiceStatus === 'Completed' || item.practiceStatus === 'Solved';
+        if (statusFilter === 'completed' && !isCompleted) return false;
+        if (statusFilter === 'incomplete' && isCompleted) return false;
+      }
+      
+      // Recommended level filter (only for Coding/Lập trình)
+      if (activeTab === 'Lập trình' && recommendedLevelFilter !== 'all') {
+        if (item.recommendedLevel !== recommendedLevelFilter) return false;
+      }
+      
       return true;
     });
-  }, [items, statusFilter]);
+  }, [items, statusFilter, activeTab, recommendedLevelFilter]);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -147,14 +194,18 @@ export default function UserQuestionBank() {
           </p>
         </div>
         <div className="relative max-w-xs w-full lg:w-auto">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm câu hỏi..."
-            className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium text-gray-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none placeholder-gray-400 shadow-sm transition-all"
-          />
+          {activeTab !== 'Lập trình' && (
+            <>
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm câu hỏi..."
+                className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium text-gray-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none placeholder-gray-400 shadow-sm transition-all"
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -259,42 +310,72 @@ export default function UserQuestionBank() {
             })}
           </div>
 
-          <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex flex-wrap items-center gap-3">
-            <Filter className="w-4 h-4 text-gray-400" />
+          {activeTab === 'Lập trình' ? (
+            <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full md:max-w-[280px]">
+                <Search className="w-4 h-4 text-gray-450 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  placeholder="Tìm kiếm theo tiêu đề hoặc mã bài tập..."
+                  className="w-full bg-white border border-gray-200 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all placeholder:text-slate-400 shadow-sm"
+                />
+              </div>
 
-            <select
-              value={difficultyFilter}
-              onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[100px]"
-            >
-              <option value="all">Độ khó</option>
-              {activeTab === 'Lập trình' ? (
-                <>
-                  <option value="Easy">Dễ (Easy)</option>
-                  <option value="Medium">Trung bình (Medium)</option>
-                  <option value="Hard">Khó (Hard)</option>
-                </>
-              ) : (
-                <>
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                  className="px-3 py-1.5 bg-white border border-gray-205 text-xs font-bold text-gray-655 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-sm min-w-[130px]"
+                >
+                  {POPULAR_CATEGORIES.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={recommendedLevelFilter}
+                  onChange={(e) => { setRecommendedLevelFilter(e.target.value); setCurrentPage(1); }}
+                  className="px-3 py-1.5 bg-white border border-gray-205 text-xs font-bold text-gray-655 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-sm min-w-[130px]"
+                >
+                  <option value="all">Trình độ</option>
                   <option value="Intern">Intern</option>
                   <option value="Fresher">Fresher</option>
                   <option value="Junior">Junior</option>
                   <option value="Middle">Middle</option>
                   <option value="Senior">Senior</option>
-                </>
-              )}
-            </select>
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex flex-wrap items-center gap-3">
+              <Filter className="w-4 h-4 text-gray-400" />
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[110px]"
-            >
-              <option value="all">Trạng thái</option>
-              <option value="completed">Đã hoàn thành</option>
-              <option value="incomplete">Chưa hoàn thành</option>
-            </select>
-          </div>
+              <select
+                value={difficultyFilter}
+                onChange={(e) => setDifficultyFilter(e.target.value)}
+                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[100px]"
+              >
+                <option value="all">Độ khó</option>
+                <option value="Intern">Intern</option>
+                <option value="Fresher">Fresher</option>
+                <option value="Junior">Junior</option>
+                <option value="Middle">Middle</option>
+                <option value="Senior">Senior</option>
+              </select>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[110px]"
+              >
+                <option value="all">Trạng thái</option>
+                <option value="completed">Đã hoàn thành</option>
+                <option value="incomplete">Chưa hoàn thành</option>
+              </select>
+            </div>
+          )}
 
           <div className="divide-y divide-gray-50 min-h-[300px]">
             {loading ? (
@@ -305,8 +386,78 @@ export default function UserQuestionBank() {
             ) : filteredItems.length === 0 ? (
               <div className="py-16 text-center">
                 <BookOpen className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gray-400">Không tìm thấy câu hỏi nào.</p>
+                <p className="text-sm font-semibold text-gray-400">Không tìm thấy bài tập nào.</p>
                 <p className="text-xs text-gray-300 mt-1">Thử thay đổi bộ lọc hoặc tìm kiếm khác.</p>
+              </div>
+            ) : activeTab === 'Lập trình' ? (
+              <div className="w-full overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      <th className="py-4 pl-5 pr-8 text-[10px] font-black text-slate-400 uppercase tracking-wider">Tên bài</th>
+                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Độ khó</th>
+                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Trình độ</th>
+                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Thời gian</th>
+                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Điểm tốt nhất</th>
+                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Trạng thái</th>
+                      <th className="py-4 pl-4 pr-5 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right whitespace-nowrap"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedItems.map((p) => {
+                      const isCompleted = p.practiceStatus === 'Solved' || p.practiceStatus === 'Completed' || p.practiceStatus === 'Practiced';
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50/40 transition-colors group">
+                          <td className="py-4 pl-5 pr-8 align-middle">
+                            <div className={`font-extrabold text-sm group-hover:text-blue-600 transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-slate-800'}`}>
+                              {p.title}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 align-middle whitespace-nowrap">
+                            <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide border ${DIFF_COLORS[p.difficulty] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                              {p.difficulty?.toUpperCase() || '-'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 align-middle whitespace-nowrap">
+                            {p.recommendedLevel ? (
+                              <span className="inline-block px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg text-[10px] font-black tracking-wide uppercase">
+                                {p.recommendedLevel}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-bold">—</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-4 align-middle whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
+                              <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              {p.estimatedMinutes || 15} phút
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 align-middle whitespace-nowrap text-center">
+                            {p.bestScore !== null && p.bestScore !== undefined ? (
+                              <span className="text-sm font-black text-blue-600">{p.bestScore}%</span>
+                            ) : (
+                              <span className="text-slate-300 font-bold">—</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-4 align-middle whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black border ${STATUS_BADGES[p.practiceStatus] || 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                              {STATUS_TEXT[p.practiceStatus] || 'Chưa làm'}
+                            </span>
+                          </td>
+                          <td className="py-4 pl-4 pr-5 align-middle text-right whitespace-nowrap">
+                            <button
+                              onClick={() => navigate(`/coding-practice/${p.id}`)}
+                              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/10 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            >
+                              <Play className="w-3 h-3 fill-current" /> Luyện tập
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : (
               paginatedItems.map((q) => {
@@ -346,7 +497,7 @@ export default function UserQuestionBank() {
                         </button>
                       )}
                       <button
-                        onClick={() => navigate(`/question-bank/practice/${q.id}`)}
+                        onClick={() => navigate(activeTab === 'Lập trình' ? `/coding-practice/${q.id}` : `/question-bank/practice/${q.id}`)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-[11px] font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                       >
                         <Play className="w-3.5 h-3.5" />
@@ -361,7 +512,7 @@ export default function UserQuestionBank() {
 
           <div className="p-4 border-t border-gray-100 bg-gray-50/20 mt-auto flex flex-col items-center gap-4">
             <p className="text-xs font-semibold text-gray-400 text-center">
-              Hiển thị từ <span className="font-bold text-gray-600">{filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> đến <span className="font-bold text-gray-600">{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> trong số <span className="font-bold text-gray-600">{filteredItems.length}</span> câu hỏi
+              Hiển thị từ <span className="font-bold text-gray-700">{filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> đến <span className="font-bold text-gray-700">{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> trong số <span className="font-bold text-gray-700">{filteredItems.length}</span> {activeTab === 'Lập trình' ? 'bài tập' : 'câu hỏi'}
             </p>
 
             {totalPages > 1 && (
@@ -369,7 +520,7 @@ export default function UserQuestionBank() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-2xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   &lt;
                 </button>
@@ -405,10 +556,10 @@ export default function UserQuestionBank() {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-xl border text-sm font-bold transition-all ${
+                        className={`w-9 h-9 flex items-center justify-center rounded-2xl border text-sm font-bold transition-all ${
                           isActive
                             ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                            : 'border-gray-200 text-gray-655 hover:bg-gray-50'
                         }`}
                       >
                         {page}
@@ -420,7 +571,7 @@ export default function UserQuestionBank() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-2xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   &gt;
                 </button>
@@ -480,7 +631,7 @@ export default function UserQuestionBank() {
               Gợi ý cho bạn
             </h3>
             <div className="space-y-3">
-              <div className="group flex items-start gap-3 p-3 rounded-xl hover:bg-blue-50/50 cursor-pointer transition-all border border-transparent hover:border-blue-100">
+              <div onClick={() => handleTabChange('Kỹ thuật')} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-blue-50/50 cursor-pointer transition-all border border-transparent hover:border-blue-100">
                 <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
                   <Brain className="w-4.5 h-4.5 text-blue-600" />
                 </div>
@@ -491,7 +642,7 @@ export default function UserQuestionBank() {
                 <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors mt-0.5 flex-shrink-0" />
               </div>
 
-              <div className="group flex items-start gap-3 p-3 rounded-xl hover:bg-emerald-50/50 cursor-pointer transition-all border border-transparent hover:border-emerald-100">
+              <div onClick={() => handleTabChange('Lập trình')} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-emerald-50/50 cursor-pointer transition-all border border-transparent hover:border-emerald-100">
                 <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-200 transition-colors">
                   <Code2 className="w-4.5 h-4.5 text-emerald-600" />
                 </div>

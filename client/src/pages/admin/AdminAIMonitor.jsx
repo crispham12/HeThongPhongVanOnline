@@ -1,33 +1,33 @@
-import { useState } from 'react';
-import { Download, Zap, Timer, BarChart4, CreditCard, Activity } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Zap, Timer, BarChart4, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
+import { aiMonitoringApi } from '../../services/aiMonitoringApi';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import html2pdf from 'html2pdf.js';
 
-const recentLogs = [
-  { user: 'Nguyễn Văn A', feature: 'Tạo câu hỏi phỏng vấn', status: 'Thành công', token: '450', responseTime: '1.2s', time: 'Vừa xong' },
-  { user: 'Trần Thị H', feature: 'Phân tích CV', status: 'Thành công', token: '1,200', responseTime: '3.4s', time: '5 phút trước' },
-  { user: 'Lê Minh', feature: 'Tư vấn nghề nghiệp', status: 'Lỗi API', token: '0', responseTime: '0.8s', time: '12 phút trước', isError: true },
-  { user: 'Phạm Thu T', feature: 'Đánh giá ứng viên', status: 'Thành công', token: '850', responseTime: '2.1s', time: '20 phút trước' },
-  { user: 'Hệ thống', feature: 'Auto-scoring', status: 'Thành công', token: '2,100', responseTime: '4.5s', time: '35 phút trước' },
-];
+function StatCard({ title, value, icon: Icon, subtitle, loading, iconColor, iconBg }) {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between animate-pulse">
+        <div className="flex justify-between items-start mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gray-100" />
+          <div className="w-12 h-4 bg-gray-100 rounded" />
+        </div>
+        <div>
+          <div className="w-24 h-4 bg-gray-100 rounded mb-2" />
+          <div className="w-32 h-8 bg-gray-200 rounded" />
+        </div>
+      </div>
+    );
+  }
 
-function StatCard({ title, value, icon: Icon, trend, trendUp, iconColor, iconBg, subtitle }) {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
       <div className="flex justify-between items-start mb-6">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
           <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
-        {trend && (
-          <div className={`text-xs font-bold flex items-center gap-1 ${trendUp ? 'text-blue-600' : 'text-blue-600'}`}>
-            {trendUp ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m19 12-7 7-7-7"/><path d="M12 5v14"/></svg>
-            )}
-            {trend}
-          </div>
-        )}
         {subtitle && (
-          <div className="text-xs font-bold text-gray-900">{subtitle}</div>
+          <div className="text-xs font-bold text-gray-500">{subtitle}</div>
         )}
       </div>
       <div>
@@ -40,16 +40,270 @@ function StatCard({ title, value, icon: Icon, trend, trendUp, iconColor, iconBg,
 
 export default function AdminAIMonitor() {
   const [timeFilter, setTimeFilter] = useState('24h');
+  const [overview, setOverview] = useState(null);
+  const [tokenUsage, setTokenUsage] = useState([]);
+  const [featureUsage, setFeatureUsage] = useState([]);
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [recentLogs, setRecentLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [overviewData, tokenUsageData, featureUsageData, systemStatusData, recentLogsData] = await Promise.all([
+        aiMonitoringApi.getOverview(timeFilter),
+        aiMonitoringApi.getTokenUsage(timeFilter),
+        aiMonitoringApi.getFeatureUsage(timeFilter),
+        aiMonitoringApi.getSystemStatus(),
+        aiMonitoringApi.getRecentLogs(1, 10)
+      ]);
+
+      setOverview(overviewData);
+      setTokenUsage(tokenUsageData);
+      setFeatureUsage(featureUsageData);
+      setSystemStatus(systemStatusData);
+      setRecentLogs(recentLogsData.items || []);
+    } catch (err) {
+      console.error(err);
+      setError('Lỗi khi kết nối với máy chủ. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [timeFilter]);
+
+  const exportAiMonitoringReportToPdf = () => {
+    if (!overview || !recentLogs) {
+      alert("Chưa có dữ liệu để xuất báo cáo.");
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Wrapper ẩn: overflow:hidden + left ra ngoài màn hình
+      // Giúp html2canvas vẫn render được (khác với top:-9999px bị bỏ qua)
+      const hiddenWrapper = document.createElement('div');
+      hiddenWrapper.style.position = 'fixed';
+      hiddenWrapper.style.top = '0';
+      hiddenWrapper.style.left = '-2000px';
+      hiddenWrapper.style.width = '1000px';
+      hiddenWrapper.style.height = 'auto';
+      hiddenWrapper.style.overflow = 'hidden';
+      hiddenWrapper.style.zIndex = '-1';
+      hiddenWrapper.style.pointerEvents = 'none';
+
+      const printableContainer = document.createElement('div');
+      printableContainer.id = 'temp-pdf-export-container';
+      printableContainer.style.width = '1000px';
+      printableContainer.style.background = '#ffffff';
+      printableContainer.style.color = '#111827';
+      printableContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+      printableContainer.style.padding = '40px';
+      printableContainer.style.boxSizing = 'border-box';
+
+      const rangeText = timeFilter === '24h' ? '24 Giờ' : timeFilter === '7d' ? '7 Ngày' : '30 Ngày';
+      const formattedDate = new Date().toLocaleDateString('vi-VN');
+      const formattedTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+      printableContainer.innerHTML = `
+        <!-- Header -->
+        <div style="border-bottom: 3px solid #1d4ed8; padding-bottom: 20px; margin-bottom: 25px;">
+          <div style="font-size: 14px; font-weight: bold; color: #1d4ed8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">
+            Nền tảng Phỏng vấn IT Thông minh
+          </div>
+          <h1 style="font-size: 28px; font-weight: 900; color: #111827; margin: 0;">
+            Báo cáo Giám sát hệ thống AI
+          </h1>
+        </div>
+
+        <!-- Metadata -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+          <div>
+            <p style="margin: 4px 0; font-size: 14px; color: #475569;"><strong style="color: #0f172a;">Khoảng thời gian thống kê:</strong> ${rangeText}</p>
+            <p style="margin: 4px 0; font-size: 14px; color: #475569;"><strong style="color: #0f172a;">Người xuất báo cáo:</strong> Admin</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="margin: 4px 0; font-size: 14px; color: #475569;"><strong style="color: #0f172a;">Ngày xuất báo cáo:</strong> ${formattedDate}</p>
+            <p style="margin: 4px 0; font-size: 14px; color: #475569;"><strong style="color: #0f172a;">Giờ xuất báo cáo:</strong> ${formattedTime}</p>
+          </div>
+        </div>
+
+        <!-- General Stats -->
+        <h2 style="font-size: 18px; font-weight: 800; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 10px; margin-bottom: 15px;">Thống kê tổng quan</h2>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px;">
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 5px; text-transform: uppercase;">Tổng AI Requests</div>
+            <div style="font-size: 22px; font-weight: 900; color: #0f172a;">${overview?.totalRequests?.toLocaleString() ?? '0'}</div>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 5px; text-transform: uppercase;">Phản hồi trung bình</div>
+            <div style="font-size: 22px; font-weight: 900; color: #0f172a;">${overview?.averageResponseTimeText ?? '0s'}</div>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 5px; text-transform: uppercase;">Token đã dùng</div>
+            <div style="font-size: 22px; font-weight: 900; color: #0f172a;">${overview?.totalTokens?.toLocaleString() ?? '0'}</div>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 5px; text-transform: uppercase;">Chi phí ước tính</div>
+            <div style="font-size: 22px; font-weight: 900; color: #16a34a;">$${overview?.estimatedCost?.toFixed(4) ?? '0.0000'}</div>
+          </div>
+        </div>
+
+        <!-- System Status & Features -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 10px; margin-bottom: 15px;">Tình trạng hệ thống</h2>
+            <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                <span style="font-size: 14px; color: #475569;">API Gateway Status:</span>
+                <span style="font-size: 14px; font-weight: bold; color: ${systemStatus?.apiGatewayStatus === 'Active' ? '#16a34a' : '#dc2626'};">${systemStatus?.apiGatewayStatus === 'Active' ? 'Hoạt động' : 'Ngoại tuyến'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                <span style="font-size: 14px; color: #475569;">AI Service Status:</span>
+                <span style="font-size: 14px; font-weight: bold; color: ${systemStatus?.fastApiStatus === 'Active' ? '#16a34a' : '#dc2626'};">${systemStatus?.fastApiStatus === 'Active' ? 'Hoạt động' : 'Ngoại tuyến'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                <span style="font-size: 14px; color: #475569;">GPT Limit Used:</span>
+                <span style="font-size: 14px; font-weight: bold; color: #0f172a;">${systemStatus?.gptLimitUsedPercent ?? 0}%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="font-size: 14px; color: #475569;">Độ trễ trung bình:</span>
+                <span style="font-size: 14px; font-weight: bold; color: #0f172a;">${systemStatus?.averageLatencyMs?.toLocaleString() ?? 0} ms</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 10px; margin-bottom: 15px;">Top tính năng dùng AI</h2>
+            <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
+              ${featureUsage.length === 0 ? '<p style="font-size: 14px; color: #94a3b8; text-align: center;">Không có dữ liệu</p>' : 
+                featureUsage.slice(0, 4).map(feat => `
+                  <div style="margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: #475569; margin-bottom: 4px;">
+                      <span>${feat.featureDisplayName}</span>
+                      <span>${feat.requestCount} requests (${feat.percentage}%)</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden;">
+                      <div style="width: ${feat.percentage}%; height: 100%; background: #3b82f6; border-radius: 3px;"></div>
+                    </div>
+                  </div>
+                `).join('')
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <h2 style="font-size: 18px; font-weight: 800; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 10px; margin-bottom: 15px;">Nhật ký request gần đây</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 13px;">
+          <thead>
+            <tr style="background: #1e3a8a; color: #ffffff; text-align: left;">
+              <th style="padding: 10px; border: 1px solid #cbd5e1;">Người dùng</th>
+              <th style="padding: 10px; border: 1px solid #cbd5e1;">Tính năng</th>
+              <th style="padding: 10px; border: 1px solid #cbd5e1;">Trạng thái</th>
+              <th style="padding: 10px; border: 1px solid #cbd5e1;">Token</th>
+              <th style="padding: 10px; border: 1px solid #cbd5e1;">Phản hồi</th>
+              <th style="padding: 10px; border: 1px solid #cbd5e1; text-align: right;">Thời gian</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recentLogs.length === 0 ? '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">Không có logs nào</td></tr>' :
+              recentLogs.slice(0, 10).map(log => {
+                let safeStatus = log.statusText;
+                if (log.status !== 'Success') {
+                  safeStatus = log.status === 'Timeout' ? 'Timeout' : 'Lỗi API';
+                }
+                return `
+                  <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #0f172a;">${log.userName || 'Hệ thống'}</td>
+                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #334155;">${log.featureDisplayName}</td>
+                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">
+                      <span style="padding: 2px 6px; font-size: 11px; font-weight: bold; border-radius: 4px; ${
+                        log.status === 'Success' ? 'background: #dcfce7; color: #15803d;' : 'background: #fee2e2; color: #b91c1c;'
+                      }">
+                        ${safeStatus}
+                      </span>
+                    </td>
+                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold;">${log.totalTokens?.toLocaleString() ?? 0}</td>
+                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #334155;">${log.responseTimeText}</td>
+                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">${log.createdAtText}</td>
+                  </tr>
+                `;
+              }).join('')
+            }
+          </tbody>
+        </table>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 12px; color: #94a3b8; font-weight: bold;">
+          Generated by InterviewPro Admin • Nền tảng Phỏng vấn IT Thông minh
+        </div>
+      `;
+
+      hiddenWrapper.appendChild(printableContainer);
+      document.body.appendChild(hiddenWrapper);
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `ai-monitoring-report-${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 1000,
+          width: 1000
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf()
+        .set(opt)
+        .from(printableContainer)
+        .save()
+        .then(() => {
+          document.body.removeChild(hiddenWrapper);
+          setIsExporting(false);
+          alert("Xuất báo cáo PDF thành công.");
+        })
+        .catch((err) => {
+          console.error(err);
+          if (document.body.contains(hiddenWrapper)) {
+            document.body.removeChild(hiddenWrapper);
+          }
+          setIsExporting(false);
+          alert("Không thể xuất báo cáo PDF. Vui lòng thử lại.");
+        });
+    } catch (e) {
+      console.error(e);
+      setIsExporting(false);
+      alert("Không thể xuất báo cáo PDF. Vui lòng thử lại.");
+    }
+  };
+
+  const handleExportReport = () => {
+    exportAiMonitoringReportToPdf();
+  };
 
   return (
-    <div className="animate-fade-in max-w-[1400px] mx-auto pb-10">
+    <div id="ai-monitor-dashboard" className="animate-fade-in max-w-[1400px] mx-auto pb-10 px-4 md:px-0">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Giám sát hệ thống AI</h1>
-          <p className="text-sm text-gray-500 mt-2 font-medium">Theo dõi hiệu năng và chi phí vận hành mô hình ngôn ngữ lớn (LLM)</p>
+          <p className="text-sm text-gray-500 mt-2 font-medium">Theo dõi hiệu năng và chi phí vận hành mô hình ngôn ngữ lớn (LLM) trong hệ thống</p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center flex-wrap">
           <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
             <button 
               className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '24h' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
@@ -70,36 +324,124 @@ export default function AdminAIMonitor() {
               30 Ngày
             </button>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+          <button 
+            onClick={fetchData}
+            className="p-2.5 bg-white border border-gray-200 text-gray-500 hover:text-gray-800 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+            title="Làm mới dữ liệu"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={handleExportReport}
+            disabled={isExporting}
+            className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             <Download className="w-4 h-4" />
-            Xuất báo cáo
+            {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
           </button>
         </div>
       </div>
 
+      {/* Error message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-start gap-3 shadow-sm">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-bold text-sm">Có lỗi xảy ra</h4>
+            <p className="text-xs text-red-600 mt-1 font-medium">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Tổng AI Requests" value="42,892" icon={Zap} trend="+12.5%" trendUp={true} iconColor="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Thời gian phản hồi TB" value="1.8s" icon={Timer} trend="+0.2s" trendUp={true} iconColor="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Token đã dùng" value="8,241,500" icon={BarChart4} trend="-4.1%" trendUp={false} iconColor="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Chi phí ước tính" value="$164.82" icon={CreditCard} subtitle="Tháng này" iconColor="text-red-500" iconBg="bg-red-50" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard 
+          title="Tổng AI Requests" 
+          value={overview?.totalRequests?.toLocaleString() ?? '0'} 
+          icon={Zap} 
+          subtitle={`Tỉ lệ lỗi: ${overview?.errorRate ?? 0}%`} 
+          loading={loading}
+          iconColor="text-blue-600" 
+          iconBg="bg-blue-50" 
+        />
+        <StatCard 
+          title="Thời gian phản hồi TB" 
+          value={overview?.averageResponseTimeText ?? '0s'} 
+          icon={Timer} 
+          subtitle="Stopwatch ms" 
+          loading={loading}
+          iconColor="text-indigo-600" 
+          iconBg="bg-indigo-50" 
+        />
+        <StatCard 
+          title="Token đã dùng" 
+          value={overview?.totalTokens?.toLocaleString() ?? '0'} 
+          icon={BarChart4} 
+          subtitle={`Tỉ lệ t.công: ${overview?.successRate ?? 0}%`} 
+          loading={loading}
+          iconColor="text-teal-600" 
+          iconBg="bg-teal-50" 
+        />
+        <StatCard 
+          title="Chi phí ước tính" 
+          value={`$${overview?.estimatedCost?.toFixed(4) ?? '0.00'}`} 
+          icon={CreditCard} 
+          subtitle="Ước tính (USD)" 
+          loading={loading}
+          iconColor="text-emerald-500" 
+          iconBg="bg-emerald-50" 
+        />
       </div>
 
       {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Left Column: Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col min-h-[400px]">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-gray-900">Lưu lượng Token theo ngày</h3>
+            <h3 className="text-lg font-bold text-gray-900">
+              Lưu lượng Token ({timeFilter === '24h' ? 'theo giờ' : 'theo ngày'})
+            </h3>
             <div className="flex items-center gap-4 text-xs font-semibold text-gray-500">
               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>Input</div>
               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-300"></div>Output</div>
             </div>
           </div>
-          <div className="flex-1 min-h-[300px] border-b border-l border-gray-100 relative mt-4">
-            <div className="absolute bottom-0 w-full flex justify-between text-[11px] text-gray-500 font-semibold px-4 translate-y-6">
-              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-            </div>
+          
+          <div className="flex-1 w-full flex items-center justify-center">
+            {loading ? (
+              <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-gray-50/50 rounded-xl animate-pulse">
+                <span className="text-sm font-bold text-gray-400">Đang tải biểu đồ...</span>
+              </div>
+            ) : tokenUsage.length === 0 ? (
+              <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center text-center p-6 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                <BarChart4 className="w-10 h-10 text-gray-300 mb-2" />
+                <p className="text-sm font-bold text-gray-500">Chưa có dữ liệu AI request trong khoảng thời gian này.</p>
+              </div>
+            ) : (
+              <div className="w-full h-full min-h-[300px] mt-2">
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={tokenUsage} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorInput" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorOutput" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#93c5fd" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                    <XAxis dataKey="label" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Legend verticalAlign="top" height={36} iconType="circle" />
+                    <Area type="monotone" dataKey="inputTokens" name="Input Tokens" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorInput)" />
+                    <Area type="monotone" dataKey="outputTokens" name="Output Tokens" stroke="#93c5fd" strokeWidth={2} fillOpacity={1} fill="url(#colorOutput)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 
@@ -109,27 +451,45 @@ export default function AdminAIMonitor() {
           <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-sm shadow-blue-200">
             <h3 className="text-lg font-bold mb-6">Tình trạng hệ thống</h3>
             
-            <div className="space-y-4">
-              <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
-                <span className="text-blue-100 text-sm font-semibold">API Status</span>
-                <span className="px-2.5 py-1 bg-green-500 text-white text-[10px] font-bold rounded-md tracking-wider">HOẠT ĐỘNG</span>
+            {loading ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
+                <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
+                <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
               </div>
-              <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
-                <span className="text-blue-100 text-sm font-semibold">GPT-4 Limit</span>
-                <span className="text-white text-sm font-bold tracking-wide">82% Used</span>
-              </div>
-              <div className="flex justify-between items-center pb-4">
-                <span className="text-blue-100 text-sm font-semibold">System Latency</span>
-                <span className="text-white text-sm font-bold tracking-wide">45ms</span>
-              </div>
-            </div>
-            
-            <div className="mt-2">
-              <div className="w-full h-2 bg-blue-500 rounded-full overflow-hidden mb-3">
-                <div className="w-[82%] h-full bg-white rounded-full shadow-sm"></div>
-              </div>
-              <p className="text-[11px] text-blue-100 italic text-center font-medium">Hệ thống đang hoạt động trong ngưỡng an toàn.</p>
-            </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
+                    <span className="text-blue-100 text-sm font-semibold">API Gateway</span>
+                    <span className="px-2.5 py-1 bg-green-500 text-white text-[10px] font-bold rounded-md tracking-wider">HOẠT ĐỘNG</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
+                    <span className="text-blue-100 text-sm font-semibold">FastAPI AI Service</span>
+                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md tracking-wider ${systemStatus?.aiServiceStatus === 'Hoạt động' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                      {systemStatus?.aiServiceStatus === 'Hoạt động' ? 'HOẠT ĐỘNG' : 'NGOẠI TUYẾN'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
+                    <span className="text-blue-100 text-sm font-semibold">GPT-4 Limit</span>
+                    <span className="text-white text-sm font-bold tracking-wide">{systemStatus?.gptLimitUsedPercent ?? 0}% Used</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4">
+                    <span className="text-blue-100 text-sm font-semibold">AI Latency (Avg)</span>
+                    <span className="text-white text-sm font-bold tracking-wide">{systemStatus?.systemLatencyMs ?? 0}ms</span>
+                  </div>
+                </div>
+                
+                <div className="mt-2">
+                  <div className="w-full h-2 bg-blue-500 rounded-full overflow-hidden mb-3">
+                    <div className="h-full bg-white rounded-full shadow-sm" style={{ width: `${systemStatus?.gptLimitUsedPercent ?? 0}%` }}></div>
+                  </div>
+                  <p className="text-[11px] text-blue-100 italic text-center font-medium">
+                    {systemStatus?.message || 'Hệ thống đang hoạt động trong ngưỡng an toàn.'}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Top Features */}
@@ -137,24 +497,35 @@ export default function AdminAIMonitor() {
             <h3 className="text-lg font-bold text-gray-900 mb-6">Top tính năng dùng AI</h3>
             
             <div className="space-y-5">
-              {[
-                { name: 'Tạo câu hỏi phỏng vấn', val: 75, color: 'bg-blue-600' },
-                { name: 'Phân tích CV', val: 42, color: 'bg-blue-500' },
-                { name: 'Tư vấn nghề nghiệp', val: 18, color: 'bg-blue-800' },
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-                      {idx + 1}
-                    </div>
-                    <span className="text-sm font-bold text-gray-900 flex-1">{item.name}</span>
-                    <span className="text-sm font-black text-gray-900">{item.val}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full ${item.color} rounded-full`} style={{ width: `${item.val}%` }}></div>
-                  </div>
+              {loading ? (
+                <div className="space-y-4 animate-pulse">
+                  <div className="w-full h-10 bg-gray-100 rounded-lg" />
+                  <div className="w-full h-10 bg-gray-100 rounded-lg" />
+                  <div className="w-full h-10 bg-gray-100 rounded-lg" />
                 </div>
-              ))}
+              ) : featureUsage.length === 0 ? (
+                <p className="text-sm font-semibold text-gray-500 text-center py-6">Chưa có thông tin sử dụng tính năng.</p>
+              ) : (
+                featureUsage.map((item, idx) => {
+                  const colors = ['bg-blue-600', 'bg-blue-500', 'bg-blue-800', 'bg-indigo-500', 'bg-teal-500'];
+                  const barColor = colors[idx % colors.length];
+                  return (
+                    <div key={idx}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
+                          {idx + 1}
+                        </div>
+                        <span className="text-sm font-bold text-gray-900 flex-1 truncate">{item.displayName}</span>
+                        <span className="text-sm font-black text-gray-950">{item.percentage}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full ${barColor} rounded-full`} style={{ width: `${item.percentage}%` }}></div>
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-bold ml-9 mt-0.5">{item.requestCount?.toLocaleString()} requests</div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -164,8 +535,14 @@ export default function AdminAIMonitor() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h3 className="text-base font-bold text-gray-900">Nhật ký request gần đây</h3>
-          <button className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Xem tất cả</button>
+          <button 
+            onClick={fetchData} 
+            className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            Làm mới
+          </button>
         </div>
+        
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -173,26 +550,52 @@ export default function AdminAIMonitor() {
                 <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Người Dùng</th>
                 <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Tính Năng</th>
                 <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Trạng Thái</th>
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Token</th>
+                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Tổng Token</th>
                 <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Phản Hồi</th>
                 <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider text-right">Thời Gian</th>
               </tr>
             </thead>
+            
             <tbody className="divide-y divide-gray-100">
-              {recentLogs.map((log, idx) => (
-                <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-sm font-bold text-gray-900">{log.user}</td>
-                  <td className="py-4 px-6 text-sm font-semibold text-gray-600">{log.feature}</td>
-                  <td className="py-4 px-6">
-                    <span className={`text-sm font-bold ${log.isError ? 'text-red-500' : 'text-gray-900'}`}>
-                      {log.status}
-                    </span>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-6"><div className="w-24 h-4 bg-gray-100 rounded" /></td>
+                    <td className="py-4 px-6"><div className="w-32 h-4 bg-gray-100 rounded" /></td>
+                    <td className="py-4 px-6"><div className="w-16 h-4 bg-gray-100 rounded" /></td>
+                    <td className="py-4 px-6"><div className="w-12 h-4 bg-gray-100 rounded" /></td>
+                    <td className="py-4 px-6"><div className="w-12 h-4 bg-gray-100 rounded" /></td>
+                    <td className="py-4 px-6 text-right"><div className="w-16 h-4 bg-gray-100 rounded ml-auto" /></td>
+                  </tr>
+                ))
+              ) : recentLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-sm font-semibold text-gray-400">
+                    Chưa có hoạt động AI request nào được ghi nhận.
                   </td>
-                  <td className="py-4 px-6 text-sm font-bold text-gray-900">{log.token}</td>
-                  <td className="py-4 px-6 text-sm font-bold text-gray-900">{log.responseTime}</td>
-                  <td className="py-4 px-6 text-sm font-semibold text-gray-500 text-right">{log.time}</td>
                 </tr>
-              ))}
+              ) : (
+                recentLogs.map((log, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-4 px-6 text-sm font-bold text-gray-900">{log.userName}</td>
+                    <td className="py-4 px-6 text-sm font-semibold text-gray-600">{log.featureDisplayName}</td>
+                    <td className="py-4 px-6">
+                      <span className={`px-2 py-0.5 text-xs font-bold rounded-md ${
+                        log.status === 'Success' 
+                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                          : log.status === 'Timeout'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {log.statusText}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm font-bold text-gray-800">{log.totalTokens?.toLocaleString()}</td>
+                    <td className="py-4 px-6 text-sm font-bold text-gray-800">{log.responseTimeText}</td>
+                    <td className="py-4 px-6 text-sm font-semibold text-gray-500 text-right">{log.createdAtText}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

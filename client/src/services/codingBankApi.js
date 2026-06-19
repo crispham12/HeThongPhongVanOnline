@@ -1,4 +1,10 @@
 import api from '../lib/axios';
+import axios from 'axios';
+
+// ══════════════════════════════════════════════════
+// AI Service base URL (FastAPI Python)
+// ══════════════════════════════════════════════════
+const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
 
 // ══════════════════════════════════════════════════
 // ADMIN: Coding Problems
@@ -36,7 +42,13 @@ export const adminCodingBankApi = {
     },
 
     unpublish: async (id) => {
-        const response = await api.post(`/admin/coding-problems/${id}/unpublish`);
+        const response = await api.post(`/admin/coding-problems/${id}/draft`);
+        return response.data;
+    },
+
+    // ── AI Generation (calls Python FastAPI directly) ──
+    generateWithAi: async (prompt) => {
+        const response = await axios.post(`${AI_BASE_URL}/ai/coding/generate-problem`, { prompt });
         return response.data;
     }
 };

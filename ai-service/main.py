@@ -9,6 +9,8 @@ import os
 from services.openai_service import call_openai
 from prompts.prompts import QUESTION_PROMPTS, EVALUATION_PROMPTS, ROADMAP_PROMPT
 from routes.hr import router as hr_router
+from routes.coding import router as coding_router
+from routes.coding_practice import router as coding_practice_router
 
 app = FastAPI(title="InterviewPro AI Service")
 
@@ -23,6 +25,12 @@ app.add_middleware(
 
 # Register HR Interview router
 app.include_router(hr_router)
+
+# Register Coding Question Bank AI Generator router
+app.include_router(coding_router)
+
+# Register Coding Practice router
+app.include_router(coding_practice_router)
 
 class InterviewSetup(BaseModel):
     role: str
@@ -45,6 +53,10 @@ class InterviewReportRequest(BaseModel):
 async def root():
     return {"message": "AI Service is running", "openai_key_status": "Set" if os.getenv("OPENAI_API_KEY") else "Not Set"}
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.post("/ai/generate-question")
 async def generate_question(setup: InterviewSetup):
     """
@@ -64,18 +76,20 @@ async def generate_question(setup: InterviewSetup):
         type_key = setup.interview_type.lower() if setup.interview_type else "technical"
         if type_key not in QUESTION_PROMPTS:
             type_key = "technical"
-            
+
         prompt_template = QUESTION_PROMPTS[type_key]
         tech_context = ", ".join(setup.stack) if setup.stack else setup.role
-        
+
         prompt = prompt_template.format(
             level=setup.difficulty,
             role=f"{setup.role} (Tech stack: {tech_context})"
         )
-        
+
         ai_response = await call_openai(prompt)
-        
-        return {
+        usage = ai_response.pop("usage", None)
+        ai_response.pop("model", None)
+
+        response_data = {
             "question": ai_response.get("question", "No question generated"),
             "context": {
                 "tech_stack": setup.stack,
@@ -85,9 +99,12 @@ async def generate_question(setup: InterviewSetup):
             "phase": setup.interview_type,
             "tags": ai_response.get("tags", [])
         }
+        if usage:
+            response_data["usage"] = usage
+        return response_data
     except Exception as e:
         print(f"Error in generate_question: {str(e)}")
-        # Trả về câu hỏi mặc định nếu có lỗi API (Ví dụ: Key sai, hết tiền...)
+        # Trả về câu hỏi mặc định nếu có lỗi API (Đí dụ: Key sai, hết tiền...)
         return {
             "question": f"Can you describe a challenging project you worked on using {', '.join(setup.stack)}?",
             "context": {"status": "error_fallback", "error": str(e)},
@@ -115,21 +132,26 @@ async def evaluate_answer(submission: AnswerSubmission):
         type_key = submission.interview_type.lower() if submission.interview_type else "technical"
         if type_key not in EVALUATION_PROMPTS:
             type_key = "technical"
-            
+
         prompt_template = EVALUATION_PROMPTS[type_key]
         prompt = prompt_template.format(
             question=submission.question,
             answer=submission.answer
         )
-        
+
         ai_response = await call_openai(prompt)
-        
-        return {
+        usage = ai_response.pop("usage", None)
+        ai_response.pop("model", None)
+
+        response_data = {
             "score": ai_response.get("score", 0),
             "feedback": ai_response.get("feedback", "No feedback provided"),
             "is_correct": ai_response.get("score", 0) > 70,
             "next_question": ai_response.get("next_question", None)
         }
+        if usage:
+            response_data["usage"] = usage
+        return response_data
     except Exception as e:
         print(f"Error in evaluate_answer: {str(e)}")
         return {
@@ -155,14 +177,19 @@ async def generate_report(request: InterviewReportRequest):
             scores=scores_str
         )
         full_prompt = f"{prompt}\n\nCandidate Feedback Summary: {'. '.join(request.feedback_summary)}"
-        
+
         ai_response = await call_openai(full_prompt)
-        
-        return {
+        usage = ai_response.pop("usage", None)
+        ai_response.pop("model", None)
+
+        response_data = {
             "overall_assessment": ai_response.get("overall_advice", ""),
             "roadmap": ai_response.get("roadmap", []),
             "final_decision": "Recommend Hire" if sum(request.scores.values()) / len(request.scores) > 70 else "Recommend Further Training"
         }
+        if usage:
+            response_data["usage"] = usage
+        return response_data
     except Exception as e:
         print(f"Error in generate_report: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Report Generation failed: {str(e)}")
@@ -225,12 +252,18 @@ async def analyze_cv(request: CVAnalysisRequest):
           "feedback": "<detailed feedback in Vietnamese. Point out specifically which experience section could be improved with metrics or which skills to highlight. Keep it professional and under 150 words.>"
         }}
         """
-        
+
         ai_response = await call_openai(prompt)
-        return {
+        usage = ai_response.pop("usage", None)
+        ai_response.pop("model", None)
+
+        response_data = {
             "score": ai_response.get("score", 80),
             "feedback": ai_response.get("feedback", "Đã đánh giá thành công.")
         }
+        if usage:
+            response_data["usage"] = usage
+        return response_data
     except Exception as e:
         print(f"Error in analyze_cv: {str(e)}")
         return {

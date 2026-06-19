@@ -14,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(opts =>
     opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpContextAccessor();
+
 // ──────────────── JWT ────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -41,6 +43,20 @@ builder.Services.AddScoped<ICvTemplateService, CvTemplateService>();
 // HR Interview services
 builder.Services.AddScoped<IHrAiClient, HrAiClient>();
 builder.Services.AddScoped<IHrInterviewService, HrInterviewService>();
+
+// Admin AI Monitor service
+builder.Services.AddScoped<IAiMonitorService, AiMonitorService>();
+builder.Services.AddScoped<IAiRequestLogService, AiRequestLogService>();
+
+// Interview Data Management service
+builder.Services.AddScoped<IInterviewDataService, InterviewDataService>();
+
+// Admin User Management service
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+
+// Coding Problem Bank services
+builder.Services.AddScoped<IAdminCodingProblemService, AdminCodingProblemService>();
+builder.Services.AddScoped<IPracticeCodingProblemService, PracticeCodingProblemService>();
 
 builder.Services.AddHttpClient("AIService", client => {
     client.BaseAddress = new Uri("http://localhost:8000");
@@ -96,6 +112,20 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
         Console.WriteLine("✅ Database migration applied.");
+
+        // Populate missing UserCodes
+        var usersWithNoCode = db.Users.Where(u => string.IsNullOrEmpty(u.UserCode)).ToList();
+        if (usersWithNoCode.Any())
+        {
+            var count = db.Users.Count(u => !string.IsNullOrEmpty(u.UserCode));
+            foreach (var user in usersWithNoCode)
+            {
+                count++;
+                user.UserCode = $"US{count:D2}";
+            }
+            db.SaveChanges();
+            Console.WriteLine("✅ Populated missing UserCodes.");
+        }
     }
     catch (Exception ex)
     {

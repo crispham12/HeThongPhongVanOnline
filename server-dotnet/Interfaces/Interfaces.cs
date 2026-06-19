@@ -17,5 +17,6 @@ namespace InterviewPro.API.Interfaces
         Task<InterviewSession> GetSessionByGuid(string guid);
         Task<IEnumerable<InterviewSession>> GetUserHistory(int userId);
         Task<InterviewQuestion> AddQuestion(InterviewQuestion question);
+        Task UpdateSession(InterviewSession session);
     }
 }

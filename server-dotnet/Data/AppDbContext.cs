@@ -20,11 +20,18 @@ namespace InterviewPro.API.Data
         public DbSet<HrInterviewFinalResult> HrInterviewFinalResults { get; set; }
         public DbSet<AiRequestLog> AiRequestLogs { get; set; }
 
+        // ── Practice Sessions (Interview Data Management) ──
+        public DbSet<PracticeSession> PracticeSessions { get; set; }
+        public DbSet<PracticeAttempt> PracticeAttempts { get; set; }
+        public DbSet<PracticeAttemptQuestion> PracticeAttemptQuestions { get; set; }
+
         // ── Question Bank ──
         public DbSet<Question> Questions { get; set; }
         public DbSet<CodingProblem> CodingProblems { get; set; }
         public DbSet<UserQuestionPracticeHistory> UserQuestionPracticeHistories { get; set; }
-        public DbSet<UserCodingPracticeHistory> UserCodingPracticeHistories { get; set; }
+        public DbSet<CodingPracticeAttempt> CodingPracticeAttempts { get; set; }
+        public DbSet<UserCodingProblemProgress> UserCodingProblemProgresses { get; set; }
+        public DbSet<CodingAssessmentHistory> CodingAssessmentHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -78,8 +85,15 @@ namespace InterviewPro.API.Data
                 e.HasIndex(p => p.Difficulty);
                 e.HasIndex(p => p.IsClientVisible);
                 e.Property(p => p.Description).HasColumnType("nvarchar(max)");
-                e.Property(p => p.TestCasesJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.CategoriesJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.ConstraintsJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.ExamplesJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.PublicTestCasesJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.HiddenTestCasesJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.SupportedLanguagesJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.StarterCodeJson).HasColumnType("nvarchar(max)");
                 e.Property(p => p.SolutionJson).HasColumnType("nvarchar(max)");
+                e.Property(p => p.TargetSkillsJson).HasColumnType("nvarchar(max)");
             });
 
             modelBuilder.Entity<UserQuestionPracticeHistory>(e =>
@@ -91,14 +105,98 @@ namespace InterviewPro.API.Data
                  .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<UserCodingPracticeHistory>(e =>
+            modelBuilder.Entity<CodingPracticeAttempt>(e =>
             {
                 e.HasIndex(h => new { h.UserId, h.CodingProblemId });
+                e.HasIndex(h => new { h.UserId, h.CodingProblemId, h.AttemptNumber });
+                e.Property(h => h.SubmittedCode).HasColumnType("nvarchar(max)");
+                e.Property(h => h.AiFeedbackJson).HasColumnType("nvarchar(max)");
                 e.HasOne(h => h.CodingProblem)
                  .WithMany()
                  .HasForeignKey(h => h.CodingProblemId)
                  .OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<UserCodingProblemProgress>(e =>
+            {
+                e.HasIndex(h => new { h.UserId, h.CodingProblemId }).IsUnique();
+                e.HasOne(h => h.CodingProblem)
+                 .WithMany()
+                 .HasForeignKey(h => h.CodingProblemId)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CodingAssessmentHistory>(e =>
+            {
+                e.HasIndex(h => new { h.UserId, h.InterviewSessionId });
+                e.HasOne(h => h.CodingProblem)
+                 .WithMany()
+                 .HasForeignKey(h => h.CodingProblemId)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AiRequestLog>(e =>
+            {
+                e.Property(l => l.Feature).IsRequired();
+                e.Property(l => l.RequestType).IsRequired();
+                e.Property(l => l.Status).IsRequired();
+                e.Property(l => l.UserName).HasMaxLength(200);
+                e.Property(l => l.EstimatedCost).HasColumnType("decimal(18,2)");
+                e.Property(l => l.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                e.HasIndex(l => l.CreatedAt);
+                e.HasIndex(l => l.Feature);
+                e.HasIndex(l => l.Status);
+                e.HasIndex(l => l.UserId);
+            });
+
+            // ── PracticeSession config ──
+            modelBuilder.Entity<PracticeSession>(e =>
+            {
+                e.HasIndex(s => s.UserId);
+                e.HasIndex(s => s.SkillType);
+                e.HasIndex(s => s.CreatedAt);
+                e.HasIndex(s => new { s.UserId, s.SkillType }); // Tìm nhanh session theo user + loại kỹ năng
+                e.Property(s => s.LatestScore).HasColumnType("float");
+                e.Property(s => s.BestScore).HasColumnType("float");
+                e.Property(s => s.UserName).HasMaxLength(256);
+                e.Property(s => s.Role).HasMaxLength(256);
+                e.Property(s => s.SkillType).HasMaxLength(50).IsRequired();
+                e.Property(s => s.Status).HasMaxLength(50);
+
+                e.HasMany(s => s.Attempts)
+                 .WithOne(a => a.Session)
+                 .HasForeignKey(a => a.SessionId)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ── PracticeAttempt config ──
+            modelBuilder.Entity<PracticeAttempt>(e =>
+            {
+                e.HasIndex(a => a.SessionId);
+                e.HasIndex(a => a.Score);
+                e.HasIndex(a => a.CreatedAt);
+                e.Property(a => a.Score).HasColumnType("float");
+                e.Property(a => a.Summary).HasColumnType("nvarchar(max)");
+
+                e.HasMany(a => a.Questions)
+                 .WithOne(q => q.Attempt)
+                 .HasForeignKey(q => q.AttemptId)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ── PracticeAttemptQuestion config ──
+            modelBuilder.Entity<PracticeAttemptQuestion>(e =>
+            {
+                e.HasIndex(q => q.AttemptId);
+                e.HasIndex(q => q.Category);
+                e.Property(q => q.Score).HasColumnType("float");
+                e.Property(q => q.Question).HasColumnType("nvarchar(max)");
+                e.Property(q => q.UserAnswer).HasColumnType("nvarchar(max)");
+                e.Property(q => q.AiFeedback).HasColumnType("nvarchar(max)");
+                e.Property(q => q.Category).HasMaxLength(100);
+            });
+
         }
     }
 }

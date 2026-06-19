@@ -1,7 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
-using InterviewPro.API.Data;
 using InterviewPro.API.DTOs;
 using InterviewPro.API.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -9,22 +10,25 @@ using Microsoft.Extensions.Logging;
 namespace InterviewPro.API.Services
 {
     /// <summary>
-    /// HrAiClient: Đại diện giao tiếp với Python FastAPI AI Service.
+    /// HrAiClient: Giao tiếp với Python FastAPI AI Service.
     /// - Gọi 3 endpoints chính: generate-questions, evaluate-answer, final-evaluation
-    /// - Tự động ghi log mỗi request vào bảng AiRequestLogs để monitor dashboard
+    /// - Tự động ghi log mỗi request bằng IAiRequestLogService để monitor dashboard
     /// - Fallback an toàn khi AI Service không khả dụng
     /// </summary>
     public class HrAiClient : IHrAiClient
     {
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly AppDbContext _db;
         private readonly ILogger<HrAiClient> _logger;
+        private readonly IAiRequestLogService _aiRequestLogService;
 
-        public HrAiClient(IHttpClientFactory httpClientFactory, AppDbContext db, ILogger<HrAiClient> logger)
+        public HrAiClient(
+            IHttpClientFactory httpClientFactory,
+            ILogger<HrAiClient> logger,
+            IAiRequestLogService aiRequestLogService)
         {
             _httpClientFactory = httpClientFactory;
-            _db = db;
             _logger = logger;
+            _aiRequestLogService = aiRequestLogService;
         }
 
         // ─────────────────────────────────────────────
@@ -34,12 +38,10 @@ namespace InterviewPro.API.Services
             string role, string difficulty, List<string> techStack)
         {
             var sw = Stopwatch.StartNew();
-            var log = new Entities.AiRequestLog
-            {
-                Feature = "HRInterview",
-                RequestType = "GenerateQuestions",
-                Status = "Success"
-            };
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            string model = "gpt-4o-mini";
+            string status = "Success";
+            string? errorMessage = null;
 
             try
             {
@@ -56,19 +58,21 @@ namespace InterviewPro.API.Services
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
+                
+                // Parse tokens usage dynamically
+                ParseTokenUsage(json, out model, out inputTokens, out outputTokens, out totalTokens);
+
                 var result = JsonSerializer.Deserialize<AiGeneratedQuestionsResult>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 sw.Stop();
-                log.ResponseTimeMs = sw.ElapsedMilliseconds;
                 return result ?? new AiGeneratedQuestionsResult();
             }
             catch (Exception ex)
             {
                 sw.Stop();
-                log.Status = "Failed";
-                log.ErrorMessage = ex.Message;
-                log.ResponseTimeMs = sw.ElapsedMilliseconds;
+                status = "Failed";
+                errorMessage = ex.Message;
                 _logger.LogError(ex, "Error calling GenerateHrQuestions");
 
                 // Fallback: trả danh sách câu hỏi mẫu để hệ thống không bị sập hoàn toàn
@@ -76,8 +80,18 @@ namespace InterviewPro.API.Services
             }
             finally
             {
-                _db.AiRequestLogs.Add(log);
-                await _db.SaveChangesAsync();
+                await _aiRequestLogService.LogAsync(new AiRequestLogCreateDto
+                {
+                    Feature = "InterviewQuestionGeneration",
+                    RequestType = "GenerateQuestions",
+                    Model = model,
+                    Status = status,
+                    InputTokens = inputTokens,
+                    OutputTokens = outputTokens,
+                    TotalTokens = totalTokens,
+                    ResponseTimeMs = sw.ElapsedMilliseconds,
+                    ErrorMessage = errorMessage
+                });
             }
         }
 
@@ -89,12 +103,10 @@ namespace InterviewPro.API.Services
             string question, string answer)
         {
             var sw = Stopwatch.StartNew();
-            var log = new Entities.AiRequestLog
-            {
-                Feature = "HRInterview",
-                RequestType = "EvaluateAnswer",
-                Status = "Success"
-            };
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            string model = "gpt-4o-mini";
+            string status = "Success";
+            string? errorMessage = null;
 
             try
             {
@@ -105,6 +117,10 @@ namespace InterviewPro.API.Services
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
+                
+                // Parse tokens usage dynamically
+                ParseTokenUsage(json, out model, out inputTokens, out outputTokens, out totalTokens);
+
                 var result = JsonSerializer.Deserialize<AiEvaluationResult>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
@@ -124,22 +140,30 @@ namespace InterviewPro.API.Services
                 }
 
                 sw.Stop();
-                log.ResponseTimeMs = sw.ElapsedMilliseconds;
                 return result ?? BuildFallbackEvaluation();
             }
             catch (Exception ex)
             {
                 sw.Stop();
-                log.Status = "Failed";
-                log.ErrorMessage = ex.Message;
-                log.ResponseTimeMs = sw.ElapsedMilliseconds;
+                status = "Failed";
+                errorMessage = ex.Message;
                 _logger.LogError(ex, "Error calling EvaluateHrAnswer");
                 return BuildFallbackEvaluation();
             }
             finally
             {
-                _db.AiRequestLogs.Add(log);
-                await _db.SaveChangesAsync();
+                await _aiRequestLogService.LogAsync(new AiRequestLogCreateDto
+                {
+                    Feature = "HRStarScoring",
+                    RequestType = "EvaluateHrAnswer",
+                    Model = model,
+                    Status = status,
+                    InputTokens = inputTokens,
+                    OutputTokens = outputTokens,
+                    TotalTokens = totalTokens,
+                    ResponseTimeMs = sw.ElapsedMilliseconds,
+                    ErrorMessage = errorMessage
+                });
             }
         }
 
@@ -150,12 +174,10 @@ namespace InterviewPro.API.Services
             string sessionId, string role, string difficulty, List<AiAnswerSummary> answers)
         {
             var sw = Stopwatch.StartNew();
-            var log = new Entities.AiRequestLog
-            {
-                Feature = "HRInterview",
-                RequestType = "FinalEvaluation",
-                Status = "Success"
-            };
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            string model = "gpt-4o-mini";
+            string status = "Success";
+            string? errorMessage = null;
 
             try
             {
@@ -166,26 +188,72 @@ namespace InterviewPro.API.Services
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
+                
+                // Parse tokens usage dynamically
+                ParseTokenUsage(json, out model, out inputTokens, out outputTokens, out totalTokens);
+
                 var result = JsonSerializer.Deserialize<HrFinalResultResponse>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 sw.Stop();
-                log.ResponseTimeMs = sw.ElapsedMilliseconds;
                 return result ?? BuildFallbackFinal(sessionId);
             }
             catch (Exception ex)
             {
                 sw.Stop();
-                log.Status = "Failed";
-                log.ErrorMessage = ex.Message;
-                log.ResponseTimeMs = sw.ElapsedMilliseconds;
+                status = "Failed";
+                errorMessage = ex.Message;
                 _logger.LogError(ex, "Error calling GenerateHrFinalResult");
                 return BuildFallbackFinal(sessionId);
             }
             finally
             {
-                _db.AiRequestLogs.Add(log);
-                await _db.SaveChangesAsync();
+                await _aiRequestLogService.LogAsync(new AiRequestLogCreateDto
+                {
+                    Feature = "CandidateEvaluation",
+                    RequestType = "FinalEvaluation",
+                    Model = model,
+                    Status = status,
+                    InputTokens = inputTokens,
+                    OutputTokens = outputTokens,
+                    TotalTokens = totalTokens,
+                    ResponseTimeMs = sw.ElapsedMilliseconds,
+                    ErrorMessage = errorMessage
+                });
+            }
+        }
+
+        // Helper to parse usage and model dynamically from JSON
+        private void ParseTokenUsage(string json, out string model, out int inputTokens, out int outputTokens, out int totalTokens)
+        {
+            model = "gpt-4o-mini";
+            inputTokens = 0;
+            outputTokens = 0;
+            totalTokens = 0;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("usage", out var usageElem))
+                {
+                    if (usageElem.TryGetProperty("inputTokens", out var inProp)) inputTokens = inProp.GetInt32();
+                    else if (usageElem.TryGetProperty("input_tokens", out var inProp2)) inputTokens = inProp2.GetInt32();
+
+                    if (usageElem.TryGetProperty("outputTokens", out var outProp)) outputTokens = outProp.GetInt32();
+                    else if (usageElem.TryGetProperty("output_tokens", out var outProp2)) outputTokens = outProp2.GetInt32();
+
+                    if (usageElem.TryGetProperty("totalTokens", out var totProp)) totalTokens = totProp.GetInt32();
+                    else if (usageElem.TryGetProperty("total_tokens", out var totProp2)) totalTokens = totProp2.GetInt32();
+                }
+
+                if (doc.RootElement.TryGetProperty("model", out var modelElem))
+                {
+                    model = modelElem.GetString() ?? model;
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors and keep defaults
             }
         }
 

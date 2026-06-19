@@ -23,16 +23,22 @@ namespace InterviewPro.API.Services
     {
         private readonly AppDbContext _db;
         private readonly IHrAiClient _aiClient;
+        private readonly IInterviewDataService _interviewDataService;
         private readonly ILogger<HrInterviewService> _logger;
 
         private const int MaxFreeSessionsPerDay = 3;
         private const int TotalQuestions = 10;
         private const int MinAnswerLength = 20;
 
-        public HrInterviewService(AppDbContext db, IHrAiClient aiClient, ILogger<HrInterviewService> logger)
+        public HrInterviewService(
+            AppDbContext db,
+            IHrAiClient aiClient,
+            IInterviewDataService interviewDataService,
+            ILogger<HrInterviewService> logger)
         {
             _db = db;
             _aiClient = aiClient;
+            _interviewDataService = interviewDataService;
             _logger = logger;
         }
 
@@ -250,6 +256,21 @@ namespace InterviewPro.API.Services
             session.CompletedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
+
+            // ── Tích hợp PracticeSession: ghi lại lần luyện tập này ──
+            // Lấy tên user để lưu vào PracticeSession
+            try
+            {
+                var user = await _db.Users.FindAsync(session.UserId);
+                var userName = user?.Name ?? user?.Email ?? $"User #{session.UserId}";
+                await _interviewDataService.CreateAttemptFromHrSessionAsync(
+                    session.UserId, userName, session.Id);
+            }
+            catch (Exception ex)
+            {
+                // Không throw — lỗi ghi PracticeAttempt không được làm hỏng flow HR
+                _logger.LogWarning(ex, "⚠️ Không thể tạo PracticeAttempt cho HR session {Id}", session.Id);
+            }
 
             finalResult.SessionId = session.SessionGuid;
             return finalResult;

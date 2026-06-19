@@ -1,0 +1,769 @@
+================================================================================
+   TÀI LIỆU KỸ THUẬT: NGÂN HÀNG BÀI CODING & PRACTICE CODING
+   Hệ thống: Nền tảng Phỏng vấn IT Thông minh (InterviewPro)
+   Ngày tạo: 2026-06-15
+================================================================================
+
+================================================================================
+PHẦN 1 — TỔNG QUAN HỆ THỐNG
+================================================================================
+
+Chức năng "Ngân hàng Bài Coding & Practice Coding" bao gồm 2 phần chính:
+
+  1. ADMIN: Quản lý ngân hàng bài coding (CRUD)
+     - Chỉ Admin mới có quyền thêm / sửa / xóa bài coding
+     - Tạo bài dạng LeetCode-style
+
+  2. CLIENT: Luyện tập và đánh giá coding
+     - User xem danh sách bài, lọc theo độ khó, role, category, skill
+     - Workspace Monaco Editor tương tự LeetCode
+     - Run Code (public test cases)
+     - Submit Code (public + hidden test cases + AI review)
+     - Xem lịch sử nộp bài
+     - AI phân tích kỹ năng và lộ trình học tập
+
+Tech Stack:
+  - Backend  : ASP.NET Core Web API, Entity Framework Core, SQL Server
+  - AI Layer : Python FastAPI, OpenAI GPT, subprocess (Python / Node.js executor)
+  - Frontend : React, Monaco Editor (@monaco-editor/react), Axios
+
+
+================================================================================
+PHẦN 2 — CẤU TRÚC DATABASE (ENTITIES)
+================================================================================
+
+---- 2.1 Bảng: CodingProblems ----
+
+  Tên class : CodingProblem
+  File      : server-dotnet/Entities/QuestionBankEntities.cs
+
+  Cột                   Kiểu dữ liệu     Mô tả
+  ─────────────────────────────────────────────────────────────────────────────
+  Id                    Guid (PK)        Tự sinh, GUID
+  ProblemCode           string (required) Mã bài, ví dụ: CP001
+  Title                 string (required) Tiêu đề bài toán
+  ShortDescription      string           Mô tả ngắn (hiển thị danh sách)
+  Description           nvarchar(max)    Đề bài chi tiết (markdown)
+  Difficulty            string           Easy | Medium | Hard
+  CategoriesJson        nvarchar(max)    JSON array: ["Array","HashMap"]
+  Role                  string           Backend Engineer | Frontend Developer | ...
+  InputFormat           string?          Mô tả định dạng input
+  OutputFormat          string?          Mô tả định dạng output
+  ConstraintsJson       nvarchar(max)    JSON array: ["1 <= n <= 10^5", ...]
+  ExamplesJson          nvarchar(max)    JSON array: [{input, output, explanation}]
+  PublicTestCasesJson   nvarchar(max)    JSON array: [{input, expectedOutput, isHidden:false}]
+  HiddenTestCasesJson   nvarchar(max)    JSON array: [{input, expectedOutput, isHidden:true}]
+  SupportedLanguagesJson nvarchar(max)   JSON array: ["Python","JavaScript","Java","C#"]
+  StarterCodeJson       nvarchar(max)    JSON map: {"Python":"def...","JavaScript":"function..."}
+  SolutionJson          nvarchar(max)    JSON: {idea, timeComplexity, spaceComplexity, code}
+  TargetSkillsJson      nvarchar(max)    JSON array: ["Two Pointers","Dynamic Programming"]
+  EstimatedMinutes      int              Thời gian ước lượng (phút), mặc định 15
+  Status                string           Draft | Published | Disabled
+  AllowRandomSelection  bool             Cho phép chọn ngẫu nhiên trong phỏng vấn
+  IsClientVisible       bool             Có hiển thị cho client hay không
+  CreatedByAdminId      Guid             ID Admin tạo bài
+  CreatedByAdminName    string           Tên Admin tạo bài
+  CreatedAt             DateTime         Thời điểm tạo (UTC)
+  UpdatedAt             DateTime?        Thời điểm cập nhật cuối (UTC)
+
+---- 2.2 Bảng: UserCodingPracticeHistories ----
+
+  Tên class : UserCodingPracticeHistory
+  File      : server-dotnet/Entities/QuestionBankEntities.cs
+
+  Cột               Kiểu dữ liệu   Mô tả
+  ─────────────────────────────────────────────────────────────────────────────
+  Id                int (PK)       Auto-increment
+  UserId            int            FK → Users.Id
+  CodingProblemId   Guid           FK → CodingProblems.Id (Cascade delete)
+  Language          string         Ngôn ngữ: Python | JavaScript | Java | C#
+  SubmittedCode     string         Code user nộp
+  PassedTestCases   int            Số test case vượt qua
+  TotalTestCases    int            Tổng số test case
+  Status            string         Accepted | Failed | RuntimeError | CompileError
+  AiScore           float?         Điểm AI chấm (0 - 100)
+  AiFeedback        string?        Nhận xét chi tiết từ AI (markdown)
+  TimeComplexity    string?        Ví dụ: O(n), O(n log n)
+  SpaceComplexity   string?        Ví dụ: O(1), O(n)
+  CreatedAt         DateTime       Thời điểm nộp bài (UTC)
+  CodingProblem     Navigation     Liên kết đến CodingProblem
+
+
+================================================================================
+PHẦN 3 — BACKEND API ENDPOINTS
+================================================================================
+
+Base URL: http://localhost:5000/api
+
+---- 3.1 Admin Endpoints — /api/admin/coding-problems ----
+
+  File Controller : server-dotnet/Controllers/AdminCodingProblemsController.cs
+  File Service    : server-dotnet/Services/AdminCodingProblemService.cs
+  Authorization   : [Authorize(Roles = "Admin")]
+
+  METHOD   ENDPOINT                                  MÔ TẢ
+  ─────────────────────────────────────────────────────────────────────────────
+  GET      /api/admin/coding-problems                Lấy danh sách tất cả bài coding (có phân trang)
+  GET      /api/admin/coding-problems/{id}           Lấy chi tiết 1 bài (bao gồm solution)
+  POST     /api/admin/coding-problems                Tạo mới bài coding
+  PUT      /api/admin/coding-problems/{id}           Cập nhật bài coding
+  DELETE   /api/admin/coding-problems/{id}           Xóa bài coding
+
+---- 3.2 Client Practice Endpoints — /api/practice ----
+
+  File Controller : server-dotnet/Controllers/PracticeCodingProblemsController.cs
+  File Service    : server-dotnet/Services/PracticeCodingProblemService.cs
+  Authorization   : [Authorize] (Đăng nhập là dùng được)
+
+  METHOD   ENDPOINT                                  MÔ TẢ
+  ─────────────────────────────────────────────────────────────────────────────
+  GET      /api/practice/coding-problems             Lấy danh sách bài có phân trang + filter
+           Query params: difficulty, category, role, search, skill, page, pageSize
+           Trả về: PagedResult<CodingProblemListItemDto>
+
+  GET      /api/practice/coding-problems/{id}        Lấy chi tiết bài (không có solution/hidden test)
+           Trả về: CodingProblemDetailDto
+
+  POST     /api/practice/coding-problems/{id}/run    Chạy thử code (public test cases only)
+           Body: { language, code }
+           Trả về: SubmitCodeResult (không lưu DB, không gọi AI)
+
+  POST     /api/practice/coding-problems/{id}/submit Nộp bài chính thức
+           Body: { language, code }
+           - Chạy cả public + hidden test cases
+           - Gọi AI review (OpenAI) để chấm điểm và nhận xét
+           - Lưu vào UserCodingPracticeHistories
+           Trả về: SubmitCodeResult (có AiFeedback, Score, Complexity)
+
+  GET      /api/practice/coding-history              Xem toàn bộ lịch sử nộp bài của user
+           Trả về: List<CodingPracticeAttemptDto>
+
+  GET      /api/practice/coding-progress             Thống kê tiến độ user
+           Trả về: CodingProgressDto
+
+  GET      /api/practice/coding-skill-analysis       AI phân tích kỹ năng và lộ trình
+           Trả về: SkillAnalysisDto
+
+
+================================================================================
+PHẦN 4 — DATA TRANSFER OBJECTS (DTOs)
+================================================================================
+
+File: server-dotnet/DTOs/QuestionBankDtos.cs
+
+---- 4.1 Admin DTOs ----
+
+  CreateCodingProblemRequest / UpdateCodingProblemRequest
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ Title, ShortDescription, Description                                   │
+  │ Difficulty        : Easy | Medium | Hard                               │
+  │ Categories        : List<string>                                       │
+  │ Role              : string                                             │
+  │ InputFormat, OutputFormat : string?                                    │
+  │ Constraints       : List<string>                                       │
+  │ Examples          : List<CodingExampleDto>                             │
+  │   └─ {Input, Output, Explanation?}                                     │
+  │ PublicTestCases   : List<CodingTestCaseDto>                            │
+  │   └─ {Input, ExpectedOutput, IsHidden:false}                           │
+  │ HiddenTestCases   : List<CodingTestCaseDto>                            │
+  │   └─ {Input, ExpectedOutput, IsHidden:true}                            │
+  │ SupportedLanguages: List<string>                                       │
+  │ StarterCode       : Dictionary<string, string>                         │
+  │ Solution          : CodingSolutionDto                                  │
+  │   └─ {Idea, TimeComplexity, SpaceComplexity, Code}                     │
+  │ TargetSkills      : List<string>     ← MỚI                             │
+  │ EstimatedMinutes  : int              ← MỚI (mặc định 15)               │
+  │ Status            : Draft | Published | Disabled                       │
+  │ IsClientVisible   : bool                                               │
+  │ AllowRandomSelection : bool                                            │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  CodingProblemAdminDto   → Chi tiết bài (admin), bao gồm Solution
+  CodingProblemListItemDto → Danh sách rút gọn (client), không có Solution
+
+---- 4.2 Client Practice DTOs ----
+
+  CodingProblemListItemDto
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ Id, ProblemCode, Title, ShortDescription                               │
+  │ Difficulty, Categories, Role                                           │
+  │ SupportedLanguages                                                     │
+  │ PublicTestCaseCount, HiddenTestCaseCount                               │
+  │ TargetSkills, EstimatedMinutes                                         │
+  │ Status, IsClientVisible, AllowRandomSelection                          │
+  │ PracticeStatus: NotStarted | Failed | Accepted (lấy từ lịch sử)       │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  CodingProblemDetailDto
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ (Bao gồm tất cả trường trên cộng thêm:)                               │
+  │ Description (đề bài đầy đủ)                                           │
+  │ InputFormat, OutputFormat                                              │
+  │ Constraints : List<string>                                             │
+  │ Examples    : List<CodingExampleDto>                                   │
+  │ PublicTestCases : List<CodingTestCaseDto>  ← hiển thị cho user        │
+  │ HiddenTestCases : null  ← KHÔNG bao giờ trả về cho client             │
+  │ StarterCode : Dictionary<string, string>                               │
+  │ Solution    : null  ← KHÔNG bao giờ trả về cho client                 │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  SubmitCodeRequest   { Language, Code }
+
+  SubmitCodeResult
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ PracticeId     : int   (0 nếu là Run, Id thực nếu là Submit)          │
+  │ Status         : Accepted | Failed | Timeout | RuntimeError            │
+  │ PassedTestCases: int                                                   │
+  │ TotalTestCases : int                                                   │
+  │ Score          : float?   (0 - 100, null nếu là Run)                  │
+  │ AiFeedback     : string?  (markdown, null nếu là Run)                 │
+  │ TimeComplexity : string?  (e.g. "O(n)")                               │
+  │ SpaceComplexity: string?  (e.g. "O(1)")                               │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  CodingPracticeAttemptDto
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ Id, CodingProblemId, CodingProblemTitle                               │
+  │ Language, SubmittedCode                                                │
+  │ PassedTestCases, TotalTestCases, Status                               │
+  │ AiScore, AiFeedback, TimeComplexity, SpaceComplexity                  │
+  │ CreatedAt                                                              │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  CodingProgressDto
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ TotalProblemsCount   : int     Tổng số bài Published + IsClientVisible │
+  │ SolvedProblemsCount  : int     Số bài đạt Accepted (distinct)         │
+  │ TotalAttemptsCount   : int     Tổng số lần nộp                        │
+  │ AverageScore         : double  Điểm AI trung bình                     │
+  │ PassRate             : double  % lần nộp đạt Accepted                 │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  SkillAnalysisDto
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ WeakSkills        : List<string>   Kỹ năng cần cải thiện               │
+  │ StrongSkills      : List<string>   Kỹ năng đã tốt                     │
+  │ OverallAssessment : string         Nhận xét tổng quan từ AI            │
+  │ RoadmapSteps      : List<string>   Các bước lộ trình học tập           │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  PagedResult<T>
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ Items      : List<T>                                                   │
+  │ TotalItems : int                                                       │
+  │ Page       : int                                                       │
+  │ PageSize   : int                                                       │
+  │ TotalPages : int (computed = ceil(TotalItems / PageSize))              │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+PHẦN 5 — SERVICE LAYER (BUSINESS LOGIC)
+================================================================================
+
+---- 5.1 AdminCodingProblemService ----
+
+File: server-dotnet/Services/AdminCodingProblemService.cs
+Interface: server-dotnet/Interfaces/IAdminCodingProblemService.cs
+
+  Phương thức                              Mô tả
+  ─────────────────────────────────────────────────────────────────────────────
+  GetAllAsync(page, pageSize, search...)   Lấy danh sách có lọc, phân trang
+  GetByIdAsync(id)                         Lấy chi tiết 1 bài (full, có solution)
+  CreateAsync(adminId, adminName, req)     Tạo mới, tự sinh ProblemCode (CP001...)
+  UpdateAsync(id, req)                     Cập nhật bài
+  DeleteAsync(id)                          Xóa bài
+
+  Cơ chế sinh ProblemCode:
+    - Đếm số bài hiện có, tạo mã theo format "CP{n:D3}" (ví dụ: CP001, CP002)
+    - Serialize List/Dict → JSON khi lưu, Deserialize khi đọc
+
+---- 5.2 PracticeCodingProblemService ----
+
+File: server-dotnet/Services/PracticeCodingProblemService.cs
+Interface: server-dotnet/Interfaces/IPracticeCodingProblemService.cs
+
+  Phương thức                              Mô tả
+  ─────────────────────────────────────────────────────────────────────────────
+  GetPracticeProblemsAsync(...)            Lấy danh sách chỉ Published + IsClientVisible
+                                           Filter server-side: difficulty, role, search
+                                           Filter in-memory: category (JSON array)
+                                           Kết hợp practice history để gắn PracticeStatus
+
+  GetByIdAsync(id, userId)                 Lấy chi tiết (KHÔNG trả Solution/HiddenTestCases)
+                                           Gắn PracticeStatus từ lần nộp gần nhất
+
+  GetRandomCodingProblemAsync(...)         Lấy ngẫu nhiên cho phỏng vấn
+                                           Filter: difficulty, role, skill (in-memory)
+
+  RunCodeAsync(id, userId, request)        - Lấy PublicTestCases của bài
+                                           - Gọi AI Service POST /ai/practice/run
+                                           - Trả SubmitCodeResult (KHÔNG lưu DB)
+
+  SubmitAnswerAsync(id, userId, request)   - Lấy cả Public + Hidden test cases
+                                           - Gọi AI Service POST /ai/practice/submit
+                                           - Lưu vào UserCodingPracticeHistories
+                                           - Trả SubmitCodeResult đầy đủ
+
+  GetPracticeHistoryAsync(userId)          Lấy toàn bộ lịch sử của user (bao gồm tên bài)
+
+  GetPracticeProgressAsync(userId)         Tính toán số bài giải, điểm TB, tỷ lệ pass
+
+  GetSkillAnalysisAsync(userId)            - Lấy toàn bộ lịch sử của user
+                                           - Gọi AI Service POST /ai/practice/analyze-skills
+                                           - Trả phân tích kỹ năng và roadmap
+
+
+================================================================================
+PHẦN 6 — AI SERVICE (PYTHON FASTAPI)
+================================================================================
+
+Base URL: http://localhost:8000
+Router prefix: /ai/practice
+
+---- 6.1 Endpoint: POST /ai/practice/run ----
+
+File: ai-service/routes/coding_practice.py
+
+  Input Body:
+    {
+      "language"  : "Python",
+      "code"      : "def solution(): ...",
+      "testCases" : [{"input": "...", "expectedOutput": "..."}]
+    }
+
+  Xử lý:
+    - Gọi execute_code(language, code, testCases) từ coding_executor.py
+    - KHÔNG gọi OpenAI
+    - Trả về danh sách kết quả từng test case
+
+  Output:
+    {
+      "results": [
+        {
+          "testCaseIndex": 1,
+          "input": "...",
+          "expectedOutput": "...",
+          "actualOutput": "...",
+          "status": "PASS | FAIL | Timeout | Runtime Error",
+          "passed": true/false,
+          "executionTimeMs": 45.2
+        }
+      ]
+    }
+
+---- 6.2 Endpoint: POST /ai/practice/submit ----
+
+File: ai-service/routes/coding_practice.py
+
+  Input Body:
+    {
+      "problemTitle"      : "Two Sum",
+      "problemDescription": "Given an array...",
+      "language"          : "Python",
+      "code"              : "...",
+      "testCases"         : [{"input":"...", "expectedOutput":"...", "isHidden": false/true}]
+    }
+
+  Xử lý:
+    1. execute_code() → chạy tất cả test cases (public + hidden)
+    2. Xác định status: Accepted | Failed | Timeout | RuntimeError
+    3. Nếu OPENAI_API_KEY hợp lệ → gọi OpenAI GPT để:
+       - Phân tích Correctness, Readability, Edge cases, Complexity
+       - Trả về: score, timeComplexity, spaceComplexity, strengths, weaknesses, suggestions
+    4. Nếu không có API key → trả mock feedback
+    5. Build markdown feedback string từ kết quả AI
+
+  Output:
+    {
+      "status"          : "Accepted",
+      "passedTestCases" : 3,
+      "totalTestCases"  : 3,
+      "score"           : 87.5,
+      "results"         : [...],
+      "timeComplexity"  : "O(n)",
+      "spaceComplexity" : "O(n)",
+      "aiFeedback"      : "### Điểm mạnh\n- ...\n### Điểm yếu\n- ...\n### Gợi ý\n- ..."
+    }
+
+---- 6.3 Endpoint: POST /ai/practice/analyze-skills ----
+
+File: ai-service/routes/coding_practice.py
+
+  Input Body:
+    {
+      "role"    : "Software Engineer",
+      "attempts": [
+        {
+          "problemTitle": "Two Sum",
+          "difficulty"  : "Easy",
+          "language"    : "Python",
+          "score"       : 85.0,
+          "passed"      : 2,
+          "total"       : 3,
+          "status"      : "Failed",
+          "createdAt"   : "2026-06-15T..."
+        }
+      ]
+    }
+
+  Xử lý:
+    - Nếu có OPENAI_API_KEY → gọi GPT phân tích lịch sử
+    - Xác định kỹ năng yếu (các bài failed/score thấp)
+    - Xác định kỹ năng mạnh (các bài pass liên tục)
+    - Tạo roadmap 3-4 bước cải thiện
+    - Nếu không có API key → trả mock data
+
+  Output:
+    {
+      "weakSkills"        : ["HashMap", "Dynamic Programming"],
+      "strongSkills"      : ["Array", "String"],
+      "overallAssessment" : "Bạn có nền tảng tốt về...",
+      "roadmapSteps"      : [
+        "HashMap cơ bản: Hiểu cách chèn và tra cứu O(1)",
+        "Kỹ thuật Two Pointers: Tối ưu bộ nhớ O(1)",
+        ...
+      ]
+    }
+
+---- 6.4 Code Executor (coding_executor.py) ----
+
+File: ai-service/utils/coding_executor.py
+
+  Hàm execute_python(code, test_cases):
+    - Phát hiện style: "function style" (có def) vs "script style" (stdin)
+    - Trích tên hàm từ dòng đầu tiên có "def "
+    - Function style: tạo runner gọi hàm với args từ input
+    - Script style: mock sys.stdin = StringIO(input)
+    - Tạo temp .py file, chạy subprocess với timeout 3 giây
+    - So sánh output (normalize: bỏ spaces, brackets, quotes, lowercase)
+    - Kết quả: PASS | FAIL | Timeout | Runtime Error
+
+  Hàm execute_javascript(code, test_cases):
+    - Phát hiện function style ("function " trong code)
+    - Tạo temp .js file, chạy bằng "node" subprocess
+    - Tương tự Python executor
+
+  Hàm execute_code(language, code, test_cases):
+    - Dispatcher chính
+    - "python" → execute_python()
+    - "javascript" / "typescript" → execute_javascript()
+    - Java, C#, C++, ... → Simulation (mock pass nếu code > 40 ký tự)
+
+  Bảo mật / Giới hạn:
+    - Timeout 3 giây mỗi test case
+    - Chạy trong temp file, xóa sau khi chạy
+    - KHÔNG có sandbox network isolation (local dev only)
+
+
+================================================================================
+PHẦN 7 — FRONTEND (REACT)
+================================================================================
+
+---- 7.1 API Client ----
+
+File: client/src/services/codingPracticeApi.js
+
+  Hàm                          Endpoint gọi
+  ─────────────────────────────────────────────────────────────────────────────
+  getProblems(params)           GET  /api/practice/coding-problems
+  getProblemById(id)            GET  /api/practice/coding-problems/:id
+  runCode(id, payload)          POST /api/practice/coding-problems/:id/run
+  submitCode(id, payload)       POST /api/practice/coding-problems/:id/submit
+  getProgress()                 GET  /api/practice/coding-progress
+  getHistory()                  GET  /api/practice/coding-history
+  getSkillAnalysis()            GET  /api/practice/coding-skill-analysis
+
+  Tất cả dùng instance axios từ client/src/lib/axios.js
+  Base URL: http://localhost:5000/api
+  Token JWT được gắn tự động qua interceptor
+
+---- 7.2 Trang Danh sách Bài — UserCodingPractice.jsx ----
+
+File: client/src/pages/user/UserCodingPractice.jsx
+Route: /coding-practice
+
+  Layout: 2 cột (danh sách bài + panel gợi ý)
+  
+  Tab 1 — Danh sách bài:
+    - Thanh tìm kiếm theo tiêu đề / danh mục / kỹ năng
+    - Filter: Độ khó (Easy/Medium/Hard), Role, Skill (text input)
+    - Bảng hiển thị: Tiêu đề, Độ khó, Phân loại, Kỹ năng mục tiêu,
+                     Ước lượng thời gian, Trạng thái luyện tập
+    - Pagination
+    - Nút "Luyện tập" → điều hướng đến /coding-practice/:id
+  
+  Tab 2 — AI Roadmap & Skill Analysis:
+    - Hiển thị phân tích kỹ năng yếu / mạnh (badge màu)
+    - AI đánh giá tổng quan (text)
+    - Roadmap học tập theo từng bước (timeline)
+    - Nút "Phân tích lại" để refresh
+
+  Dashboard Stats (top):
+    - Tổng số bài toán
+    - Số bài đã giải / tổng
+    - Tỷ lệ nộp bài đạt (%)
+    - Điểm AI trung bình
+
+  PracticeStatus badges:
+    - NotStarted  : Chưa làm (xám)
+    - Accepted    : Đã giải xong (xanh lá)
+    - Failed      : Thử lại (đỏ)
+    - Timeout     : Vượt thời gian (vàng)
+    - RuntimeError: Lỗi runtime (đỏ đậm)
+
+---- 7.3 Workspace Luyện tập — CodingPracticeWorkspace.jsx ----
+
+File: client/src/pages/user/CodingPracticeWorkspace.jsx
+Route: /coding-practice/:id
+
+  Layout: Split-pane (trái 45% + phải 55%)
+
+  PANEL TRÁI — Đề bài / Lịch sử:
+    Tab "Đề bài":
+      - Yêu cầu bài toán (description)
+      - Input/Output Format
+      - Ví dụ minh họa (examples)
+      - Constraints
+
+    Tab "Lịch sử nộp bài":
+      - Danh sách các lần submit của user cho bài này
+      - Mỗi lần: status, ngày giờ, ngôn ngữ, test passed, điểm AI, feedback
+
+  PANEL PHẢI — Monaco Editor + Console:
+    Top: Monaco Editor
+      - theme: vs-dark
+      - Hỗ trợ language: Python, JavaScript, Java, C#
+      - Selector đổi ngôn ngữ (giữ code riêng cho mỗi ngôn ngữ)
+      - Nút reset về starter code
+
+    Bottom (240px): Console tabs
+      Tab "Test Cases"  : Hiển thị Public Test Cases (input / expected)
+      Tab "Chạy thử"    : Kết quả Run Code từng test case (PASS/FAIL + output)
+      Tab "Kết quả nộp bài": Status, Score, Complexity, AI Feedback (markdown)
+
+  Nút hành động (footer):
+    [Chạy thử (Run)]  — Chỉ public test, không lưu, không AI
+    [Nộp bài (Submit)] — Tất cả test + AI review + lưu lịch sử
+
+  Control bar (top):
+    - Nút quay lại danh sách
+    - Tiêu đề bài + badge độ khó
+    - Dropdown chọn ngôn ngữ
+    - Nút reset code
+
+  Toast notifications: thông báo thành công / lỗi
+
+---- 7.4 Navigation ----
+
+Sidebar.jsx:
+  Menu item: { to: '/coding-practice', icon: Code2, label: 'Luyện tập Coding' }
+
+App.jsx Routes:
+  /coding-practice         → <UserCodingPractice />
+  /coding-practice/:id     → <CodingPracticeWorkspace />
+
+
+================================================================================
+PHẦN 8 — CẤU HÌNH HỆ THỐNG
+================================================================================
+
+---- 8.1 Dependency Injection (Program.cs) ----
+
+  builder.Services.AddScoped<IAdminCodingProblemService, AdminCodingProblemService>();
+  builder.Services.AddScoped<IPracticeCodingProblemService, PracticeCodingProblemService>();
+  builder.Services.AddHttpClient("AIService", client => {
+      client.BaseAddress = new Uri("http://localhost:8000");
+  });
+
+---- 8.2 EF Core Configuration (AppDbContext.cs) ----
+
+  DbSet<CodingProblem>              CodingProblems
+  DbSet<UserCodingPracticeHistory>  UserCodingPracticeHistories
+
+  Index: Status, Difficulty, IsClientVisible (CodingProblem)
+  Index: (UserId, CodingProblemId) (UserCodingPracticeHistory)
+  Foreign Key: UserCodingPracticeHistory → CodingProblem (Cascade Delete)
+
+  Column types (JSON fields): nvarchar(max)
+    - Description, CategoriesJson, ConstraintsJson, ExamplesJson
+    - PublicTestCasesJson, HiddenTestCasesJson, SupportedLanguagesJson
+    - StarterCodeJson, SolutionJson, TargetSkillsJson
+
+---- 8.3 AI Service Environment ----
+
+  File: ai-service/.env
+  
+  OPENAI_API_KEY=sk-...   (cần key thực để dùng AI review)
+  
+  Nếu key trống hoặc bắt đầu bằng "AIza" (Google key nhầm):
+    → Submit: trả mock feedback với score = passRate * 100
+    → Analyze Skills: trả mock roadmap mặc định
+
+---- 8.4 CORS ----
+
+  AllowedOrigins: http://localhost:5173, http://localhost:5174
+
+---- 8.5 Chạy Local ----
+
+  Backend  : cd server-dotnet && dotnet run   → http://localhost:5000
+  AI Service: cd ai-service && python main.py  → http://localhost:8000
+  Frontend : cd client && npm run dev          → http://localhost:5173
+
+
+================================================================================
+PHẦN 9 — LUỒNG XỬ LÝ HOÀN CHỈNH
+================================================================================
+
+---- 9.1 Luồng RUN CODE ----
+
+  User viết code → nhấn [Chạy thử]
+    ↓
+  React: codingPracticeApi.runCode(id, {language, code})
+    ↓
+  ASP.NET: PracticeCodingProblemsController.Run(id, req)
+    ↓
+  PracticeCodingProblemService.RunCodeAsync()
+    → Lấy PublicTestCases từ DB
+    → POST /ai/practice/run gửi lên AI Service
+    ↓
+  Python FastAPI: /ai/practice/run
+    → execute_code(language, code, publicTestCases)
+    → Chạy subprocess Python/Node.js với timeout 3s
+    → Trả [{testCaseIndex, input, expected, actual, status, passed, ms}]
+    ↓
+  ASP.NET: Map AiRunResponse → SubmitCodeResult
+    → Status: Accepted nếu tất cả PASS, ngược lại Failed
+    → AiFeedback: "Test 1: PASS - ..., Test 2: FAIL - ..."
+    ↓
+  React: Hiển thị trong Console Tab "Chạy thử"
+  KHÔNG lưu DB
+
+---- 9.2 Luồng SUBMIT ----
+
+  User nhấn [Nộp bài (Submit)]
+    ↓
+  React: codingPracticeApi.submitCode(id, {language, code})
+    ↓
+  ASP.NET: PracticeCodingProblemsController.Submit(id, req)
+    ↓
+  PracticeCodingProblemService.SubmitAnswerAsync()
+    → Lấy PublicTestCases + HiddenTestCases từ DB
+    → POST /ai/practice/submit gửi lên AI Service
+    ↓
+  Python FastAPI: /ai/practice/submit
+    → execute_code() tất cả test cases
+    → Xác định status: Accepted | Failed | Timeout | RuntimeError
+    → Gọi OpenAI: phân tích code quality
+    → Build markdown feedback
+    → Trả {status, passedCount, totalCount, score, timeComplexity, spaceComplexity, aiFeedback}
+    ↓
+  ASP.NET:
+    → Tạo UserCodingPracticeHistory, lưu DB
+    → Trả SubmitCodeResult với PracticeId
+    ↓
+  React: Hiển thị trong Console Tab "Kết quả nộp bài"
+    → Status badge, Score, Complexity, AI Feedback
+
+---- 9.3 Luồng PHÂN TÍCH KỸ NĂNG (Roadmap) ----
+
+  User chuyển sang Tab "AI Roadmap & Skill Analysis"
+    ↓
+  React: codingPracticeApi.getSkillAnalysis()
+    ↓
+  ASP.NET: PracticeCodingProblemService.GetSkillAnalysisAsync()
+    → Lấy toàn bộ UserCodingPracticeHistory của user
+    → Nếu chưa có lịch sử → trả DTO mặc định "bắt đầu làm bài"
+    → POST /ai/practice/analyze-skills gửi lên AI Service
+    ↓
+  Python FastAPI: /ai/practice/analyze-skills
+    → Gọi OpenAI: phân tích weakness/strength/roadmap
+    → Trả {weakSkills, strongSkills, overallAssessment, roadmapSteps}
+    ↓
+  React: Hiển thị Skill Badges + Roadmap timeline
+
+
+================================================================================
+PHẦN 10 — BẢO MẬT VÀ PHÂN QUYỀN
+================================================================================
+
+  Quy tắc bảo mật quan trọng:
+  1. HiddenTestCases KHÔNG BAO GIỜ được trả về client
+     (CodingProblemDetailDto.HiddenTestCases luôn = null)
+  2. Solution KHÔNG BAO GIỜ được trả về client
+     (CodingProblemDetailDto.Solution luôn = null)
+  3. Chỉ bài Status=Published + IsClientVisible=true mới hiển thị cho user
+  4. Chỉ Admin (Role=1) mới có thể CRUD bài coding
+  5. JWT token bắt buộc cho tất cả /api/practice/* endpoints
+
+  Role phân quyền:
+    Role 0 → User thường → Chỉ đọc + luyện tập
+    Role 1 → Admin        → Toàn quyền quản lý ngân hàng
+
+
+================================================================================
+PHẦN 11 — DANH SÁCH FILE LIÊN QUAN
+================================================================================
+
+BACKEND (server-dotnet/)
+  ├── Entities/QuestionBankEntities.cs          ← CodingProblem, UserCodingPracticeHistory
+  ├── DTOs/QuestionBankDtos.cs                  ← Tất cả DTOs cho coding
+  ├── Data/AppDbContext.cs                       ← DbSet + EF config
+  ├── Interfaces/IAdminCodingProblemService.cs  ← Interface admin service
+  ├── Interfaces/IPracticeCodingProblemService.cs ← Interface practice service
+  ├── Services/AdminCodingProblemService.cs     ← CRUD bài (admin)
+  ├── Services/PracticeCodingProblemService.cs  ← Run/Submit/History/Progress/Analysis
+  ├── Controllers/AdminCodingProblemsController.cs ← Admin endpoints
+  ├── Controllers/PracticeCodingProblemsController.cs ← Client endpoints
+  └── Program.cs                                ← DI registration
+
+AI SERVICE (ai-service/)
+  ├── routes/coding_practice.py                 ← /ai/practice/* endpoints
+  ├── utils/coding_executor.py                  ← Python/JS code runner
+  ├── services/openai_service.py                ← OpenAI wrapper
+  └── main.py                                   ← Router registration
+
+FRONTEND (client/src/)
+  ├── services/codingPracticeApi.js             ← Axios client wrapper
+  ├── pages/user/UserCodingPractice.jsx         ← Danh sách + AI Roadmap
+  ├── pages/user/CodingPracticeWorkspace.jsx    ← Monaco Editor workspace
+  ├── components/layout/Sidebar.jsx             ← Nav item "Luyện tập Coding"
+  └── App.jsx                                   ← Routes definition
+
+DATABASE MIGRATIONS (server-dotnet/Migrations/)
+  ← Bao gồm migration thêm cột TargetSkillsJson, EstimatedMinutes
+     và tạo bảng UserCodingPracticeHistories
+
+
+================================================================================
+PHẦN 12 — GHI CHÚ VÀ HẠN CHẾ
+================================================================================
+
+1. Code Executor Sandbox:
+   - Python và JavaScript chạy trực tiếp bằng subprocess trên máy chủ
+   - Chưa có network isolation / memory limit (phù hợp cho dev local)
+   - Java, C#, C++ chỉ simulate (không chạy thực sự) vì cần compiler cài đặt
+   - Timeout mặc định: 3 giây / test case
+
+2. OpenAI API Key:
+   - Cần OPENAI_API_KEY trong ai-service/.env để có AI review thực sự
+   - Nếu thiếu key → trả mock feedback (hệ thống vẫn hoạt động bình thường)
+   - Prompt AI viết bằng tiếng Anh, response trả về tiếng Việt
+
+3. Phân trang Category:
+   - CategoriesJson là JSON array lưu trong 1 cột
+   - Filter theo category được xử lý in-memory (sau khi fetch từ DB)
+   - Cần cải thiện nếu số lượng bài lớn (>1000 bài)
+
+4. Random Problem (cho phỏng vấn):
+   - GetRandomCodingProblemAsync() filter AllowRandomSelection=true
+   - Filter skill cũng in-memory
+   - Dùng Random.Next() (không có seed cố định)
+
+5. Lịch sử nộp bài:
+   - GetPracticeHistoryAsync() lấy TẤT CẢ bài của user (không phân trang)
+   - Cần thêm phân trang nếu user có nhiều lần submit
+
+================================================================================
+   Hết tài liệu
+================================================================================

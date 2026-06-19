@@ -83,14 +83,41 @@ namespace InterviewPro.API.Entities
 
     public class AiRequestLog
     {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public string Feature { get; set; } = "HRInterview";
-        public string RequestType { get; set; } = string.Empty; // GenerateQuestions, EvaluateAnswer, FinalEvaluation
-        public string Status { get; set; } = "Success"; // Success, Failed
-        public long ResponseTimeMs { get; set; }
-        public int TokensUsed { get; set; } = 0;
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        // UserId nullable — không bắt buộc (anonymous requests)
+        public int? UserId { get; set; }
+
+        // Tên người dùng thực hiện request (nullable)
+        public string? UserName { get; set; }
+
+        // Feature values: InterviewQuestionGeneration, HRStarScoring, TechnicalScoring, CVAnalysis, CareerConsulting...
+        public string Feature { get; set; } = string.Empty;
+
+        // RequestType: GenerateQuestions, EvaluateHrAnswer, AnalyzeCV, CareerAdvice...
+        public string RequestType { get; set; } = string.Empty;
+
+        // AI model được sử dụng: gpt-4o-mini, gpt-4o, etc.
+        public string? Model { get; set; }
+
+        // Status: Success, Failed, Timeout
+        public string Status { get; set; } = "Success";
+
+        // Token usage
+        public int InputTokens { get; set; } = 0;
+        public int OutputTokens { get; set; } = 0;
+        public int TotalTokens { get; set; } = 0;
+
+        // Estimated cost (USD)
+        public decimal EstimatedCost { get; set; } = 0m;
+
+        // Response time in milliseconds
+        public long ResponseTimeMs { get; set; } = 0;
+
+        // Error detail (null nếu Success)
         public string? ErrorMessage { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
+

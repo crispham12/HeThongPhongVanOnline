@@ -51,17 +51,15 @@ namespace InterviewPro.API.Controllers
             var practicedTechCount = await _db.Questions
                 .CountAsync(q => q.Category == "Technical" && practicedQuestionIds.Contains(q.Id));
 
-            var practicedCodingCount = await _db.UserCodingPracticeHistories
+            var practicedCodingCount = await _db.UserCodingProblemProgresses
                 .Where(h => h.UserId == userId)
-                .Select(h => h.CodingProblemId)
-                .Distinct()
                 .CountAsync();
 
             // Daily streak: count consecutive days with at least 1 practice activity
             var allDates = await _db.UserQuestionPracticeHistories
                 .Where(h => h.UserId == userId)
                 .Select(h => h.CreatedAt.Date)
-                .Union(_db.UserCodingPracticeHistories
+                .Union(_db.CodingPracticeAttempts
                     .Where(h => h.UserId == userId)
                     .Select(h => h.CreatedAt.Date))
                 .Distinct()
