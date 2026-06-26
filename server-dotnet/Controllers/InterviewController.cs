@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using InterviewPro.API.Entities;
 using InterviewPro.API.Interfaces;
+using InterviewPro.API.Data;
 using System.Text.Json;
 using System.Security.Claims;
 using System.Diagnostics;
 using InterviewPro.API.DTOs;
+
 
 namespace InterviewPro.API.Controllers
 {
@@ -18,17 +20,23 @@ namespace InterviewPro.API.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IAiRequestLogService _aiRequestLogService;
         private readonly IInterviewDataService _interviewDataService;
+        private readonly ICreditService _creditService;
+        private readonly AppDbContext _context;
 
         public InterviewController(
             IInterviewRepository repo,
             IHttpClientFactory httpClientFactory,
             IAiRequestLogService aiRequestLogService,
-            IInterviewDataService interviewDataService)
+            IInterviewDataService interviewDataService,
+            ICreditService creditService,
+            AppDbContext context)
         {
             _repo = repo;
             _httpClientFactory = httpClientFactory;
             _aiRequestLogService = aiRequestLogService;
             _interviewDataService = interviewDataService;
+            _creditService = creditService;
+            _context = context;
         }
 
         [HttpPost("start")]
@@ -40,20 +48,43 @@ namespace InterviewPro.API.Controllers
             
             int userId = int.Parse(userIdClaim.Value);
 
-            var session = new InterviewSession
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                UserId = userId, 
-                Role = request.Role,
-                TechStack = JsonSerializer.Serialize(request.Stack),
-                Difficulty = request.Difficulty,
-                InterviewType = request.Type,
-                CurrentPhase = request.Type == "hr" ? "HR" : "Technical",
-                Status = "InProgress"
-            };
+                // Trừ lượt phỏng vấn
+                await _creditService.UseCreditAsync(userId, $"Phỏng vấn {request.Type}: {request.Role}");
 
-            await _repo.CreateSession(session);
-            return Ok(new { sessionId = session.SessionGuid });
+                var session = new InterviewSession
+                {
+                    UserId = userId, 
+                    Role = request.Role,
+                    TechStack = JsonSerializer.Serialize(request.Stack),
+                    Difficulty = request.Difficulty,
+                    InterviewType = request.Type,
+                    CurrentPhase = request.Type == "hr" ? "HR" : "Technical",
+                    Status = "InProgress"
+                };
+
+                await _repo.CreateSession(session);
+                await transaction.CommitAsync();
+
+                return Ok(new { sessionId = session.SessionGuid });
+            }
+            catch (Services.NotEnoughCreditsException ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(402, new {
+                    message = ex.Message,
+                    requiredPayment = true
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { message = "Lỗi khi khởi tạo phiên phỏng vấn.", error = ex.Message });
+            }
         }
+
 
         [HttpGet("next-question/{sessionId}")]
         public async Task<IActionResult> GetNextQuestion(string sessionId)

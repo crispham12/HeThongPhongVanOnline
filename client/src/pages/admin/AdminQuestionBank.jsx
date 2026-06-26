@@ -188,44 +188,32 @@ export default function AdminQuestionBank() {
   };
 
   return (
-    <div className="animate-fade-in max-w-[1400px] mx-auto">
+    <div className="animate-fade-in max-w-[1180px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
+      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Ngân hàng câu hỏi</h1>
-          <p className="text-sm text-gray-500 mt-2 font-medium">Quản lý và biên soạn danh sách câu hỏi phỏng vấn AI.</p>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">Ngân hàng câu hỏi</h1>
+          <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Quản lý và biên soạn danh sách câu hỏi phỏng vấn AI.</p>
         </div>
         <button 
           onClick={() => navigate('/admin/question-bank/add')}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-3.5 h-3.5" />
           Thêm câu hỏi mới
         </button>
       </div>
 
       {/* Search Input & Filters Box */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-8 space-y-6">
-        <div className="relative">
-          <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-          <input 
-            type="text" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-            placeholder="Tìm kiếm theo nội dung câu hỏi, từ khóa, công nghệ..."
-            className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-100 focus:outline-none placeholder-gray-400 font-medium"
-          />
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-6 items-end">
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-bold text-gray-600 mb-2.5 tracking-wide">Vai trò (Role)</label>
-            <select 
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-            >
+      <div className="mb-6 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-[2] min-w-[200px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Tìm kiếm</label>
+            <input type="text" placeholder="Nội dung, từ khóa, công nghệ..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleFilter()} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-semibold text-[#333333] outline-none transition-all placeholder:text-[#b6b3b8] focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10" />
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Vai trò</label>
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
               <option value="Tất cả vai trò">Tất cả vai trò</option>
               <option value="Software Engineer">Software Engineer</option>
               <option value="Frontend Developer">Frontend Developer</option>
@@ -234,26 +222,18 @@ export default function AdminQuestionBank() {
               <option value="AI Engineer">AI Engineer</option>
             </select>
           </div>
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-bold text-gray-600 mb-2.5 tracking-wide">Độ khó (Difficulty)</label>
-            <select 
-              value={difficultyFilter}
-              onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-            >
+          <div className="flex-1 min-w-[130px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Độ khó</label>
+            <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
               <option value="Tất cả mức độ">Tất cả mức độ</option>
               <option value="Dễ">Dễ</option>
               <option value="Vừa">Vừa</option>
               <option value="Khó">Khó</option>
             </select>
           </div>
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-bold text-gray-600 mb-2.5 tracking-wide">Danh mục (Category)</label>
-            <select 
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-            >
+          <div className="flex-1 min-w-[130px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Danh mục</label>
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
               <option value="Tất cả danh mục">Tất cả danh mục</option>
               <option value="Coding">Coding</option>
               <option value="Kỹ thuật">Kỹ thuật (Technical)</option>
@@ -261,12 +241,11 @@ export default function AdminQuestionBank() {
               <option value="GitHub">GitHub</option>
             </select>
           </div>
-          <button 
-            onClick={handleFilter}
-            className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors shadow-sm shadow-blue-100"
-          >
-            <Filter className="w-4 h-4" /> Lọc kết quả
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={handleFilter} className="h-9 rounded-lg bg-[#333333] px-4 text-[13px] font-extrabold text-white shadow-sm transition-all hover:bg-black active:translate-y-px flex items-center justify-center gap-1.5">
+              <Filter className="h-3.5 w-3.5" /> Lọc
+            </button>
+          </div>
         </div>
       </div>
 
@@ -276,17 +255,17 @@ export default function AdminQuestionBank() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider w-24">ID</th>
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider w-32">Danh Mục</th>
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider w-40">Role / Tech</th>
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider w-32">Độ Khó</th>
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Nội Dung Câu Hỏi</th>
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider w-32">Trạng Thái</th>
-                <th className="py-5 px-6 text-xs font-black text-gray-500 uppercase tracking-wider text-right w-24">Thao Tác</th>
+              <tr className="border-b border-[#eeeeee] bg-white">
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-24">ID</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-32">Danh Mục</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-40">Role / Tech</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-32">Độ Khó</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Nội Dung Câu Hỏi</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-32">Trạng Thái</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] text-right w-24">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-sm font-medium text-gray-400">
@@ -304,10 +283,10 @@ export default function AdminQuestionBank() {
                 </tr>
               ) : (
                 paginatedQuestions.map((q, idx) => (
-                  <tr key={q.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-6 px-6 text-sm font-black text-gray-900">#Q-{q.id}</td>
-                    <td className="py-6 px-6">
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold ${
+                  <tr key={q.id} className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
+                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">#Q-{q.id}</td>
+                    <td className="px-5 py-5">
+                      <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${
                         q.category.includes('Coding') ? 'bg-indigo-100 text-indigo-700' :
                         q.category.includes('HR') ? 'bg-purple-100 text-purple-700' :
                         'bg-blue-100 text-blue-700'
@@ -315,20 +294,20 @@ export default function AdminQuestionBank() {
                         {q.category}
                       </span>
                     </td>
-                    <td className="py-6 px-6">
-                      <p className="text-sm font-bold text-gray-900">{q.role}</p>
-                      <p className="text-xs font-medium text-gray-500 mt-1.5">{q.tech}</p>
+                    <td className="px-5 py-5">
+                      <p className="text-[14px] font-semibold leading-tight text-[#333333]">{q.role}</p>
+                      <p className="text-xs font-medium text-gray-500 mt-1">{q.tech}</p>
                     </td>
-                    <td className="py-6 px-6">
+                    <td className="px-5 py-5">
                       <DifficultyDots level={q.difficultyLevel || 2} label={q.difficulty} />
                     </td>
-                    <td className="py-6 px-6 text-sm font-medium text-gray-700 leading-relaxed max-w-md">
+                    <td className="px-5 py-5 text-[14px] font-semibold text-[#333333] leading-relaxed max-w-md">
                       {q.content}
                     </td>
-                    <td className="py-6 px-6">
+                    <td className="px-5 py-5">
                       <StatusBadge status={q.status} />
                     </td>
-                    <td className="py-6 px-6 text-right">
+                    <td className="px-5 py-5 text-right">
                       <div className="relative inline-block" ref={openMenuId === q.id ? menuRef : null}>
                         <button
                           onClick={() => setOpenMenuId(openMenuId === q.id ? null : q.id)}
@@ -363,46 +342,21 @@ export default function AdminQuestionBank() {
         </div>
         
         {/* Pagination */}
-        <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30">
-          <p className="text-sm font-medium text-gray-500">
-            Hiển thị <span className="font-bold text-gray-900">{Math.min(currentPage * PAGE_SIZE, filteredQuestions.length)}</span> / <span className="font-bold text-gray-900">{filteredQuestions.length}</span> câu hỏi
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-[#eeeeee] bg-white px-5 py-4 sm:flex-row">
+          <p className="text-sm font-medium text-[#6f6a72]">
+            Hiển thị {Math.min(currentPage * PAGE_SIZE, filteredQuestions.length)} trong số {filteredQuestions.length} kết quả
           </p>
           {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              {/* Prev */}
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                &lt;
-              </button>
-              {/* Page numbers */}
-              {getPageNumbers().map((p, i) =>
+            <div className="flex items-center gap-2">
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45">&lt;</button>
+              {getPageNumbers().map((p, i) => 
                 p === '...' ? (
-                  <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+                  <span key={`ellipsis-${i}`} className="flex h-9 w-9 items-center justify-center text-[#c8c5ca] text-sm font-extrabold">...</span>
                 ) : (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-colors border ${
-                      currentPage === p
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {p}
-                  </button>
+                  <button key={p} onClick={() => setCurrentPage(p)} className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold transition-colors ${currentPage === p ? 'bg-[#333333] text-white shadow-sm' : 'border border-[#eeeeee] text-[#6f6a72] hover:bg-[#fafafa]'}`}>{p}</button>
                 )
               )}
-              {/* Next */}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                &gt;
-              </button>
+              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45">&gt;</button>
             </div>
           )}
         </div>

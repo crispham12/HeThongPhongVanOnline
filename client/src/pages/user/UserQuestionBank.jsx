@@ -18,21 +18,21 @@ const TABS = [
 ];
 
 const DIFF_COLORS = {
-  Easy: 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/50',
-  Medium: 'bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100/50',
-  Hard: 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100/50'
+  Easy: 'bg-[#fafafa] text-[#333333] border-[#e6e6e6]',
+  Medium: 'bg-[#fafafa] text-[#333333] border-[#333333]',
+  Hard: 'bg-[#333333] text-white border-[#333333]'
 };
 
 const STATUS_BADGES = {
-  Solved: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  Completed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  InProgress: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  NotStarted: 'bg-slate-100 text-slate-400 border-slate-200'
+  Solved: 'badge-success',
+  Completed: 'badge-success',
+  InProgress: 'badge-warning',
+  NotStarted: 'bg-[#fafafa] text-[#8d8a91] border-[#e6e6e6]'
 };
 
 const STATUS_TEXT = {
-  Solved: 'Đã hoàn thành',
-  Completed: 'Đã hoàn thành',
+  Solved: 'Hoàn thành',
+  Completed: 'Hoàn thành',
   InProgress: 'Đang làm',
   NotStarted: 'Chưa làm'
 };
@@ -96,7 +96,7 @@ export default function UserQuestionBank() {
       const params = {
         search: searchQuery || undefined,
         difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
-        pageSize: 200 // Load more to allow client-side status/level filtering and pagination
+        pageSize: 200
       };
 
       const currentTab = TABS.find(t => t.key === activeTab);
@@ -131,21 +131,16 @@ export default function UserQuestionBank() {
     setCurrentPage(1);
   };
 
-  /* Filter items by status on client side since backend doesn't support it directly yet */
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      // Status filter
       if (statusFilter !== 'all') {
         const isCompleted = item.practiceStatus === 'Practiced' || item.practiceStatus === 'Completed' || item.practiceStatus === 'Solved';
         if (statusFilter === 'completed' && !isCompleted) return false;
         if (statusFilter === 'incomplete' && isCompleted) return false;
       }
-      
-      // Recommended level filter (only for Coding/Lập trình)
       if (activeTab === 'Lập trình' && recommendedLevelFilter !== 'all') {
         if (item.recommendedLevel !== recommendedLevelFilter) return false;
       }
-      
       return true;
     });
   }, [items, statusFilter, activeTab, recommendedLevelFilter]);
@@ -165,44 +160,44 @@ export default function UserQuestionBank() {
       case 'easy':
       case 'intern':
       case 'fresher': 
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return DIFF_COLORS.Easy;
       case 'trung bình':
       case 'medium':
       case 'junior':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return DIFF_COLORS.Medium;
       case 'khó':
       case 'hard':
       case 'middle':
       case 'senior':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
-      default: return 'bg-gray-50 text-gray-600 border-gray-200';
+        return DIFF_COLORS.Hard;
+      default: return 'bg-[#fafafa] text-[#8d8a91] border-[#e6e6e6]';
     }
   };
 
   const getProgressPercent = (completed, total) => total === 0 ? 0 : Math.round((completed / total) * 100);
 
   return (
-    <div className="max-w-[1400px] mx-auto animate-fade-in pb-12">
+    <div className="max-w-[1180px] mx-auto animate-fade-in pb-12 text-[#333333]">
       {/* ─────── PAGE HEADER ─────── */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4 mb-8">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight text-gray-900">
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">
             Ngân hàng câu hỏi
           </h1>
-          <p className="text-sm text-gray-500 mt-1.5 font-medium">
+          <p className="text-[15px] font-semibold text-[#96939a] mt-2">
             Rèn luyện kỹ năng với nội dung phỏng vấn chọn lọc.
           </p>
         </div>
-        <div className="relative max-w-xs w-full lg:w-auto">
+        <div className="relative w-full lg:w-[320px]">
           {activeTab !== 'Lập trình' && (
             <>
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[#8d8a91] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm câu hỏi..."
-                className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium text-gray-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:outline-none placeholder-gray-400 shadow-sm transition-all"
+                className="input pl-10"
               />
             </>
           )}
@@ -211,86 +206,77 @@ export default function UserQuestionBank() {
 
       {/* ─────── PROGRESS STATS ─────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-violet-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">Câu hỏi HR</p>
-                <p className="text-[11px] font-medium text-gray-400 mt-0.5">Behavioral & Soft skills</p>
-              </div>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm min-h-[154px] flex flex-col justify-between transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e6e6e6] bg-[#fafafa] text-[#333333]">
+              <MessageSquare className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">
-              {progress.hrPracticed}/{progress.hrTotal}
+            <span className="text-[13px] font-extrabold text-[#333333] tabular-nums">
+              {progress.hrPracticed} / {progress.hrTotal}
             </span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full transition-all duration-700"
-              style={{ width: `${getProgressPercent(progress.hrPracticed, progress.hrTotal)}%` }}
-            />
+          <div>
+            <p className="label-caps mb-1">Câu hỏi HR</p>
+            <div className="h-1.5 w-full bg-[#f1f1f1] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#333333] rounded-full transition-all duration-700"
+                style={{ width: `${getProgressPercent(progress.hrPracticed, progress.hrTotal)}%` }}
+              />
+            </div>
+            <p className="text-[11px] font-extrabold text-[#8d8a91] mt-3 tracking-[0.14em] uppercase">{getProgressPercent(progress.hrPracticed, progress.hrTotal)}% HOÀN THÀNH</p>
           </div>
-          <p className="text-[11px] font-semibold text-gray-400 mt-2">{getProgressPercent(progress.hrPracticed, progress.hrTotal)}% hoàn thành</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Brain className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">Câu hỏi kỹ thuật</p>
-                <p className="text-[11px] font-medium text-gray-400 mt-0.5">Technical Knowledge</p>
-              </div>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm min-h-[154px] flex flex-col justify-between transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e6e6e6] bg-[#fafafa] text-[#333333]">
+              <Brain className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
-              {progress.technicalPracticed}/{progress.technicalTotal}
+            <span className="text-[13px] font-extrabold text-[#333333] tabular-nums">
+              {progress.technicalPracticed} / {progress.technicalTotal}
             </span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-700"
-              style={{ width: `${getProgressPercent(progress.technicalPracticed, progress.technicalTotal)}%` }}
-            />
+          <div>
+            <p className="label-caps mb-1">Kỹ thuật</p>
+            <div className="h-1.5 w-full bg-[#f1f1f1] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#333333] rounded-full transition-all duration-700"
+                style={{ width: `${getProgressPercent(progress.technicalPracticed, progress.technicalTotal)}%` }}
+              />
+            </div>
+            <p className="text-[11px] font-extrabold text-[#8d8a91] mt-3 tracking-[0.14em] uppercase">{getProgressPercent(progress.technicalPracticed, progress.technicalTotal)}% HOÀN THÀNH</p>
           </div>
-          <p className="text-[11px] font-semibold text-gray-400 mt-2">{getProgressPercent(progress.technicalPracticed, progress.technicalTotal)}% hoàn thành</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <FileCode className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">Bài tập lập trình</p>
-                <p className="text-[11px] font-medium text-gray-400 mt-0.5">Coding Challenges</p>
-              </div>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm min-h-[154px] flex flex-col justify-between transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e6e6e6] bg-[#fafafa] text-[#333333]">
+              <FileCode className="h-4 w-4" />
             </div>
-            <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-              {progress.codingPracticed}/{progress.codingTotal}
+            <span className="text-[13px] font-extrabold text-[#333333] tabular-nums">
+              {progress.codingPracticed} / {progress.codingTotal}
             </span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-700"
-              style={{ width: `${getProgressPercent(progress.codingPracticed, progress.codingTotal)}%` }}
-            />
+          <div>
+            <p className="label-caps mb-1">Lập trình</p>
+            <div className="h-1.5 w-full bg-[#f1f1f1] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#333333] rounded-full transition-all duration-700"
+                style={{ width: `${getProgressPercent(progress.codingPracticed, progress.codingTotal)}%` }}
+              />
+            </div>
+            <p className="text-[11px] font-extrabold text-[#8d8a91] mt-3 tracking-[0.14em] uppercase">{getProgressPercent(progress.codingPracticed, progress.codingTotal)}% HOÀN THÀNH</p>
           </div>
-          <p className="text-[11px] font-semibold text-gray-400 mt-2">{getProgressPercent(progress.codingPracticed, progress.codingTotal)}% hoàn thành</p>
         </div>
       </div>
 
       {/* ─────── MAIN CONTENT ─────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
 
         {/* ─── LEFT COLUMN ─── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
           
-          <div className="flex border-b border-gray-100">
+          <div className="flex border-b border-[#eeeeee]">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.key;
               const TabIcon = tab.icon;
@@ -298,28 +284,27 @@ export default function UserQuestionBank() {
                 <button
                   key={tab.key}
                   onClick={() => handleTabChange(tab.key)}
-                  className={`flex items-center gap-2 px-5 py-3.5 text-sm font-bold transition-all relative ${
-                    isActive ? 'text-[#2563EB]' : 'text-gray-400 hover:text-gray-600'
+                  className={`flex items-center gap-2 px-5 py-4 text-xs font-extrabold uppercase tracking-[0.14em] transition-all ${
+                    isActive ? 'text-[#333333] bg-[#fafafa]' : 'text-[#8d8a91] hover:text-[#333333] hover:bg-[#f1f1f1]'
                   }`}
                 >
                   <TabIcon className="w-4 h-4" />
                   {tab.label}
-                  {isActive && <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#2563EB] rounded-t-full" />}
                 </button>
               );
             })}
           </div>
 
           {activeTab === 'Lập trình' ? (
-            <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="p-4 border-b border-[#eeeeee] flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="relative w-full md:max-w-[280px]">
-                <Search className="w-4 h-4 text-gray-450 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#8d8a91] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  placeholder="Tìm kiếm theo tiêu đề hoặc mã bài tập..."
-                  className="w-full bg-white border border-gray-200 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all placeholder:text-slate-400 shadow-sm"
+                  placeholder="Mã bài tập..."
+                  className="input pl-10"
                 />
               </div>
 
@@ -327,7 +312,7 @@ export default function UserQuestionBank() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-                  className="px-3 py-1.5 bg-white border border-gray-205 text-xs font-bold text-gray-655 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-sm min-w-[130px]"
+                  className="input !w-auto cursor-pointer"
                 >
                   {POPULAR_CATEGORIES.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -337,7 +322,7 @@ export default function UserQuestionBank() {
                 <select
                   value={recommendedLevelFilter}
                   onChange={(e) => { setRecommendedLevelFilter(e.target.value); setCurrentPage(1); }}
-                  className="px-3 py-1.5 bg-white border border-gray-205 text-xs font-bold text-gray-655 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer shadow-sm min-w-[130px]"
+                  className="input !w-auto cursor-pointer"
                 >
                   <option value="all">Trình độ</option>
                   <option value="Intern">Intern</option>
@@ -349,13 +334,13 @@ export default function UserQuestionBank() {
               </div>
             </div>
           ) : (
-            <div className="p-4 border-b border-gray-50 bg-gray-50/30 flex flex-wrap items-center gap-3">
-              <Filter className="w-4 h-4 text-gray-400" />
+            <div className="p-4 border-b border-[#eeeeee] flex flex-wrap items-center gap-3">
+              <Filter className="w-4 h-4 text-[#8d8a91]" />
 
               <select
                 value={difficultyFilter}
                 onChange={(e) => setDifficultyFilter(e.target.value)}
-                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[100px]"
+                className="input !w-auto cursor-pointer"
               >
                 <option value="all">Độ khó</option>
                 <option value="Intern">Intern</option>
@@ -368,7 +353,7 @@ export default function UserQuestionBank() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[110px]"
+                className="input !w-auto cursor-pointer"
               >
                 <option value="all">Trạng thái</option>
                 <option value="completed">Đã hoàn thành</option>
@@ -377,80 +362,79 @@ export default function UserQuestionBank() {
             </div>
           )}
 
-          <div className="divide-y divide-gray-50 min-h-[300px]">
+          <div className="min-h-[300px]">
             {loading ? (
               <div className="py-16 text-center flex flex-col items-center justify-center">
-                <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-                <p className="text-sm font-semibold text-gray-400">Đang tải câu hỏi...</p>
+                <Loader2 className="w-8 h-8 text-[#333333] animate-spin mb-3" />
+                <p className="text-sm font-extrabold text-[#8d8a91]">Đang tải...</p>
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="py-16 text-center">
-                <BookOpen className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gray-400">Không tìm thấy bài tập nào.</p>
-                <p className="text-xs text-gray-300 mt-1">Thử thay đổi bộ lọc hoặc tìm kiếm khác.</p>
+                <BookOpen className="w-10 h-10 text-[#e6e6e6] mx-auto mb-3" />
+                <p className="text-sm font-extrabold text-[#8d8a91]">Không tìm thấy bài tập nào.</p>
               </div>
             ) : activeTab === 'Lập trình' ? (
               <div className="w-full overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                      <th className="py-4 pl-5 pr-8 text-[10px] font-black text-slate-400 uppercase tracking-wider">Tên bài</th>
-                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Độ khó</th>
-                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Trình độ</th>
-                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Thời gian</th>
-                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Điểm tốt nhất</th>
-                      <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">Trạng thái</th>
-                      <th className="py-4 pl-4 pr-5 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right whitespace-nowrap"></th>
+                    <tr className="border-b border-[#eeeeee] bg-white">
+                      <th className="py-4 pl-5 pr-8 label-caps">Tên bài</th>
+                      <th className="py-4 px-4 label-caps">Độ khó</th>
+                      <th className="py-4 px-4 label-caps">Trình độ</th>
+                      <th className="py-4 px-4 label-caps">Thời gian</th>
+                      <th className="py-4 px-4 label-caps">Tốt nhất</th>
+                      <th className="py-4 px-4 label-caps">Trạng thái</th>
+                      <th className="py-4 pl-4 pr-5 label-caps text-right">Hành động</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#eeeeee]">
                     {paginatedItems.map((p) => {
                       const isCompleted = p.practiceStatus === 'Solved' || p.practiceStatus === 'Completed' || p.practiceStatus === 'Practiced';
                       return (
-                        <tr key={p.id} className="hover:bg-slate-50/40 transition-colors group">
+                        <tr key={p.id} className="hover:bg-[#fafafa] transition-colors group">
                           <td className="py-4 pl-5 pr-8 align-middle">
-                            <div className={`font-extrabold text-sm group-hover:text-blue-600 transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-slate-800'}`}>
+                            <div className={`font-extrabold text-sm transition-colors ${isCompleted ? 'text-[#8d8a91] line-through' : 'text-[#333333] group-hover:text-black'}`}>
                               {p.title}
                             </div>
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap">
-                            <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide border ${DIFF_COLORS[p.difficulty] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                            <span className={`inline-block px-2.5 py-1 rounded border text-[10px] font-extrabold uppercase tracking-widest ${getDifficultyStyle(p.difficulty)}`}>
                               {p.difficulty?.toUpperCase() || '-'}
                             </span>
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap">
                             {p.recommendedLevel ? (
-                              <span className="inline-block px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg text-[10px] font-black tracking-wide uppercase">
+                              <span className="inline-block px-2.5 py-1 bg-[#333333] text-white rounded text-[10px] font-extrabold tracking-widest uppercase">
                                 {p.recommendedLevel}
                               </span>
                             ) : (
-                              <span className="text-slate-300 font-bold">—</span>
+                              <span className="text-[#e6e6e6] font-bold">—</span>
                             )}
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-                              <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                              {p.estimatedMinutes || 15} phút
+                            <div className="flex items-center gap-1.5 text-xs text-[#333333] font-extrabold tabular-nums">
+                              <Clock className="w-3.5 h-3.5 text-[#8d8a91] flex-shrink-0" />
+                              {p.estimatedMinutes || 15}m
                             </div>
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap text-center">
                             {p.bestScore !== null && p.bestScore !== undefined ? (
-                              <span className="text-sm font-black text-blue-600">{p.bestScore}%</span>
+                              <span className="text-sm font-extrabold text-[#333333] tabular-nums">{p.bestScore}%</span>
                             ) : (
-                              <span className="text-slate-300 font-bold">—</span>
+                              <span className="text-[#e6e6e6] font-bold">—</span>
                             )}
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black border ${STATUS_BADGES[p.practiceStatus] || 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${STATUS_BADGES[p.practiceStatus] || 'bg-white text-[#8d8a91] border-[#e6e6e6]'}`}>
                               {STATUS_TEXT[p.practiceStatus] || 'Chưa làm'}
                             </span>
                           </td>
                           <td className="py-4 pl-4 pr-5 align-middle text-right whitespace-nowrap">
                             <button
                               onClick={() => navigate(`/coding-practice/${p.id}`)}
-                              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-500/10 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                              className="btn-primary !h-8 !px-3 !text-xs"
                             >
-                              <Play className="w-3 h-3 fill-current" /> Luyện tập
+                              <Play className="w-3 h-3" /> Bắt đầu
                             </button>
                           </td>
                         </tr>
@@ -460,198 +444,159 @@ export default function UserQuestionBank() {
                 </table>
               </div>
             ) : (
-              paginatedItems.map((q) => {
-                const isCompleted = q.practiceStatus === 'Practiced' || q.practiceStatus === 'Completed';
-                return (
-                  <div key={q.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors group">
-                    <div className="flex-shrink-0">
-                      {isCompleted ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Circle className="w-5 h-5 text-gray-200" />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold leading-snug ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
-                        {q.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        {q.role && (
-                          <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                            {q.role}
-                          </span>
-                        )}
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getDifficultyStyle(q.difficulty)}`}>
-                          {q.difficulty}
-                        </span>
-                        {q.category && activeTab === 'Lập trình' && (
-                           <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                             {q.category}
-                           </span>
-                        )}
+              <div className="divide-y divide-[#eeeeee]">
+                {paginatedItems.map((q) => {
+                  const isCompleted = q.practiceStatus === 'Practiced' || q.practiceStatus === 'Completed';
+                  return (
+                    <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 hover:bg-[#fafafa] transition-colors group">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 mt-1">
+                          {isCompleted ? <CheckCircle2 className="w-5 h-5 text-[#77c486]" /> : <Circle className="w-5 h-5 text-[#e6e6e6]" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[15px] font-extrabold leading-tight ${isCompleted ? 'text-[#8d8a91] line-through' : 'text-[#333333]'}`}>
+                            {q.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {q.role && (
+                              <span className="text-[10px] font-extrabold text-[#333333] bg-[#f1f1f1] px-2 py-1 rounded uppercase tracking-[0.14em]">
+                                {q.role}
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-extrabold px-2 py-1 rounded uppercase tracking-[0.14em] border ${getDifficultyStyle(q.difficulty)}`}>
+                              {q.difficulty}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-center">
+                        <button
+                          onClick={() => navigate(`/question-bank/practice/${q.id}`)}
+                          className="btn-primary !h-9 !px-4 !text-xs"
+                        >
+                          <Play className="w-3.5 h-3.5" /> Luyện tập
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {activeTab !== 'Lập trình' && (
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-[11px] font-bold rounded-lg hover:bg-gray-200 transition-colors">
-                          <Eye className="w-3.5 h-3.5" />
-                          Xem chi tiết
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigate(activeTab === 'Lập trình' ? `/coding-practice/${q.id}` : `/question-bank/practice/${q.id}`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] text-white text-[11px] font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                        Luyện tập
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
 
-          <div className="p-4 border-t border-gray-100 bg-gray-50/20 mt-auto flex flex-col items-center gap-4">
-            <p className="text-xs font-semibold text-gray-400 text-center">
-              Hiển thị từ <span className="font-bold text-gray-700">{filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}</span> đến <span className="font-bold text-gray-700">{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)}</span> trong số <span className="font-bold text-gray-700">{filteredItems.length}</span> {activeTab === 'Lập trình' ? 'bài tập' : 'câu hỏi'}
-            </p>
+          {totalPages > 0 && (
+            <div className="p-5 border-t border-[#eeeeee] flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
+              <p className="text-[13px] font-extrabold text-[#8d8a91]">
+                {filteredItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} / {filteredItems.length}
+              </p>
 
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2 justify-center">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="w-9 h-9 flex items-center justify-center rounded-2xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  &lt;
-                </button>
-                
-                {(() => {
-                  const pages = [];
-                  if (totalPages <= 7) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    pages.push(1);
-                    if (currentPage > 3) pages.push('...');
-                    
-                    const start = Math.max(2, currentPage - 1);
-                    const end = Math.min(totalPages - 1, currentPage + 1);
-                    for (let i = start; i <= end; i++) {
-                      if (!pages.includes(i)) pages.push(i);
-                    }
-                    
-                    if (currentPage < totalPages - 2) pages.push('...');
-                    if (!pages.includes(totalPages)) pages.push(totalPages);
-                  }
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#8d8a91] transition-colors hover:bg-[#fafafa] disabled:opacity-45"
+                  >
+                    &lt;
+                  </button>
                   
-                  return pages.map((page, idx) => {
-                    if (page === '...') {
-                      return (
-                        <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400 font-semibold">
-                          ...
-                        </span>
-                      );
-                    }
+                  {Array.from({ length: totalPages }).map((_, idx) => {
+                    const page = idx + 1;
                     const isActive = currentPage === page;
+                    if (totalPages > 7) {
+                      if (page !== 1 && page !== totalPages && Math.abs(page - currentPage) > 1) {
+                        if (page === 2 || page === totalPages - 1) return <span key={page} className="text-[#8d8a91] px-2">...</span>;
+                        return null;
+                      }
+                    }
                     return (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-2xl border text-sm font-bold transition-all ${
+                        className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold transition-colors ${
                           isActive
-                            ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm'
-                            : 'border-gray-200 text-gray-655 hover:bg-gray-50'
+                            ? 'bg-[#333333] text-white shadow-sm'
+                            : 'border border-[#eeeeee] text-[#6f6a72] hover:bg-[#fafafa]'
                         }`}
                       >
                         {page}
                       </button>
                     );
-                  });
-                })()}
+                  })}
 
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="w-9 h-9 flex items-center justify-center rounded-2xl border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  &gt;
-                </button>
-              </div>
-            )}
-          </div>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#8d8a91] transition-colors hover:bg-[#fafafa] disabled:opacity-45"
+                  >
+                    &gt;
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ─── RIGHT COLUMN ─── */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-              <Target className="w-4 h-4 text-[#2563EB]" />
-              Tiến độ của tôi
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="label-caps mb-4 flex items-center gap-2 text-[#333333]">
+              <Target className="w-4 h-4" /> Tiến độ của tôi
             </h3>
 
-            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 mb-4 border border-orange-100">
+            <div className="rounded-lg bg-[#333333] p-4 mb-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wider">Chuỗi luyện tập</p>
-                  <p className="text-3xl font-black text-orange-600 mt-1">{progress.dailyStreak}</p>
-                  <p className="text-[11px] font-semibold text-orange-400">ngày liên tiếp</p>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/65">Chuỗi liên tục</p>
+                  <p className="text-[28px] font-extrabold leading-none mt-2 tabular-nums">{progress.dailyStreak}</p>
                 </div>
-                <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
-                  <Flame className="w-7 h-7 text-white" />
+                <div className="w-10 h-10 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
+            <div className="rounded-lg border border-[#e6e6e6] p-4 mb-4 bg-[#fafafa]">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-extrabold text-blue-700">Top 5%</p>
-                  <p className="text-[11px] font-medium text-blue-400">người dùng tích cực nhất</p>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Hoàn thành</p>
+                  <p className="text-[28px] font-extrabold text-[#333333] leading-none mt-2 tabular-nums">{progress.totalPracticed}</p>
                 </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="bg-gray-50 rounded-xl p-3 text-center">
-                <p className="text-lg font-black text-gray-800">{progress.totalPracticed}</p>
-                <p className="text-[10px] font-bold text-gray-400 mt-0.5">Đã hoàn thành</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3 text-center">
-                <p className="text-lg font-black text-gray-800">{progress.hrTotal + progress.technicalTotal + progress.codingTotal}</p>
-                <p className="text-[10px] font-bold text-gray-400 mt-0.5">Tổng câu hỏi</p>
+                <div className="w-10 h-10 border border-[#e6e6e6] bg-white rounded-lg flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-[#333333]" />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-amber-500" />
-              Gợi ý cho bạn
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="label-caps mb-4 flex items-center gap-2 text-[#333333]">
+              <Lightbulb className="w-4 h-4" /> Gợi ý
             </h3>
-            <div className="space-y-3">
-              <div onClick={() => handleTabChange('Kỹ thuật')} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-blue-50/50 cursor-pointer transition-all border border-transparent hover:border-blue-100">
-                <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
-                  <Brain className="w-4.5 h-4.5 text-blue-600" />
+            <div className="space-y-2">
+              <button onClick={() => handleTabChange('Kỹ thuật')} className="w-full text-left rounded-lg border border-[#e6e6e6] p-3 hover:border-[#333333] hover:bg-[#fafafa] transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded border border-[#e6e6e6] bg-white flex items-center justify-center shrink-0 text-[#333333]">
+                    <Brain className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-extrabold text-[#333333]">Ôn tập Kỹ thuật</p>
+                    <p className="text-[11px] font-semibold text-[#8d8a91] mt-0.5">Tiếp tục giải câu hỏi kỹ thuật</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-800 group-hover:text-blue-700 transition-colors">Ôn tập hệ thống</p>
-                  <p className="text-[10px] font-medium text-gray-400 mt-0.5 leading-relaxed">Tiếp tục giải các câu hỏi kỹ thuật bạn chưa hoàn thành</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors mt-0.5 flex-shrink-0" />
-              </div>
+              </button>
 
-              <div onClick={() => handleTabChange('Lập trình')} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-emerald-50/50 cursor-pointer transition-all border border-transparent hover:border-emerald-100">
-                <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-200 transition-colors">
-                  <Code2 className="w-4.5 h-4.5 text-emerald-600" />
+              <button onClick={() => handleTabChange('Lập trình')} className="w-full text-left rounded-lg border border-[#e6e6e6] p-3 hover:border-[#333333] hover:bg-[#fafafa] transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded border border-[#e6e6e6] bg-white flex items-center justify-center shrink-0 text-[#333333]">
+                    <Code2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-extrabold text-[#333333]">Luyện Coding</p>
+                    <p className="text-[11px] font-semibold text-[#8d8a91] mt-0.5">Cải thiện tư duy thuật toán</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-800 group-hover:text-emerald-700 transition-colors">Luyện Coding</p>
-                  <p className="text-[10px] font-medium text-gray-400 mt-0.5 leading-relaxed">Cải thiện tư duy giải thuật qua các bài tập lập trình</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition-colors mt-0.5 flex-shrink-0" />
-              </div>
+              </button>
             </div>
           </div>
         </div>

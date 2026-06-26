@@ -1,191 +1,210 @@
-import { Calendar, Download, Users, BarChart3, Banknote, Zap, ShieldCheck, MoreVertical } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Calendar, Download, ArrowUpRight, ArrowDownRight, ExternalLink, ChevronRight, Loader2
+} from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer
+} from 'recharts';
+import { motion } from 'framer-motion';
+import { adminDashboardApi } from '../../services/adminDashboardApi';
 
-const chartData = [
-  { name: 'T2', phongVan: 80, doanhThu: 120 },
-  { name: 'T3', phongVan: 120, doanhThu: 190 },
-  { name: 'T4', phongVan: 100, doanhThu: 150 },
-  { name: 'T5', phongVan: 180, doanhThu: 250 },
-  { name: 'T6', phongVan: 150, doanhThu: 220 },
-  { name: 'T7', phongVan: 240, doanhThu: 310 },
-  { name: 'CN', phongVan: 210, doanhThu: 280 },
-];
-
-const recentInterviews = [
-  { id: '#IV-20931', avatar: 'AN', name: 'Nguyễn Văn An', role: 'Frontend Developer', score: '85/100', status: 'Hoàn thành', statusColor: 'text-green-700 bg-green-100', avatarColor: 'bg-blue-100 text-blue-700' },
-  { id: '#IV-20930', avatar: 'TH', name: 'Trần Thị Hoa', role: 'UI/UX Designer', score: '92/100', status: 'Hoàn thành', statusColor: 'text-green-700 bg-green-100', avatarColor: 'bg-indigo-100 text-indigo-700' },
-  { id: '#IV-20929', avatar: 'LM', name: 'Lê Minh', role: 'Data Scientist', score: '--/100', status: 'Đang phỏng vấn', statusColor: 'text-blue-700 bg-blue-100', avatarColor: 'bg-purple-100 text-purple-700' },
-  { id: '#IV-20928', avatar: 'PB', name: 'Phạm Bình', role: 'Project Manager', score: '78/100', status: 'Hoàn thành', statusColor: 'text-green-700 bg-green-100', avatarColor: 'bg-pink-100 text-pink-700' },
-];
-
-function StatCard({ title, value, icon: Icon, trend, trendUp, iconColor, iconBg }) {
+function KpiCard({ title, value, trend, trendUp }) {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-        <div className={`text-sm font-bold flex items-center gap-1 ${trendUp ? 'text-green-500' : 'text-red-500'}`}>
-          {trendUp ? (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
-          ) : (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m19 12-7 7-7-7"/><path d="M12 5v14"/></svg>
-          )}
-          {trend}
-        </div>
-      </div>
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm min-h-[116px] flex flex-col justify-between transition-all hover:shadow-md">
       <div>
-        <p className="text-sm font-semibold text-gray-500 mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+        <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#66767b]">{title}</p>
+        <p className="mt-3 text-[18px] font-medium leading-none text-[#151515] tabular-nums">{value}</p>
+      </div>
+      <div className="flex items-center gap-2 text-[13px]">
+        <span className={`inline-flex items-center gap-1 font-medium tabular-nums ${trendUp ? 'text-[#6f8066]' : 'text-[#c20f16]'}`}>
+          {trendUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+          {trend}
+        </span>
+        <span className="text-[#66767b]">so với tháng trước</span>
       </div>
     </div>
   );
 }
 
-function ProgressBar({ label, value, color }) {
+function MetricRow({ label, value, color }) {
   return (
-    <div className="mb-5">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-bold text-gray-700">{label}</span>
-        <span className="text-sm font-bold text-gray-900">{value}%</span>
+    <div>
+      <div className="mb-2 flex items-center justify-between text-[14px]">
+        <span className="font-medium text-[#66767b]">{label}</span>
+        <span className="font-medium text-[#151515] tabular-nums">{value}%</span>
       </div>
-      <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${value}%` }}></div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-[#efe4ed]">
+        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rounded-lg border border-[#dfe4e7] bg-white px-4 py-3 shadow-sm">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#66767b]">{label}</p>
+      <div className="space-y-1.5 text-xs">
+        <div className="flex justify-between gap-8 text-[#66767b]">
+          <span>Phỏng vấn</span>
+          <span className="font-semibold text-[#151515]">{payload[0]?.value} ca</span>
+        </div>
+        <div className="flex justify-between gap-8 text-[#66767b]">
+          <span>Doanh thu</span>
+          <span className="font-semibold text-[#151515]">{payload[1]?.value}M đ</span>
+        </div>
       </div>
     </div>
   );
 }
 
 export default function AdminDashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await adminDashboardApi.getOverview();
+        setData(res);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (loading || !data) {
+    return (
+      <div className="flex h-full items-center justify-center pt-20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#66767b]" />
+      </div>
+    );
+  }
+
+  const { kpis, chartData, recentInterviews, systemStatus } = data;
+
   return (
-    <div className="animate-fade-in max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-end mb-8">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-[1180px] space-y-10 pb-12 text-[#151515]">
+      <section className="mb-8 flex flex-col gap-5 pt-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tổng quan hệ thống</h1>
-          <p className="text-sm text-gray-500 mt-1 font-medium">Chào mừng trở lại, đây là dữ liệu mới nhất trong 24 giờ qua.</p>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">Dashboard</h1>
+          <p className="mt-2 text-[15px] font-semibold text-[#96939a]">
+            Dữ liệu thống kê tổng hợp mới nhất của nền tảng.
+          </p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-            <Calendar className="w-4 h-4" />
-            Hôm nay
+        <div className="flex items-center gap-2 shrink-0">
+          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#dfe4e7] text-[#151515] text-xs font-semibold rounded-lg hover:bg-[#f8f8f8] transition-all shadow-sm">
+            <Calendar className="w-3.5 h-3.5" />
+            7 ngày qua
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-            <Download className="w-4 h-4" />
+          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm">
+            <Download className="w-3.5 h-3.5" />
             Xuất báo cáo
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Tổng người dùng" value="12,543" icon={Users} trend="12%" trendUp={true} iconColor="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Tổng phỏng vấn" value="45,890" icon={BarChart3} trend="8.4%" trendUp={true} iconColor="text-indigo-600" iconBg="bg-indigo-50" />
-        <StatCard title="Doanh thu (VNĐ)" value="845,000,000" icon={Banknote} trend="15.2%" trendUp={true} iconColor="text-gray-600" iconBg="bg-gray-100" />
-        <StatCard title="AI Requests" value="1.2M" icon={Zap} trend="2.1%" trendUp={false} iconColor="text-red-500" iconBg="bg-red-50" />
-      </div>
+      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard title="Tổng người dùng" value={kpis.totalUsers.value} trend={kpis.totalUsers.trend} trendUp={kpis.totalUsers.trendUp} />
+        <KpiCard title="Tổng phỏng vấn" value={kpis.totalInterviews.value} trend={kpis.totalInterviews.trend} trendUp={kpis.totalInterviews.trendUp} />
+        <KpiCard title="Doanh thu (VNĐ)" value={kpis.totalRevenue.value} trend={kpis.totalRevenue.trend} trendUp={kpis.totalRevenue.trendUp} />
+        <KpiCard title="AI Requests" value={kpis.totalAiRequests.value} trend={kpis.totalAiRequests.trend} trendUp={kpis.totalAiRequests.trendUp} />
+      </section>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-bold text-gray-900">Xu hướng phỏng vấn & Doanh thu</h3>
-            <div className="flex items-center gap-4 text-xs font-semibold text-gray-500">
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>Phỏng vấn</div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-400"></div>Doanh thu</div>
+      <section className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_374px]">
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col h-full">
+          <div className="mb-9 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-[18px] font-bold text-[#151515]">Xu hướng phỏng vấn & Doanh thu</h2>
+            <div className="flex items-center gap-5 text-[14px] font-medium text-[#66767b]">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-3.5 w-3.5 rounded-full border border-[#151515] bg-[#2f2f2f]" />
+                Phỏng vấn
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-3.5 w-3.5 rounded-full bg-[#73836b]" />
+                Doanh thu
+              </span>
             </div>
           </div>
-          <div className="h-[300px]">
+          <div className="h-[326px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorDoanhThu" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#60a5fa" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 600 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 600 }} dx={-10} />
-                <Tooltip cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '4 4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} />
-                <Area type="monotone" dataKey="phongVan" stroke="#2563eb" strokeWidth={3} fill="none" strokeDasharray="4 4" />
-                <Area type="monotone" dataKey="doanhThu" stroke="#60a5fa" strokeWidth={3} fillOpacity={1} fill="url(#colorDoanhThu)" />
+              <AreaChart data={chartData} margin={{ top: 6, right: 8, left: -20, bottom: 12 }}>
+                <CartesianGrid stroke="#edf1f2" strokeWidth={1} vertical />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#66767b', fontWeight: 600 }} dy={14} />
+                <YAxis axisLine={false} tickLine={false} tick={false} width={30} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#dfe4e7', strokeWidth: 1 }} />
+                <Area type="monotone" dataKey="phongVan" stroke="#1f1f1f" strokeWidth={2.5} fill="transparent" dot={false} activeDot={{ r: 4, fill: '#1f1f1f' }} />
+                <Area type="monotone" dataKey="doanhThu" stroke="#73836b" strokeWidth={2.5} strokeDasharray="7 5" fill="transparent" dot={false} activeDot={{ r: 4, fill: '#73836b' }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* System Status */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col">
-          <h3 className="text-base font-bold text-gray-900 mb-6">Trạng thái hệ thống</h3>
-          
-          <div className="flex-1">
-            <ProgressBar label="Đang xử lý (Active)" value={88} color="bg-blue-600" />
-            <ProgressBar label="Server Load" value={42} color="bg-blue-500" />
-            <ProgressBar label="User Retention" value={65} color="bg-slate-600" />
+        <aside className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col">
+          <h2 className="mb-9 text-[18px] font-bold text-[#151515]">Trạng thái hệ thống</h2>
+          <div className="space-y-7">
+            <MetricRow label="Phiên đang xử lý" value={systemStatus.activeSessions} color="#73836b" />
+            <MetricRow label="Server Load" value={systemStatus.serverLoad} color="#2f2f2f" />
+            <MetricRow label="User Retention" value={systemStatus.userRetention} color="#6f7d80" />
           </div>
-
-          <div className="mt-4 border border-gray-100 bg-gray-50 rounded-xl p-4 flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900">Bảo trì hệ thống</p>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">Lần cuối: 2h trước</p>
+          <div className="mt-8 border-t border-[#dfe4e7] pt-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-[14px] font-medium text-[#66767b]">
+                <span className={`h-2.5 w-2.5 rounded-full ${systemStatus.systemHealth === 'OK' ? 'bg-[#73836b]' : 'bg-[#c20f16]'}`} />
+                Bảo trì hệ thống
+              </div>
+              <span className={`rounded-lg px-4 py-2 text-[12px] font-bold text-white ${systemStatus.systemHealth === 'OK' ? 'bg-[#73836b]' : 'bg-[#c20f16]'}`}>{systemStatus.systemHealth}</span>
             </div>
           </div>
-        </div>
-      </div>
+        </aside>
+      </section>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100">
-          <h3 className="text-base font-bold text-gray-900">Phiên phỏng vấn gần đây</h3>
-          <button className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Xem tất cả</button>
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-[#dfe4e7] px-8 py-6">
+          <h2 className="text-[18px] font-bold text-[#151515]">Phiên phỏng vấn gần đây</h2>
+          <Link to="/admin/interviews" className="inline-flex items-center gap-2 text-[14px] font-bold text-[#66767b] transition-colors hover:text-[#151515]">
+            Xem tất cả
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-[820px] text-left">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Mã phiên</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Người dùng</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Vai trò</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Điểm tổng</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Thao tác</th>
+              <tr className="border-b border-[#eeeeee] bg-white">
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Mã phiên</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Người dùng</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Vai trò</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Điểm</th>
+                <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Trạng thái</th>
+                <th className="px-5 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {recentInterviews.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-xs font-bold text-gray-900">{item.id}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold ${item.avatarColor}`}>
-                        {item.avatar}
-                      </div>
-                      <span className="text-sm font-bold text-gray-700">{item.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-sm font-medium text-gray-600">{item.role}</td>
-                  <td className="py-4 px-6 text-sm font-bold text-blue-600">{item.score}</td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${item.statusColor}`}>
-                      {item.status}
+            <tbody>
+              {recentInterviews.map((item) => (
+                <tr key={item.id} className="group cursor-pointer border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
+                  <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{item.id}</td>
+                  <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333]">{item.name}</td>
+                  <td className="px-5 py-5 text-[14px] font-semibold leading-tight text-[#333333]">{item.role}</td>
+                  <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{item.score}</td>
+                  <td className="px-5 py-5 text-center">
+                    <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${item.live ? 'bg-[#efe4ed] text-[#66767b]' : 'bg-[#c9f0d2] text-[#4b7a55]'}`}>
+                      {item.live ? 'Đang diễn ra' : 'Hoàn thành'}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  </td>
+                  <td className="px-5 py-5 text-right"><ChevronRight className="inline-block h-4 w-4 text-[#c8c5ca] transition-colors group-hover:text-[#333333]" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+      </section>
+    </motion.div>
   );
 }

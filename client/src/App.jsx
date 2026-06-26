@@ -28,8 +28,7 @@ import AdminCodingBank from './pages/admin/AdminCodingBank';
 import AdminAddCodingProblem from './pages/admin/AdminAddCodingProblem';
 import AdminAIMonitor from './pages/admin/AdminAIMonitor';
 import AdminInterviewData from './pages/admin/AdminInterviewData';
-import AdminSystemLogs from './pages/admin/AdminSystemLogs';
-import AdminSettings from './pages/admin/AdminSettings';
+
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -92,8 +91,7 @@ export default function App() {
             <Route path="/admin/coding-bank/add" element={<AdminAddCodingProblem />} />
             <Route path="/admin/coding-bank/edit/:id" element={<AdminAddCodingProblem />} />
             <Route path="/admin/templates" element={<AdminTemplates />} />
-            <Route path="/admin/logs" element={<AdminSystemLogs />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
+
             {/* Add other admin routes here in the future */}
           </Route>
 

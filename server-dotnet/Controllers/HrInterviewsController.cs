@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using InterviewPro.API.Services;
+
 namespace InterviewPro.API.Controllers
 {
     /// <summary>
@@ -50,16 +52,20 @@ namespace InterviewPro.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex) when (ex.Message.StartsWith("FREE_LIMIT_EXCEEDED"))
+            catch (NotEnoughCreditsException ex)
             {
-                // 402 Payment Required: hết lượt miễn phí
-                return StatusCode(402, new { message = ex.Message.Replace("FREE_LIMIT_EXCEEDED: ", "") });
+                // 402 Payment Required: hết lượt miễn phí / trả phí
+                return StatusCode(402, new { 
+                    message = ex.Message,
+                    requiredPayment = true
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Không thể tạo phiên phỏng vấn.", detail = ex.Message });
             }
         }
+
 
         // ─────────────────────────────────────────────
         // GET /api/hr-interviews/{sessionId}

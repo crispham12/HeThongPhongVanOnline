@@ -54,6 +54,15 @@ builder.Services.AddScoped<IInterviewDataService, InterviewDataService>();
 // Admin User Management service
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 
+// Admin Dashboard service
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+
+// Credit & Payment systems
+builder.Services.AddScoped<ICreditService, CreditService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ISePayWebhookService, SePayWebhookService>();
+
+
 // Coding Problem Bank services
 builder.Services.AddScoped<IAdminCodingProblemService, AdminCodingProblemService>();
 builder.Services.AddScoped<IPracticeCodingProblemService, PracticeCodingProblemService>();

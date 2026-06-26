@@ -33,11 +33,61 @@ namespace InterviewPro.API.Data
         public DbSet<UserCodingProblemProgress> UserCodingProblemProgresses { get; set; }
         public DbSet<CodingAssessmentHistory> CodingAssessmentHistories { get; set; }
 
+        // ── Payments & Subscriptions ──
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<UserSubscription> UserSubscriptions { get; set; }
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+
+        // ── Credit & SePay Payment system ──
+        public DbSet<CreditPackage> CreditPackages { get; set; }
+        public DbSet<CreditWallet> CreditWallets { get; set; }
+        public DbSet<CreditPaymentTransaction> CreditPaymentTransactions { get; set; }
+        public DbSet<CreditHistory> CreditHistories { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+
+            // Credit payment configuration
+            modelBuilder.Entity<CreditPaymentTransaction>(e =>
+            {
+                e.Property(t => t.Amount).HasColumnType("decimal(18,2)");
+                e.HasIndex(t => t.PaymentCode).IsUnique();
+                e.HasIndex(t => t.SePayTransactionId).IsUnique().HasFilter("[SePayTransactionId] IS NOT NULL");
+            });
+
+            modelBuilder.Entity<CreditPackage>(e =>
+            {
+                e.Property(p => p.Price).HasColumnType("decimal(18,2)");
+            });
+
+            // Seed CreditPackages
+            modelBuilder.Entity<CreditPackage>().HasData(
+                new CreditPackage { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Name = "Gói 10 lượt", Price = 35000, Credits = 10, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new CreditPackage { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Name = "Gói 25 lượt", Price = 75000, Credits = 25, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new CreditPackage { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Name = "Gói 50 lượt", Price = 100000, Credits = 50, IsActive = true, CreatedAt = DateTime.UtcNow }
+            );
+
+            modelBuilder.Entity<SubscriptionPlan>(e =>
+            {
+                e.Property(p => p.Price).HasColumnType("decimal(18,2)");
+            });
+
+            modelBuilder.Entity<PaymentTransaction>(e =>
+            {
+                e.Property(t => t.Amount).HasColumnType("decimal(18,2)");
+                e.HasIndex(t => t.CreatedAt);
+                e.HasIndex(t => t.Status);
+            });
+
+            // Seed Subscription Plans
+            modelBuilder.Entity<SubscriptionPlan>().HasData(
+                new SubscriptionPlan { Id = 1, Name = "Free", Price = 0, Duration = "Lifetime", FeaturesJson = "[\"1 CV mẫu cơ bản\", \"Xuất file PDF (có watermark)\", \"Lưu trữ 1 bản thảo\"]", IsActive = true },
+                new SubscriptionPlan { Id = 2, Name = "Premium Monthly", Price = 199000, Duration = "Monthly", FeaturesJson = "[\"Truy cập toàn bộ 50+ CV mẫu\", \"Phân tích CV bằng AI (20 lần/tháng)\", \"Xuất file chất lượng cao (No watermark)\", \"Ưu tiên hỗ trợ 24/7\"]", IsActive = true },
+                new SubscriptionPlan { Id = 3, Name = "Premium Yearly", Price = 1690000, Duration = "Yearly", FeaturesJson = "[\"Toàn bộ tính năng Premium Monthly\", \"Phân tích CV bằng AI (Không giới hạn)\", \"Tặng 1 buổi Review CV cùng chuyên gia\"]", IsActive = true }
+            );
 
             modelBuilder.Entity<InterviewSession>()
                 .HasMany(s => s.Questions)

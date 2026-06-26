@@ -6,11 +6,11 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
-  { to: '/dashboard',       icon: LayoutDashboard, label: 'Bảng điều khiển' },
-  { to: '/question-bank',   icon: Database,         label: 'Ngân hàng câu hỏi' },
-  { to: '/history',         icon: History,          label: 'Lịch sử phỏng vấn' },
-  { to: '/github-analysis', icon: GitBranch,          label: 'Phân tích GitHub' },
-  { to: '/create-cv',       icon: FileText,           label: 'Tạo CV' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Bảng điều khiển' },
+  { to: '/question-bank', icon: Database, label: 'Ngân hàng câu hỏi' },
+  { to: '/history', icon: History, label: 'Lịch sử phỏng vấn' },
+  { to: '/github-analysis', icon: GitBranch, label: 'Phân tích GitHub' },
+  { to: '/create-cv', icon: FileText, label: 'Tạo CV' },
 ];
 
 export default function Sidebar() {
@@ -45,10 +45,9 @@ export default function Sidebar() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all ${isActive
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
                 }`
               }
             >

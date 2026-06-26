@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search,
   ChevronLeft, ChevronRight, X, Check, Trash2, Loader2,
-  Code2, Pencil,
+  Code2, Pencil, SlidersHorizontal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminCodingBankApi } from '../../services/codingBankApi';
@@ -12,15 +12,15 @@ import { adminCodingBankApi } from '../../services/codingBankApi';
 // Constants
 // ─────────────────────────────────────────
 const DIFF_STYLES = {
-  Easy:   'bg-emerald-100 text-emerald-700',
-  Medium: 'bg-amber-100  text-amber-700',
-  Hard:   'bg-rose-100   text-rose-700',
-  EASY:   'bg-emerald-100 text-emerald-700',
-  MEDIUM: 'bg-amber-100  text-amber-700',
-  HARD:   'bg-rose-100   text-rose-700',
-  easy:   'bg-emerald-100 text-emerald-700',
-  medium: 'bg-amber-100  text-amber-700',
-  hard:   'bg-rose-100   text-rose-700',
+  Easy: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  Medium: 'bg-amber-50  text-amber-700 border border-amber-200',
+  Hard: 'bg-rose-50   text-rose-700 border border-rose-200',
+  EASY: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  MEDIUM: 'bg-amber-50  text-amber-700 border border-amber-200',
+  HARD: 'bg-rose-50   text-rose-700 border border-rose-200',
+  easy: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  medium: 'bg-amber-50  text-amber-700 border border-amber-200',
+  hard: 'bg-rose-50   text-rose-700 border border-rose-200',
 };
 
 // ─────────────────────────────────────────
@@ -31,30 +31,56 @@ function Toast({ toast }) {
     <AnimatePresence>
       {toast && (
         <motion.div
-          initial={{ opacity: 0, y: -24, scale: 0.94 }}
+          initial={{ opacity: 0, y: -20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -24, scale: 0.94 }}
-          className={`fixed top-6 right-6 z-[200] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : toast.type === 'error'
-              ? 'bg-rose-50 border-rose-200 text-rose-800'
-              : 'bg-blue-50 border-blue-200 text-blue-800'
-          }`}
+          exit={{ opacity: 0, y: -20, scale: 0.96 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          className={`fixed top-6 right-6 z-[200] flex items-center gap-3 px-4 py-3.5 rounded-xl shadow-lg border ${toast.type === 'success'
+            ? 'bg-white border-emerald-200 text-slate-800'
+            : toast.type === 'error'
+              ? 'bg-white border-rose-200 text-slate-800'
+              : 'bg-white border-slate-200 text-slate-800'
+            }`}
         >
-          <div className={`p-1.5 rounded-full ${
-            toast.type === 'success' ? 'bg-emerald-500 text-white'
-            : toast.type === 'error' ? 'bg-rose-500 text-white'
-            : 'bg-blue-500 text-white'
-          }`}>
+          <div className={`w-7 h-7 flex items-center justify-center rounded-full shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600'
+            : toast.type === 'error' ? 'bg-rose-100 text-rose-600'
+              : 'bg-slate-100 text-slate-500'
+            }`}>
             {toast.type === 'success' ? <Check className="w-3.5 h-3.5" />
-             : toast.type === 'error' ? <X className="w-3.5 h-3.5" />
-             : <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              : toast.type === 'error' ? <X className="w-3.5 h-3.5" />
+                : <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           </div>
-          <span className="text-sm font-bold">{toast.message}</span>
+          <span className="text-sm font-semibold">{toast.message}</span>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ─────────────────────────────────────────
+// StatCard
+// ─────────────────────────────────────────
+function StatCard({ label, value, accent }) {
+  return (
+    <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-4 flex flex-col gap-1.5 hover:border-[#333333]/20 transition-colors">
+      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest">{label}</span>
+      <span className={`text-2xl font-bold tracking-tight ${accent}`}>{value}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// FilterSelect
+// ─────────────────────────────────────────
+function FilterSelect({ value, onChange, children }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className="text-xs font-semibold text-[#333333] border border-[#E5E7EB] rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#333333]/20 focus:border-[#333333] transition-all cursor-pointer hover:border-[#333333]/40"
+    >
+      {children}
+    </select>
   );
 }
 
@@ -65,29 +91,32 @@ export default function AdminCodingBank() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [problems, setProblems]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [toast, setToast]           = useState(null);
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   // Filters
-  const [searchQuery, setSearchQuery]                       = useState('');
-  const [diffFilter, setDiffFilter]                         = useState('');
-  const [statusFilter, setStatusFilter]                     = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [diffFilter, setDiffFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [recommendedLevelFilter, setRecommendedLevelFilter] = useState('');
 
   // Pagination
-  const [page, setPage]             = useState(1);
+  const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 15;
 
   // Show toast from add/edit page redirect
   useEffect(() => {
-    if (location.state?.toast) {
-      setToast(location.state.toast);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location]);
+    if (!location.state?.toast) return;
+
+    const nextToast = location.state.toast;
+    const timer = setTimeout(() => setToast(nextToast), 0);
+    window.history.replaceState({}, document.title);
+
+    return () => clearTimeout(timer);
+  }, [location.state]);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -102,31 +131,34 @@ export default function AdminCodingBank() {
     setLoading(true);
     try {
       const params = { page, pageSize: PAGE_SIZE };
-      if (diffFilter)             params.difficulty       = diffFilter;
-      if (statusFilter)           params.status           = statusFilter;
+      if (diffFilter) params.difficulty = diffFilter;
+      if (statusFilter) params.status = statusFilter;
       if (recommendedLevelFilter) params.recommendedLevel = recommendedLevelFilter;
-      if (searchQuery)            params.search           = searchQuery;
+      if (searchQuery) params.search = searchQuery;
       const res = await adminCodingBankApi.getAll(params);
       setProblems(res.items || []);
       setTotalItems(res.totalItems || 0);
       setTotalPages(res.totalPages || 1);
     } catch {
-      setToast({ type: 'error', message: 'Khong the tai danh sach bai coding.' });
+      setToast({ type: 'error', message: 'Không thể tải danh sách bài coding.' });
     } finally {
       setLoading(false);
     }
   }, [page, diffFilter, statusFilter, recommendedLevelFilter, searchQuery]);
 
-  useEffect(() => { fetchProblems(); }, [fetchProblems]);
+  useEffect(() => {
+    const timer = setTimeout(() => fetchProblems(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchProblems]);
 
   const handleDelete = async (id, title) => {
-    if (!window.confirm('Xoa bai "' + title + '"?')) return;
+    if (!window.confirm('Xóa bài "' + title + '"?')) return;
     try {
       await adminCodingBankApi.delete(id);
-      setToast({ type: 'success', message: 'Da xoa bai coding.' });
+      setToast({ type: 'success', message: 'Đã xóa bài coding.' });
       fetchProblems();
     } catch {
-      setToast({ type: 'error', message: 'Xoa that bai.' });
+      setToast({ type: 'error', message: 'Xóa thất bại.' });
     }
   };
 
@@ -134,156 +166,176 @@ export default function AdminCodingBank() {
     try {
       if (item.status === 'Published') {
         await adminCodingBankApi.unpublish(item.id);
-        setToast({ type: 'success', message: 'Da chuyen "' + item.title + '" ve Draft.' });
+        setToast({ type: 'success', message: 'Đã chuyển "' + item.title + '" về Draft.' });
       } else {
         await adminCodingBankApi.publish(item.id);
-        setToast({ type: 'success', message: 'Da publish "' + item.title + '".' });
+        setToast({ type: 'success', message: 'Đã publish "' + item.title + '".' });
       }
       fetchProblems();
     } catch {
-      setToast({ type: 'error', message: 'Cap nhat trang thai that bai.' });
+      setToast({ type: 'error', message: 'Cập nhật trạng thái thất bại.' });
     }
   };
 
-  const easyCount   = problems.filter(p => p.difficulty?.toLowerCase() === 'easy').length;
+  const easyCount = problems.filter(p => p.difficulty?.toLowerCase() === 'easy').length;
   const mediumCount = problems.filter(p => p.difficulty?.toLowerCase() === 'medium').length;
-  const hardCount   = problems.filter(p => p.difficulty?.toLowerCase() === 'hard').length;
+  const hardCount = problems.filter(p => p.difficulty?.toLowerCase() === 'hard').length;
+
+  const hasActiveFilters = diffFilter || statusFilter || recommendedLevelFilter || searchQuery;
 
   return (
-    <div className="max-w-[1400px] mx-auto p-2 relative text-[#0F172A]">
+    <div className="max-w-[1400px] relative text-[#333333]">
       <Toast toast={toast} />
 
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-8">
+      {/* ── Header ── */}
+      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between border-b border-[#E5E7EB] pb-6">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Coding Bank</h1>
-          <p className="text-sm text-gray-500 mt-1 font-medium">Quan ly bai tap lap trinh cua he thong</p>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">Coding Bank</h1>
+          <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Quản lý bài tập lập trình của hệ thống</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/admin/coding-bank/add')}
-            className="flex items-center gap-2 bg-[#2563EB] hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm shadow-blue-200 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Them bai Coding
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Tong bai', value: totalItems, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Easy', value: easyCount, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Medium', value: mediumCount, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Hard', value: hardCount, color: 'text-rose-600', bg: 'bg-rose-50' },
-        ].map(s => (
-          <div key={s.label} className={s.bg + ' rounded-2xl px-5 py-4 flex flex-col gap-1'}>
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{s.label}</span>
-            <span className={'text-2xl font-black ' + s.color}>{s.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <select value={diffFilter} onChange={e => { setDiffFilter(e.target.value); setPage(1); }}
-          className="text-xs font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-          <option value="">Do kho</option>
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
-        </select>
-        <select value={recommendedLevelFilter} onChange={e => { setRecommendedLevelFilter(e.target.value); setPage(1); }}
-          className="text-xs font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-          <option value="">Cap do</option>
-          <option value="Fresher">Fresher</option>
-          <option value="Junior">Junior</option>
-          <option value="Middle">Middle</option>
-          <option value="Senior">Senior</option>
-        </select>
-        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          className="text-xs font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
-          <option value="">Status</option>
-          <option value="Published">Published</option>
-          <option value="Draft">Draft</option>
-        </select>
-        <button onClick={() => { setDiffFilter(''); setRecommendedLevelFilter(''); setStatusFilter(''); setSearchQuery(''); setPage(1); }}
-          className="text-xs font-extrabold text-[#2563EB] hover:text-blue-800 transition-colors">
-          Clear all
+        <button
+          onClick={() => navigate('/admin/coding-bank/add')}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Thêm bài Coding
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-8">
-        <div className="p-4 border-b border-gray-50 bg-gray-50/20">
-          <div className="relative max-w-md">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-              placeholder="Tim bai coding theo tieu de, danh muc..."
-              className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl py-2 pl-9 pr-4 text-xs font-medium focus:ring-4 focus:ring-blue-100 focus:border-[#2563EB] focus:outline-none" />
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Tổng bài" value={totalItems} accent="text-[#333333]" />
+        <StatCard label="Easy" value={easyCount} accent="text-emerald-600" />
+        <StatCard label="Medium" value={mediumCount} accent="text-amber-600" />
+        <StatCard label="Hard" value={hardCount} accent="text-rose-600" />
+      </div>
+
+      {/* ── Toolbar: Search + Filters ── */}
+      <div className="mb-6 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-[2] min-w-[200px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Tìm kiếm</label>
+            <input type="text" placeholder="Tiêu đề, danh mục..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-semibold text-[#333333] outline-none transition-all placeholder:text-[#b6b3b8] focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10" />
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Độ khó</label>
+            <select value={diffFilter} onChange={(e) => { setDiffFilter(e.target.value); setPage(1); }} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
+              <option value="">Tất cả độ khó</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Cấp độ</label>
+            <select value={recommendedLevelFilter} onChange={(e) => { setRecommendedLevelFilter(e.target.value); setPage(1); }} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
+              <option value="">Tất cả cấp độ</option>
+              <option value="Fresher">Fresher</option>
+              <option value="Junior">Junior</option>
+              <option value="Middle">Middle</option>
+              <option value="Senior">Senior</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Trạng thái</label>
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
+              <option value="">Tất cả trạng thái</option>
+              <option value="Published">Published</option>
+              <option value="Draft">Draft</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {hasActiveFilters && (
+              <button type="button" onClick={() => { setDiffFilter(''); setRecommendedLevelFilter(''); setStatusFilter(''); setSearchQuery(''); setPage(1); }} className="h-9 rounded-lg border border-[#e8e8e8] bg-white px-3 text-[13px] font-bold text-[#96939a] transition-all hover:border-[#d6d6d6] hover:text-[#333333]">Xóa lọc</button>
+            )}
           </div>
         </div>
+      </div>
 
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* ── Table ── */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#F8FAFC] border-b border-gray-100">
-                <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-wider">TIEU DE</th>
-                <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-wider">DO KHO</th>
-                <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-wider">CATEGORY</th>
-                <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-wider">TRANG THAI</th>
-                <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-wider text-right"></th>
+              <tr className="border-b border-[#eeeeee] bg-white">
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-20">ID</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Tiêu đề</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-28">Độ khó</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Category</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-36">Trạng thái</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] w-24"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {loading ? (
-                <tr><td colSpan="6" className="py-16 text-center">
-                  <Loader2 className="w-7 h-7 animate-spin text-blue-400 mx-auto" />
-                  <p className="text-xs text-gray-400 mt-3 font-medium">Dang tai du lieu...</p>
-                </td></tr>
-              ) : problems.length === 0 ? (
-                <tr><td colSpan="6" className="py-16 text-center">
-                  <Code2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                  <p className="text-sm font-bold text-gray-400">Chua co bai coding nao</p>
-                  <p className="text-xs text-gray-400 mt-1">Nhan "Them bai Coding" de bat dau.</p>
-                </td></tr>
-              ) : problems.map(p => (
-                <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="hover:bg-blue-50/20 transition-all group">
-                  <td className="py-5 px-6 text-sm font-semibold text-gray-400">#{String(p.id).slice(0, 6)}</td>
-                  <td className="py-5 px-6">
-                    <div className="font-extrabold text-gray-900 text-sm group-hover:text-blue-700 transition-colors">{p.title}</div>
-                    {p.shortDescription && <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{p.shortDescription}</div>}
-                    {p.recommendedLevel && <div className="text-xs font-semibold text-violet-600 mt-0.5">{p.recommendedLevel}</div>}
+                <tr>
+                  <td colSpan="6" className="py-20 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#9CA3AF] mx-auto" />
+                    <p className="text-xs text-[#9CA3AF] mt-3 font-medium">Đang tải dữ liệu...</p>
                   </td>
-                  <td className="py-5 px-6">
-                    <span className={'inline-block px-2.5 py-0.5 rounded text-[10px] font-black tracking-wide ' + (DIFF_STYLES[p.difficulty] || 'bg-gray-100 text-gray-600')}>
-                      {p.difficulty?.toUpperCase()}
+                </tr>
+              ) : problems.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-20 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] flex items-center justify-center mx-auto mb-4">
+                      <Code2 className="w-5 h-5 text-[#9CA3AF]" />
+                    </div>
+                    <p className="text-sm font-semibold text-[#333333]">Chưa có bài coding nào</p>
+                    <p className="text-xs text-[#9CA3AF] mt-1">Nhấn "Thêm bài Coding" để bắt đầu.</p>
+                  </td>
+                </tr>
+              ) : problems.map(p => (
+                <motion.tr
+                  key={p.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]"
+                >
+                  <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">
+                    #{String(p.id).slice(0, 6)}
+                  </td>
+                  <td className="px-5 py-5">
+                    <div className="text-[14px] font-semibold leading-tight text-[#333333]">{p.title}</div>
+                    {p.shortDescription && (
+                      <div className="text-xs font-medium text-gray-500 mt-1 line-clamp-1 leading-relaxed">{p.shortDescription}</div>
+                    )}
+                    {p.recommendedLevel && (
+                      <span className="inline-block mt-1 text-[10px] font-extrabold text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 uppercase tracking-wide">
+                        {p.recommendedLevel}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-5">
+                    <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${DIFF_STYLES[p.difficulty] || 'bg-[#F8F9FA] text-[#6B7280] border border-[#E5E7EB]'}`}>
+                      {p.difficulty}
                     </span>
                   </td>
-                  <td className="py-5 px-6 text-xs font-bold text-gray-600 max-w-[160px] truncate">
+                  <td className="px-5 py-5 text-[14px] font-semibold text-[#333333] max-w-[160px] truncate">
                     {Array.isArray(p.categories) ? p.categories.join(', ') : (p.category || p.categoriesJson)}
                   </td>
-                  <td className="py-5 px-6">
-                    <button onClick={() => handleToggleStatus(p)} className="flex items-center gap-1.5 group/status">
-                      <span className={'w-2 h-2 rounded-full transition-all ' + (p.status === 'Published' ? 'bg-blue-500' : 'bg-gray-400')} />
-                      <span className={'text-xs font-extrabold transition-colors ' + (p.status === 'Published' ? 'text-blue-600 group-hover/status:text-blue-800' : 'text-gray-400 group-hover/status:text-gray-600')}>
+                  <td className="px-5 py-5">
+                    <button onClick={() => handleToggleStatus(p)} className="flex items-center gap-2 group/status">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${p.status === 'Published' ? 'bg-emerald-500' : 'bg-[#D1D5DB]'}`} />
+                      <span className={`text-[13px] font-bold transition-colors ${p.status === 'Published' ? 'text-emerald-700' : 'text-gray-500'}`}>
                         {p.status}
                       </span>
                     </button>
                   </td>
-                  <td className="py-5 px-6 text-right">
+                  <td className="px-5 py-5 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => navigate('/admin/coding-bank/edit/' + p.id)}
-                        className="p-1.5 text-gray-300 hover:text-blue-600 hover:bg-blue-50/60 rounded-lg transition-all">
-                        <Pencil className="w-4 h-4" />
+                      <button
+                        onClick={() => navigate('/admin/coding-bank/edit/' + p.id)}
+                        className="p-1.5 text-[#9CA3AF] hover:text-[#333333] hover:bg-[#F8F9FA] border border-transparent hover:border-[#E5E7EB] rounded-lg transition-all"
+                        title="Chỉnh sửa"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(p.id, p.title)}
-                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50/60 rounded-lg transition-all">
-                        <Trash2 className="w-4 h-4" />
+                      <button
+                        onClick={() => handleDelete(p.id, p.title)}
+                        className="p-1.5 text-[#9CA3AF] hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
@@ -293,27 +345,16 @@ export default function AdminCodingBank() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="p-5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/20">
-          <p className="text-xs font-semibold text-gray-500">
-            Hien thi <span className="font-bold text-gray-800">{problems.length}</span> / <span className="font-bold text-gray-800">{totalItems}</span> bai coding
-          </p>
+        {/* ── Pagination ── */}
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-[#eeeeee] bg-white px-5 py-4 sm:flex-row">
+          <p className="text-sm font-medium text-[#6f6a72]">Hiển thị {problems.length} trong số {totalItems.toLocaleString()} kết quả</p>
           {totalPages > 1 && (
-            <div className="flex gap-1.5">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 border border-gray-200 hover:bg-gray-50 disabled:opacity-40 transition-colors">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+            <div className="flex items-center gap-2">
+              <button disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45"><ChevronLeft className="h-4 w-4" /></button>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
-                <button key={n} onClick={() => setPage(n)}
-                  className={'w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs transition-colors ' + (page === n ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 border border-gray-200 hover:bg-gray-50')}>
-                  {n}
-                </button>
+                <button key={n} onClick={() => setPage(n)} className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold transition-colors ${page === n ? 'bg-[#333333] text-white shadow-sm' : 'border border-[#eeeeee] text-[#6f6a72] hover:bg-[#fafafa]'}`}>{n}</button>
               ))}
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 border border-gray-200 hover:bg-gray-50 disabled:opacity-40 transition-colors">
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <button disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45"><ChevronRight className="h-4 w-4" /></button>
             </div>
           )}
         </div>

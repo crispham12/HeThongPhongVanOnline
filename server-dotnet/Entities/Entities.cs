@@ -152,4 +152,40 @@ namespace InterviewPro.API.Entities
         // Navigation properties
         public CvTemplate? Template { get; set; }
     }
+
+    public class SubscriptionPlan
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty; // e.g., Free, Premium Monthly, Premium Yearly
+        public decimal Price { get; set; }
+        public string Duration { get; set; } = string.Empty; // e.g., Lifetime, Monthly, Yearly
+        public string FeaturesJson { get; set; } = "[]"; // List of features stored as JSON
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UserSubscription
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public User? User { get; set; }
+        public int SubscriptionPlanId { get; set; }
+        public SubscriptionPlan? SubscriptionPlan { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Status { get; set; } = "Active"; // Active, Expired, Cancelled
+    }
+
+    public class PaymentTransaction
+    {
+        public string Id { get; set; } = string.Empty; // e.g., #RAI-12894
+        public int UserId { get; set; }
+        public User? User { get; set; }
+        public int SubscriptionPlanId { get; set; }
+        public SubscriptionPlan? SubscriptionPlan { get; set; }
+        public decimal Amount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty; // Momo, ZaloPay, Visa, Banking
+        public string Status { get; set; } = string.Empty; // Success, Pending, Failed
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
 }
+

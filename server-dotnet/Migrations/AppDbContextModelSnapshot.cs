@@ -298,6 +298,208 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("CodingProblems");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BalanceAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChangeAmount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CreditHistories");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Credits")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CreditPackages");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            CreatedAt = new DateTime(2026, 6, 25, 9, 24, 29, 392, DateTimeKind.Utc).AddTicks(1286),
+                            Credits = 10,
+                            IsActive = true,
+                            Name = "Gói 10 lượt",
+                            Price = 35000m
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            CreatedAt = new DateTime(2026, 6, 25, 9, 24, 29, 392, DateTimeKind.Utc).AddTicks(1302),
+                            Credits = 25,
+                            IsActive = true,
+                            Name = "Gói 25 lượt",
+                            Price = 75000m
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            CreatedAt = new DateTime(2026, 6, 25, 9, 24, 29, 392, DateTimeKind.Utc).AddTicks(1305),
+                            Credits = 50,
+                            IsActive = true,
+                            Name = "Gói 50 lượt",
+                            Price = 100000m
+                        });
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditPaymentTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Credits")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SePayTransactionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TransferContent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PackageId");
+
+                    b.HasIndex("PaymentCode")
+                        .IsUnique();
+
+                    b.HasIndex("SePayTransactionId")
+                        .IsUnique()
+                        .HasFilter("[SePayTransactionId] IS NOT NULL");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CreditPaymentTransactions");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditWallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FreeCredits")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaidCredits")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalCreditsUsed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CreditWallets");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.CvTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -715,6 +917,44 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("InterviewSessions");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.PaymentTransaction", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("SubscriptionPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SubscriptionPlanId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PaymentTransactions");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>
                 {
                     b.Property<int>("Id")
@@ -939,6 +1179,66 @@ namespace InterviewPro.API.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Questions");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.SubscriptionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Duration")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FeaturesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionPlans");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Duration = "Lifetime",
+                            FeaturesJson = "[\"1 CV mẫu cơ bản\", \"Xuất file PDF (có watermark)\", \"Lưu trữ 1 bản thảo\"]",
+                            IsActive = true,
+                            Name = "Free",
+                            Price = 0m
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Duration = "Monthly",
+                            FeaturesJson = "[\"Truy cập toàn bộ 50+ CV mẫu\", \"Phân tích CV bằng AI (20 lần/tháng)\", \"Xuất file chất lượng cao (No watermark)\", \"Ưu tiên hỗ trợ 24/7\"]",
+                            IsActive = true,
+                            Name = "Premium Monthly",
+                            Price = 199000m
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Duration = "Yearly",
+                            FeaturesJson = "[\"Toàn bộ tính năng Premium Monthly\", \"Phân tích CV bằng AI (Không giới hạn)\", \"Tặng 1 buổi Review CV cùng chuyên gia\"]",
+                            IsActive = true,
+                            Name = "Premium Yearly",
+                            Price = 1690000m
+                        });
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.User", b =>
@@ -1166,6 +1466,39 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("UserQuestionPracticeHistories");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.UserSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SubscriptionPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionPlanId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSubscriptions");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.CodingAssessmentHistory", b =>
                 {
                     b.HasOne("InterviewPro.API.Entities.CodingProblem", "CodingProblem")
@@ -1186,6 +1519,47 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
 
                     b.Navigation("CodingProblem");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditHistory", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditPaymentTransaction", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.CreditPackage", "Package")
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Package");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CreditWallet", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateComponent", b =>
@@ -1235,6 +1609,25 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.PaymentTransaction", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubscriptionPlan");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>
                 {
                     b.HasOne("InterviewPro.API.Entities.PracticeSession", "Session")
@@ -1277,6 +1670,25 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.UserSubscription", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubscriptionPlan");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.CvTemplate", b =>

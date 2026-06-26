@@ -4,36 +4,27 @@ import { aiMonitoringApi } from '../../services/aiMonitoringApi';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import html2pdf from 'html2pdf.js';
 
-function StatCard({ title, value, icon: Icon, subtitle, loading, iconColor, iconBg }) {
+function StatCard({ title, value, subtitle, loading }) {
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between animate-pulse">
-        <div className="flex justify-between items-start mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gray-100" />
-          <div className="w-12 h-4 bg-gray-100 rounded" />
-        </div>
-        <div>
-          <div className="w-24 h-4 bg-gray-100 rounded mb-2" />
-          <div className="w-32 h-8 bg-gray-200 rounded" />
-        </div>
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[116px] animate-pulse">
+        <div className="w-24 h-3 bg-gray-100 rounded mb-3" />
+        <div className="w-16 h-6 bg-gray-200 rounded" />
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
-      <div className="flex justify-between items-start mb-6">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-        {subtitle && (
-          <div className="text-xs font-bold text-gray-500">{subtitle}</div>
-        )}
-      </div>
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[116px] transition-all hover:shadow-md">
       <div>
-        <p className="text-sm font-bold text-gray-700 mb-1">{title}</p>
-        <h3 className="text-2xl font-black text-gray-900">{value}</h3>
+        <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#66767b]">{title}</p>
+        <h3 className="mt-3 text-[18px] font-medium leading-none text-[#151515] tabular-nums">{value}</h3>
       </div>
+      {subtitle && (
+        <div className="mt-4 text-[13px] font-medium text-[#66767b]">
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 }
@@ -183,8 +174,8 @@ export default function AdminAIMonitor() {
           <div>
             <h2 style="font-size: 18px; font-weight: 800; color: #1e3a8a; border-left: 4px solid #3b82f6; padding-left: 10px; margin-bottom: 15px;">Top tính năng dùng AI</h2>
             <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
-              ${featureUsage.length === 0 ? '<p style="font-size: 14px; color: #94a3b8; text-align: center;">Không có dữ liệu</p>' : 
-                featureUsage.slice(0, 4).map(feat => `
+              ${featureUsage.length === 0 ? '<p style="font-size: 14px; color: #94a3b8; text-align: center;">Không có dữ liệu</p>' :
+          featureUsage.slice(0, 4).map(feat => `
                   <div style="margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: #475569; margin-bottom: 4px;">
                       <span>${feat.featureDisplayName}</span>
@@ -195,7 +186,7 @@ export default function AdminAIMonitor() {
                     </div>
                   </div>
                 `).join('')
-              }
+        }
             </div>
           </div>
         </div>
@@ -215,19 +206,18 @@ export default function AdminAIMonitor() {
           </thead>
           <tbody>
             ${recentLogs.length === 0 ? '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">Không có logs nào</td></tr>' :
-              recentLogs.slice(0, 10).map(log => {
-                let safeStatus = log.statusText;
-                if (log.status !== 'Success') {
-                  safeStatus = log.status === 'Timeout' ? 'Timeout' : 'Lỗi API';
-                }
-                return `
+          recentLogs.slice(0, 10).map(log => {
+            let safeStatus = log.statusText;
+            if (log.status !== 'Success') {
+              safeStatus = log.status === 'Timeout' ? 'Timeout' : 'Lỗi API';
+            }
+            return `
                   <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 8px 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #0f172a;">${log.userName || 'Hệ thống'}</td>
                     <td style="padding: 8px 10px; border: 1px solid #e2e8f0; color: #334155;">${log.featureDisplayName}</td>
                     <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">
-                      <span style="padding: 2px 6px; font-size: 11px; font-weight: bold; border-radius: 4px; ${
-                        log.status === 'Success' ? 'background: #dcfce7; color: #15803d;' : 'background: #fee2e2; color: #b91c1c;'
-                      }">
+                      <span style="padding: 2px 6px; font-size: 11px; font-weight: bold; border-radius: 4px; ${log.status === 'Success' ? 'background: #dcfce7; color: #15803d;' : 'background: #fee2e2; color: #b91c1c;'
+              }">
                         ${safeStatus}
                       </span>
                     </td>
@@ -236,8 +226,8 @@ export default function AdminAIMonitor() {
                     <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">${log.createdAtText}</td>
                   </tr>
                 `;
-              }).join('')
-            }
+          }).join('')
+        }
           </tbody>
         </table>
 
@@ -296,47 +286,48 @@ export default function AdminAIMonitor() {
   };
 
   return (
-    <div id="ai-monitor-dashboard" className="animate-fade-in max-w-[1400px] mx-auto pb-10 px-4 md:px-0">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
+    <div id="ai-monitor-dashboard" className="animate-fade-in max-w-[1180px] mx-auto pb-10 px-4 md:px-0">
+      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Giám sát hệ thống AI</h1>
-          <p className="text-sm text-gray-500 mt-2 font-medium">Theo dõi hiệu năng và chi phí vận hành mô hình ngôn ngữ lớn (LLM) trong hệ thống</p>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">Giám sát hệ thống AI</h1>
+          <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Theo dõi hiệu năng và chi phí vận hành mô hình ngôn ngữ lớn (LLM) trong hệ thống</p>
         </div>
-        <div className="flex gap-3 items-center flex-wrap">
-          <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
-            <button 
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '24h' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex bg-white border border-[#dfe4e7] rounded-xl p-1 shadow-sm mr-2">
+            <button
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '24h' ? 'bg-[#333333] text-white' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
               onClick={() => setTimeFilter('24h')}
             >
               24 Giờ
             </button>
-            <button 
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '7d' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            <button
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '7d' ? 'bg-[#333333] text-white' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
               onClick={() => setTimeFilter('7d')}
             >
               7 Ngày
             </button>
-            <button 
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '30d' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            <button
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '30d' ? 'bg-[#333333] text-white' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
               onClick={() => setTimeFilter('30d')}
             >
               30 Ngày
             </button>
           </div>
-          <button 
+          <button
             onClick={fetchData}
-            className="p-2.5 bg-white border border-gray-200 text-gray-500 hover:text-gray-800 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#dfe4e7] text-[#151515] text-xs font-semibold rounded-lg hover:bg-[#f8f8f8] transition-all shadow-sm disabled:opacity-50"
             title="Làm mới dữ liệu"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Làm mới</span>
           </button>
-          <button 
+          <button
             onClick={handleExportReport}
             disabled={isExporting}
-            className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
             {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
           </button>
         </div>
@@ -355,41 +346,41 @@ export default function AdminAIMonitor() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard 
-          title="Tổng AI Requests" 
-          value={overview?.totalRequests?.toLocaleString() ?? '0'} 
-          icon={Zap} 
-          subtitle={`Tỉ lệ lỗi: ${overview?.errorRate ?? 0}%`} 
+        <StatCard
+          title="Tổng AI Requests"
+          value={overview?.totalRequests?.toLocaleString() ?? '0'}
+          icon={Zap}
+          subtitle={`Tỉ lệ lỗi: ${overview?.errorRate ?? 0}%`}
           loading={loading}
-          iconColor="text-blue-600" 
-          iconBg="bg-blue-50" 
+          iconColor="text-blue-600"
+          iconBg="bg-blue-50"
         />
-        <StatCard 
-          title="Thời gian phản hồi TB" 
-          value={overview?.averageResponseTimeText ?? '0s'} 
-          icon={Timer} 
-          subtitle="Stopwatch ms" 
+        <StatCard
+          title="Thời gian phản hồi TB"
+          value={overview?.averageResponseTimeText ?? '0s'}
+          icon={Timer}
+          subtitle="Stopwatch ms"
           loading={loading}
-          iconColor="text-indigo-600" 
-          iconBg="bg-indigo-50" 
+          iconColor="text-indigo-600"
+          iconBg="bg-indigo-50"
         />
-        <StatCard 
-          title="Token đã dùng" 
-          value={overview?.totalTokens?.toLocaleString() ?? '0'} 
-          icon={BarChart4} 
-          subtitle={`Tỉ lệ t.công: ${overview?.successRate ?? 0}%`} 
+        <StatCard
+          title="Token đã dùng"
+          value={overview?.totalTokens?.toLocaleString() ?? '0'}
+          icon={BarChart4}
+          subtitle={`Tỉ lệ t.công: ${overview?.successRate ?? 0}%`}
           loading={loading}
-          iconColor="text-teal-600" 
-          iconBg="bg-teal-50" 
+          iconColor="text-teal-600"
+          iconBg="bg-teal-50"
         />
-        <StatCard 
-          title="Chi phí ước tính" 
-          value={`$${overview?.estimatedCost?.toFixed(4) ?? '0.00'}`} 
-          icon={CreditCard} 
-          subtitle="Ước tính (USD)" 
+        <StatCard
+          title="Chi phí ước tính"
+          value={`$${overview?.estimatedCost?.toFixed(4) ?? '0.00'}`}
+          icon={CreditCard}
+          subtitle="Ước tính (USD)"
           loading={loading}
-          iconColor="text-emerald-500" 
-          iconBg="bg-emerald-50" 
+          iconColor="text-emerald-500"
+          iconBg="bg-emerald-50"
         />
       </div>
 
@@ -406,7 +397,7 @@ export default function AdminAIMonitor() {
               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-300"></div>Output</div>
             </div>
           </div>
-          
+
           <div className="flex-1 w-full flex items-center justify-center">
             {loading ? (
               <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-gray-50/50 rounded-xl animate-pulse">
@@ -423,12 +414,12 @@ export default function AdminAIMonitor() {
                   <AreaChart data={tokenUsage} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorInput" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorOutput" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#93c5fd" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#93c5fd" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -450,7 +441,7 @@ export default function AdminAIMonitor() {
           {/* Status Box */}
           <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-sm shadow-blue-200">
             <h3 className="text-lg font-bold mb-6">Tình trạng hệ thống</h3>
-            
+
             {loading ? (
               <div className="space-y-4 animate-pulse">
                 <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
@@ -479,7 +470,7 @@ export default function AdminAIMonitor() {
                     <span className="text-white text-sm font-bold tracking-wide">{systemStatus?.systemLatencyMs ?? 0}ms</span>
                   </div>
                 </div>
-                
+
                 <div className="mt-2">
                   <div className="w-full h-2 bg-blue-500 rounded-full overflow-hidden mb-3">
                     <div className="h-full bg-white rounded-full shadow-sm" style={{ width: `${systemStatus?.gptLimitUsedPercent ?? 0}%` }}></div>
@@ -495,7 +486,7 @@ export default function AdminAIMonitor() {
           {/* Top Features */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex-1">
             <h3 className="text-lg font-bold text-gray-900 mb-6">Top tính năng dùng AI</h3>
-            
+
             <div className="space-y-5">
               {loading ? (
                 <div className="space-y-4 animate-pulse">
@@ -535,64 +526,63 @@ export default function AdminAIMonitor() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h3 className="text-base font-bold text-gray-900">Nhật ký request gần đây</h3>
-          <button 
-            onClick={fetchData} 
+          <button
+            onClick={fetchData}
             className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             Làm mới
           </button>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Người Dùng</th>
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Tính Năng</th>
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Trạng Thái</th>
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Tổng Token</th>
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">Phản Hồi</th>
-                <th className="py-4 px-6 text-xs font-black text-gray-500 uppercase tracking-wider text-right">Thời Gian</th>
+              <tr className="border-b border-[#eeeeee] bg-white">
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Người Dùng</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Tính Năng</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Trạng Thái</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Tổng Token</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Phản Hồi</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] text-right">Thời Gian</th>
               </tr>
             </thead>
-            
-            <tbody className="divide-y divide-gray-100">
+
+            <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="py-4 px-6"><div className="w-24 h-4 bg-gray-100 rounded" /></td>
-                    <td className="py-4 px-6"><div className="w-32 h-4 bg-gray-100 rounded" /></td>
-                    <td className="py-4 px-6"><div className="w-16 h-4 bg-gray-100 rounded" /></td>
-                    <td className="py-4 px-6"><div className="w-12 h-4 bg-gray-100 rounded" /></td>
-                    <td className="py-4 px-6"><div className="w-12 h-4 bg-gray-100 rounded" /></td>
-                    <td className="py-4 px-6 text-right"><div className="w-16 h-4 bg-gray-100 rounded ml-auto" /></td>
+                  <tr key={i} className="animate-pulse border-b border-[#eeeeee]">
+                    <td className="px-5 py-5"><div className="w-24 h-4 bg-gray-100 rounded" /></td>
+                    <td className="px-5 py-5"><div className="w-32 h-4 bg-gray-100 rounded" /></td>
+                    <td className="px-5 py-5"><div className="w-16 h-4 bg-gray-100 rounded" /></td>
+                    <td className="px-5 py-5"><div className="w-12 h-4 bg-gray-100 rounded" /></td>
+                    <td className="px-5 py-5"><div className="w-12 h-4 bg-gray-100 rounded" /></td>
+                    <td className="px-5 py-5"><div className="w-16 h-4 bg-gray-100 rounded ml-auto" /></td>
                   </tr>
                 ))
               ) : recentLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-sm font-semibold text-gray-400">
+                  <td colSpan="6" className="py-8 text-center text-sm font-semibold text-[#8d8a91]">
                     Chưa có hoạt động AI request nào được ghi nhận.
                   </td>
                 </tr>
               ) : (
                 recentLogs.map((log, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-4 px-6 text-sm font-bold text-gray-900">{log.userName}</td>
-                    <td className="py-4 px-6 text-sm font-semibold text-gray-600">{log.featureDisplayName}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded-md ${
-                        log.status === 'Success' 
-                          ? 'bg-green-50 text-green-700 border border-green-200' 
-                          : log.status === 'Timeout'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                      }`}>
+                  <tr key={idx} className="group cursor-pointer border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
+                    <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333]">{log.userName}</td>
+                    <td className="px-5 py-5 text-[14px] font-semibold leading-tight text-[#333333]">{log.featureDisplayName}</td>
+                    <td className="px-5 py-5">
+                      <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${log.status === 'Success'
+                        ? 'bg-[#c9f0d2] text-[#4b7a55]'
+                        : log.status === 'Timeout'
+                          ? 'bg-[#fff4e5] text-[#b37400]'
+                          : 'bg-[#ffebe6] text-[#cc3300]'
+                        }`}>
                         {log.statusText}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-sm font-bold text-gray-800">{log.totalTokens?.toLocaleString()}</td>
-                    <td className="py-4 px-6 text-sm font-bold text-gray-800">{log.responseTimeText}</td>
-                    <td className="py-4 px-6 text-sm font-semibold text-gray-500 text-right">{log.createdAtText}</td>
+                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{log.totalTokens?.toLocaleString()}</td>
+                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{log.responseTimeText}</td>
+                    <td className="px-5 py-5 text-[14px] font-semibold text-[#8d8a91] text-right">{log.createdAtText}</td>
                   </tr>
                 ))
               )}

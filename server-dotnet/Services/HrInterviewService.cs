@@ -24,9 +24,9 @@ namespace InterviewPro.API.Services
         private readonly AppDbContext _db;
         private readonly IHrAiClient _aiClient;
         private readonly IInterviewDataService _interviewDataService;
+        private readonly ICreditService _creditService;
         private readonly ILogger<HrInterviewService> _logger;
 
-        private const int MaxFreeSessionsPerDay = 3;
         private const int TotalQuestions = 10;
         private const int MinAnswerLength = 20;
 
@@ -34,11 +34,13 @@ namespace InterviewPro.API.Services
             AppDbContext db,
             IHrAiClient aiClient,
             IInterviewDataService interviewDataService,
+            ICreditService creditService,
             ILogger<HrInterviewService> logger)
         {
             _db = db;
             _aiClient = aiClient;
             _interviewDataService = interviewDataService;
+            _creditService = creditService;
             _logger = logger;
         }
 
@@ -54,32 +56,29 @@ namespace InterviewPro.API.Services
             if (string.IsNullOrWhiteSpace(request.Difficulty))
                 throw new ArgumentException("Vui lòng chọn mức độ khó.");
 
-            // Kiểm tra giới hạn Free Plan: tối đa 3 phiên/ngày
-            // Trong thực tế cần thêm cột IsPremium trong bảng Users để kiểm tra
-            var todayStart = DateTime.UtcNow.Date;
-            var todayCount = await _db.HrInterviewSessions
-                .CountAsync(s => s.UserId == userId && s.CreatedAt >= todayStart);
-
-            if (todayCount >= MaxFreeSessionsPerDay)
-                throw new InvalidOperationException(
-                    "FREE_LIMIT_EXCEEDED: Bạn đã dùng hết 3 lượt phỏng vấn miễn phí hôm nay. Vui lòng nâng cấp Premium để tiếp tục.");
-
-            // Tạo session mới trong DB
-            var session = new HrInterviewSession
+            using var transactionScope = await _db.Database.BeginTransactionAsync();
+            try
             {
-                UserId = userId,
-                Role = request.Role,
-                Difficulty = request.Difficulty,
-                TechStackJson = JsonSerializer.Serialize(request.TechStack),
-                TotalQuestions = TotalQuestions,
-                Status = "InProgress"
-            };
-            _db.HrInterviewSessions.Add(session);
-            await _db.SaveChangesAsync();
+                // Trừ lượt phỏng vấn bằng CreditService
+                await _creditService.UseCreditAsync(userId, $"Phỏng vấn HR: {request.Role}");
 
-            // Gọi AI tạo 10 câu hỏi
-            var aiResult = await _aiClient.GenerateHrQuestionsAsync(
-                request.Role, request.Difficulty, request.TechStack);
+                // Tạo session mới trong DB
+                var session = new HrInterviewSession
+                {
+                    UserId = userId,
+                    Role = request.Role,
+                    Difficulty = request.Difficulty,
+                    TechStackJson = JsonSerializer.Serialize(request.TechStack),
+                    TotalQuestions = TotalQuestions,
+                    Status = "InProgress"
+                };
+                _db.HrInterviewSessions.Add(session);
+                await _db.SaveChangesAsync();
+
+                // Gọi AI tạo 10 câu hỏi
+                var aiResult = await _aiClient.GenerateHrQuestionsAsync(
+                    request.Role, request.Difficulty, request.TechStack);
+
 
             // Lưu 10 câu hỏi vào DB
             var questions = aiResult.Questions.Select(q => new HrInterviewQuestion
@@ -93,6 +92,8 @@ namespace InterviewPro.API.Services
 
             _db.HrInterviewQuestions.AddRange(questions);
             await _db.SaveChangesAsync();
+
+            await transactionScope.CommitAsync();
 
             // Trả về cho frontend
             return new StartHrInterviewResponse
@@ -108,7 +109,14 @@ namespace InterviewPro.API.Services
                     ExpectedAnswerGuide = q.ExpectedAnswerGuide
                 }).ToList()
             };
+            }
+            catch (Exception)
+            {
+                await transactionScope.RollbackAsync();
+                throw;
+            }
         }
+
 
         // ─────────────────────────────────────────────
         // 2. Nộp câu trả lời + AI đánh giá

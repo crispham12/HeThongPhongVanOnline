@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
-import { 
+import {
   Plus, Search, Copy, Trash2, Eye, ShieldAlert,
   Sparkles, FileText, CheckCircle, FileCode
 } from 'lucide-react';
@@ -145,9 +145,9 @@ export default function AdminTemplates() {
 
   // Filter & Search Logic
   const filteredTemplates = templates.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          t.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description.toLowerCase().includes(searchQuery.toLowerCase());
+
     if (activeFilter === 'Published') {
       return matchesSearch && t.isPublished;
     }
@@ -171,12 +171,12 @@ export default function AdminTemplates() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen p-8">
+    <div className="h-full">
       {/* Top Banner/Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">CV Template Management</h1>
-          <p className="text-xs text-gray-500 mt-1">Manage and organize your professional CV layouts</p>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">CV Template Management</h1>
+          <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Manage and organize your professional CV layouts</p>
         </div>
 
         {/* Search and Action Bar */}
@@ -211,11 +211,10 @@ export default function AdminTemplates() {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeFilter === filter
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeFilter === filter
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                   : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               {filter === 'All' ? 'All' : filter === 'Published' ? 'Published' : 'Drafts'}
             </button>
@@ -298,11 +297,10 @@ export default function AdminTemplates() {
                       {tpl.name}
                     </h3>
                     <span
-                      className={`text-[8px] font-bold px-2 py-0.5 rounded-full tracking-wider uppercase flex-shrink-0 ${
-                        tpl.isPublished
-                          ? 'bg-blue-50 text-blue-600 border border-blue-100'
-                          : 'bg-gray-100 text-gray-500 border border-gray-200'
-                      }`}
+                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md tracking-wider uppercase flex-shrink-0 ${tpl.isPublished
+                          ? 'bg-[#c9f0d2] text-[#4b7a55]'
+                          : 'bg-[#efe4ed] text-[#66767b]'
+                        }`}
                     >
                       {tpl.isPublished ? 'Published' : 'Draft'}
                     </span>

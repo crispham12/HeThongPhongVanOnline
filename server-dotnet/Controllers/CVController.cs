@@ -9,6 +9,8 @@ using System.Net.Http.Json;
 using System.Diagnostics;
 using InterviewPro.API.Interfaces;
 using InterviewPro.API.DTOs;
+using InterviewPro.API.Services;
+
 
 namespace InterviewPro.API.Controllers
 {
@@ -20,15 +22,18 @@ namespace InterviewPro.API.Controllers
         private readonly AppDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IAiRequestLogService _aiRequestLogService;
+        private readonly ICreditService _creditService;
 
         public CVController(
             AppDbContext context,
             IHttpClientFactory httpClientFactory,
-            IAiRequestLogService aiRequestLogService)
+            IAiRequestLogService aiRequestLogService,
+            ICreditService creditService)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
             _aiRequestLogService = aiRequestLogService;
+            _creditService = creditService;
         }
 
         [HttpGet]
@@ -114,18 +119,8 @@ namespace InterviewPro.API.Controllers
             if (userIdClaim == null) return Unauthorized("Không xác định được người dùng.");
             int userId = int.Parse(userIdClaim.Value);
 
-            // First, call the AI Service (Python FastAPI)
-            var aiClient = _httpClientFactory.CreateClient("AIService");
+            using var transaction = await _context.Database.BeginTransactionAsync();
             
-            var aiRequest = new
-            {
-                cv_title = request.Title,
-                personal_info = JsonSerializer.Deserialize<Dictionary<string, string>>(request.PersonalInfo),
-                experiences = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(request.Experience),
-                educations = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(request.Education),
-                skills = JsonSerializer.Deserialize<List<string>>(request.Skills)
-            };
-
             var sw = Stopwatch.StartNew();
             int inputTokens = 0, outputTokens = 0, totalTokens = 0;
             string model = "gpt-4o-mini";
@@ -137,6 +132,21 @@ namespace InterviewPro.API.Controllers
 
             try
             {
+                // Trừ lượt phân tích CV
+                await _creditService.UseCreditAsync(userId, "Phân tích CV bằng AI");
+
+                // First, call the AI Service (Python FastAPI)
+                var aiClient = _httpClientFactory.CreateClient("AIService");
+                
+                var aiRequest = new
+                {
+                    cv_title = request.Title,
+                    personal_info = JsonSerializer.Deserialize<Dictionary<string, string>>(request.PersonalInfo),
+                    experiences = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(request.Experience),
+                    educations = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(request.Education),
+                    skills = JsonSerializer.Deserialize<List<string>>(request.Skills)
+                };
+
                 var response = await aiClient.PostAsJsonAsync("/ai/analyze-cv", aiRequest);
                 if (response.IsSuccessStatusCode)
                 {
@@ -155,14 +165,51 @@ namespace InterviewPro.API.Controllers
                     status = "Failed";
                     var errorMsg = await response.Content.ReadAsStringAsync();
                     errorMessage = $"AI Service returned non-success status: {response.StatusCode}. Details: {errorMsg}";
-                    Console.WriteLine($"⚠️ {errorMessage}");
+                    throw new Exception(errorMessage);
                 }
+
+                // Save the AI insights to the database
+                var cv = await _context.UserCVs.FirstOrDefaultAsync(c => c.UserId == userId);
+                if (cv == null)
+                {
+                    cv = new UserCV
+                    {
+                        UserId = userId,
+                        TemplateId = request.TemplateId,
+                        Title = request.Title,
+                        PersonalInfo = request.PersonalInfo,
+                        Experience = request.Experience,
+                        Education = request.Education,
+                        Skills = request.Skills,
+                        Languages = request.Languages,
+                        CoreStack = request.CoreStack,
+                        Proficiencies = request.Proficiencies,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.UserCVs.Add(cv);
+                }
+
+                cv.AiScore = score;
+                cv.AiFeedback = feedback;
+                cv.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { score = cv.AiScore, feedback = cv.AiFeedback });
+            }
+            catch (NotEnoughCreditsException ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(402, ex.Message);
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 status = "Failed";
                 errorMessage = ex.Message;
                 Console.WriteLine($"⚠️ Error calling AI Service: {ex.Message}");
+                return StatusCode(500, new { message = "Lỗi khi phân tích CV.", error = ex.Message });
             }
             finally
             {
@@ -180,35 +227,6 @@ namespace InterviewPro.API.Controllers
                     ErrorMessage = errorMessage
                 });
             }
-
-            // Save the AI insights to the database
-            var cv = await _context.UserCVs.FirstOrDefaultAsync(c => c.UserId == userId);
-            if (cv == null)
-            {
-                cv = new UserCV
-                {
-                    UserId = userId,
-                    TemplateId = request.TemplateId,
-                    Title = request.Title,
-                    PersonalInfo = request.PersonalInfo,
-                    Experience = request.Experience,
-                    Education = request.Education,
-                    Skills = request.Skills,
-                    Languages = request.Languages,
-                    CoreStack = request.CoreStack,
-                    Proficiencies = request.Proficiencies,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.UserCVs.Add(cv);
-            }
-
-            cv.AiScore = score;
-            cv.AiFeedback = feedback;
-            cv.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { score = cv.AiScore, feedback = cv.AiFeedback });
         }
 
         private void ParseTokenUsage(string json, out string model, out int inputTokens, out int outputTokens, out int totalTokens)
