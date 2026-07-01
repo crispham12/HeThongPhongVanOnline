@@ -189,18 +189,6 @@ export default function UserQuestionBank() {
           </p>
         </div>
         <div className="relative w-full lg:w-[320px]">
-          {activeTab !== 'Lập trình' && (
-            <>
-              <Search className="w-4 h-4 text-[#8d8a91] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm câu hỏi..."
-                className="input pl-10"
-              />
-            </>
-          )}
         </div>
       </div>
 
@@ -334,8 +322,20 @@ export default function UserQuestionBank() {
               </div>
             </div>
           ) : (
-            <div className="p-4 border-b border-[#eeeeee] flex flex-wrap items-center gap-3">
-              <Filter className="w-4 h-4 text-[#8d8a91]" />
+            <div className="p-4 border-b border-[#eeeeee] flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full md:max-w-[280px]">
+                <Search className="w-4 h-4 text-[#8d8a91] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  placeholder="Tìm kiếm câu hỏi..."
+                  className="input pl-10"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <Filter className="w-4 h-4 text-[#8d8a91]" />
 
               <select
                 value={difficultyFilter}
@@ -360,6 +360,7 @@ export default function UserQuestionBank() {
                 <option value="incomplete">Chưa hoàn thành</option>
               </select>
             </div>
+          </div>
           )}
 
           <div className="min-h-[300px]">
