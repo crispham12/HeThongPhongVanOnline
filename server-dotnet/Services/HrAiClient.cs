@@ -96,6 +96,87 @@ namespace InterviewPro.API.Services
         }
 
         // ─────────────────────────────────────────────
+        // 1.5. Sinh 1 câu hỏi HR (Fallback)
+        // ─────────────────────────────────────────────
+        public async Task<SingleGeneratedQuestion> GenerateSingleHrQuestionAsync(
+            string role, string level, string category, string targetSkill, string suggestedMethod, int maxAnswerTime)
+        {
+            var sw = Stopwatch.StartNew();
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            string model = "gpt-4o-mini";
+            string status = "Success";
+            string? errorMessage = null;
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient("AIService");
+                var payload = new
+                {
+                    role,
+                    level,
+                    category,
+                    target_skill = targetSkill,
+                    suggested_method = suggestedMethod,
+                    max_answer_time = maxAnswerTime
+                };
+
+                var response = await client.PostAsJsonAsync("/ai/hr/generate-single-question", payload);
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                
+                // Parse tokens usage dynamically
+                ParseTokenUsage(json, out model, out inputTokens, out outputTokens, out totalTokens);
+
+                using var doc = JsonDocument.Parse(json);
+                var questionElement = doc.RootElement.GetProperty("question");
+                var result = JsonSerializer.Deserialize<SingleGeneratedQuestion>(questionElement.GetRawText(),
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                sw.Stop();
+                return result ?? BuildFallbackSingleQuestion(category, targetSkill, level, suggestedMethod, maxAnswerTime);
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                status = "Failed";
+                errorMessage = ex.Message;
+                _logger.LogError(ex, "Error calling GenerateSingleHrQuestionAsync");
+
+                return BuildFallbackSingleQuestion(category, targetSkill, level, suggestedMethod, maxAnswerTime);
+            }
+            finally
+            {
+                await _aiRequestLogService.LogAsync(new AiRequestLogCreateDto
+                {
+                    Feature = "InterviewQuestionGeneration",
+                    RequestType = "GenerateSingleQuestion",
+                    Model = model,
+                    Status = status,
+                    InputTokens = inputTokens,
+                    OutputTokens = outputTokens,
+                    TotalTokens = totalTokens,
+                    ResponseTimeMs = sw.ElapsedMilliseconds,
+                    ErrorMessage = errorMessage
+                });
+            }
+        }
+
+        private SingleGeneratedQuestion BuildFallbackSingleQuestion(string category, string targetSkill, string level, string suggestedMethod, int maxAnswerTime)
+        {
+            return new SingleGeneratedQuestion
+            {
+                QuestionText = $"Hãy kể về một lần bạn thể hiện kỹ năng {targetSkill} trong công việc.",
+                Category = category,
+                Difficulty = level,
+                TargetSkill = targetSkill,
+                SuggestedMethod = suggestedMethod,
+                MaxAnswerTime = maxAnswerTime,
+                ExpectedAnswerGuide = $"Ứng viên cần sử dụng cấu trúc {suggestedMethod}."
+            };
+        }
+
+        // ─────────────────────────────────────────────
         // 2. Đánh giá 1 câu trả lời theo 5 tiêu chí
         // ─────────────────────────────────────────────
         public async Task<AiEvaluationResult> EvaluateHrAnswerAsync(

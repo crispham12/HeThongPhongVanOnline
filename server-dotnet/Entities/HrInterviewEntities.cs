@@ -23,18 +23,25 @@ namespace InterviewPro.API.Entities
         // Navigation properties
         public ICollection<HrInterviewQuestion> Questions { get; set; } = new List<HrInterviewQuestion>();
         public ICollection<HrInterviewAnswer> Answers { get; set; } = new List<HrInterviewAnswer>();
-        public HrInterviewFinalResult? FinalResult { get; set; }
+        public ICollection<HrInterviewDraft> Drafts { get; set; } = new List<HrInterviewDraft>();
+        public HrInterviewEvaluation? FinalResult { get; set; }
     }
 
     public class HrInterviewQuestion
     {
         public int Id { get; set; }
         public int SessionId { get; set; }
+        public int? QuestionBankId { get; set; } // Null if generated pure AI, else point to DB
         public string QuestionGuid { get; set; } = Guid.NewGuid().ToString();
         public int QuestionIndex { get; set; }
         public string Category { get; set; } = string.Empty;
         public string QuestionText { get; set; } = string.Empty;
         public string ExpectedAnswerGuide { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = "Fresher";
+        public string TargetSkill { get; set; } = string.Empty;
+        public string SuggestedMethod { get; set; } = "STAR";
+        public string Source { get; set; } = "MANUAL"; // MANUAL, AI_GENERATED
+        public int MaxAnswerTime { get; set; } = 120;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
@@ -44,39 +51,57 @@ namespace InterviewPro.API.Entities
         public int SessionId { get; set; }
         public int QuestionId { get; set; }
         public string AnswerText { get; set; } = string.Empty;
-        
-        // Detailed rubric scores
-        public double CommunicationScore { get; set; }
-        public double ClarityScore { get; set; }
-        public double StarScore { get; set; }
-        public double ProfessionalMindsetScore { get; set; }
-        public double RelevanceScore { get; set; }
-        
-        // Calculated score (weighted average)
-        public double QuestionScore { get; set; }
-        public string Level { get; set; } = string.Empty;
-        public string Feedback { get; set; } = string.Empty;
-        
-        // Lists serialized to JSON
-        public string StrengthsJson { get; set; } = "[]";
-        public string WeaknessesJson { get; set; } = "[]";
-        public string ImprovementSuggestionsJson { get; set; } = "[]";
+        public string Transcript { get; set; } = string.Empty;
+        public int DurationSeconds { get; set; }
+        public int WordCount { get; set; }
+        public int FillerWords { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
+        
+        public HrInterviewQuestionEvaluation? Evaluation { get; set; }
     }
 
-    public class HrInterviewFinalResult
+    public class HrInterviewDraft
+    {
+        public int Id { get; set; }
+        public int SessionId { get; set; }
+        public int QuestionId { get; set; }
+        public string AnswerText { get; set; } = string.Empty;
+        public string Transcript { get; set; } = string.Empty;
+        public int DurationSeconds { get; set; }
+        public int WordCount { get; set; }
+        public int FillerWords { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class HrInterviewQuestionEvaluation
+    {
+        public int Id { get; set; }
+        public int AnswerId { get; set; }
+        public double Score { get; set; }
+        public string Strength { get; set; } = string.Empty;
+        public string Weakness { get; set; } = string.Empty;
+        public string MissingStar { get; set; } = string.Empty;
+        public string SuggestedAnswer { get; set; } = string.Empty;
+    }
+
+    public class HrInterviewEvaluation
     {
         public int Id { get; set; }
         public int SessionId { get; set; }
         public double HrFinalScore { get; set; }
+        public double CommunicationScore { get; set; }
+        public double StarScore { get; set; }
+        public double ConfidenceScore { get; set; }
+        public double ProfessionalismScore { get; set; }
+        public double GrowthMindsetScore { get; set; }
+        public double CultureFitScore { get; set; }
+        
         public string Level { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
-        
-        // JSON serialized structures
         public string OverallStrengthsJson { get; set; } = "[]";
         public string OverallWeaknessesJson { get; set; } = "[]";
-        public string ImprovementRoadmapJson { get; set; } = "[]"; // List of roadmap objects (title, description)
-        
+        public string ImprovementRoadmapJson { get; set; } = "[]";
         public string ReadinessLevel { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
@@ -118,6 +143,29 @@ namespace InterviewPro.API.Entities
         public string? ErrorMessage { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class HrQuestionBank
+    {
+        public int Id { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string ExpectedAnswerGuide { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public string TargetSkill { get; set; } = string.Empty;
+        public string SuggestedMethod { get; set; } = string.Empty;
+        public int MaxAnswerTime { get; set; } = 120;
+        public string Source { get; set; } = "MANUAL"; // MANUAL, AI_GENERATED
+        public bool IsActive { get; set; } = true;
+        
+        // Optional tracking fields
+        public string RoleContext { get; set; } = string.Empty;
+        public string LevelContext { get; set; } = string.Empty;
+        public int UsageCount { get; set; } = 0;
+        public DateTime? LastUsedAt { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }
 

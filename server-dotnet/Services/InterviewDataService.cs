@@ -286,6 +286,7 @@ namespace InterviewPro.API.Services
             var hrSession = await _db.HrInterviewSessions
                 .Include(s => s.Questions)
                 .Include(s => s.Answers)
+                    .ThenInclude(a => a.Evaluation)
                 .Include(s => s.FinalResult)
                 .FirstOrDefaultAsync(s => s.Id == hrSessionId && s.UserId == userId)
                 ?? throw new KeyNotFoundException($"Không tìm thấy HR session ID={hrSessionId}.");
@@ -344,9 +345,9 @@ namespace InterviewPro.API.Services
                     SourceQuestionId = q.Id,
                     Question         = q.QuestionText,
                     UserAnswer       = ans?.AnswerText ?? string.Empty,
-                    Score            = ans?.QuestionScore ?? 0,
+                    Score            = ans?.Evaluation?.Score ?? 0,
                     // Chỉ lưu feedback tổng hợp, KHÔNG lưu full AI prompt
-                    AiFeedback       = ans?.Feedback ?? string.Empty,
+                    AiFeedback       = ans?.Evaluation?.Weakness ?? string.Empty,
                     Category         = q.Category
                 };
             }).ToList();

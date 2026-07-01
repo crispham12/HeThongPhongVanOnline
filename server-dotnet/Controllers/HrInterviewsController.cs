@@ -90,6 +90,28 @@ namespace InterviewPro.API.Controllers
         }
 
         // ─────────────────────────────────────────────
+        // GET /api/hr-interviews/{sessionId}/questions
+        // Lấy danh sách câu hỏi của phiên phỏng vấn
+        // ─────────────────────────────────────────────
+        [HttpGet("{sessionId}/questions")]
+        public async Task<IActionResult> GetSessionQuestions(string sessionId)
+        {
+            try
+            {
+                var sessionDetail = await _service.GetInterviewAsync(GetUserId(), sessionId);
+                return Ok(sessionDetail.Questions);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Không tìm thấy phiên phỏng vấn." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
         // POST /api/hr-interviews/{sessionId}/answers
         // Nộp câu trả lời → AI đánh giá → nếu đủ 10 thì tổng kết
         // ─────────────────────────────────────────────
@@ -120,6 +142,65 @@ namespace InterviewPro.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Lỗi khi xử lý câu trả lời.", detail = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /api/hr-interviews/{sessionId}/questions/{questionId}/draft
+        // Lấy bản nháp câu trả lời
+        // ─────────────────────────────────────────────
+        [HttpGet("{sessionId}/questions/{questionId}/draft")]
+        public async Task<IActionResult> GetDraft(string sessionId, string questionId)
+        {
+            try
+            {
+                var draft = await _service.GetDraftAsync(GetUserId(), sessionId, questionId);
+                if (draft == null) return NotFound(new { message = "Không có bản nháp." });
+                return Ok(draft);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // POST /api/hr-interviews/{sessionId}/questions/{questionId}/draft
+        // Lưu bản nháp câu trả lời
+        // ─────────────────────────────────────────────
+        [HttpPost("{sessionId}/questions/{questionId}/draft")]
+        public async Task<IActionResult> SaveDraft(string sessionId, string questionId, [FromBody] SubmitHrAnswerRequest request)
+        {
+            try
+            {
+                await _service.SaveDraftAsync(GetUserId(), sessionId, questionId, request);
+                return Ok(new { message = "Đã lưu nháp." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // DELETE /api/hr-interviews/{sessionId}/questions/{questionId}/draft
+        // Xóa bản nháp câu trả lời
+        // ─────────────────────────────────────────────
+        [HttpDelete("{sessionId}/questions/{questionId}/draft")]
+        public async Task<IActionResult> DeleteDraft(string sessionId, string questionId)
+        {
+            try
+            {
+                await _service.DeleteDraftAsync(GetUserId(), sessionId, questionId);
+                return Ok(new { message = "Đã xóa nháp." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 

@@ -8,7 +8,8 @@ namespace InterviewPro.API.DTOs
     public class StartHrInterviewRequest
     {
         public string Role { get; set; } = string.Empty;        // e.g. "Lập trình viên Backend"
-        public string Difficulty { get; set; } = string.Empty;  // Intern | Fresher | Junior
+        public string Difficulty { get; set; } = string.Empty;  // Intern | Fresher | Junior (acts as Level)
+        public string QuestionMode { get; set; } = "BANK_FIRST_AI_FALLBACK"; // BANK_ONLY, BANK_FIRST_AI_FALLBACK, AI_ONLY
         public List<string> TechStack { get; set; } = new();
     }
 
@@ -38,22 +39,15 @@ namespace InterviewPro.API.DTOs
     {
         public string QuestionId { get; set; } = string.Empty;
         public string AnswerText { get; set; } = string.Empty;
+        public string? Transcript { get; set; }
+        public int DurationSeconds { get; set; }
+        public int WordCount { get; set; }
+        public int FillerWords { get; set; }
     }
 
     public class SubmitHrAnswerResponse
     {
         public string AnswerId { get; set; } = string.Empty;
-        public double QuestionScore { get; set; }
-        public double CommunicationScore { get; set; }
-        public double ClarityScore { get; set; }
-        public double StarScore { get; set; }
-        public double ProfessionalMindsetScore { get; set; }
-        public double RelevanceScore { get; set; }
-        public string Level { get; set; } = string.Empty;
-        public string Feedback { get; set; } = string.Empty;
-        public List<string> Strengths { get; set; } = new();
-        public List<string> Weaknesses { get; set; } = new();
-        public List<string> ImprovementSuggestions { get; set; } = new();
         public bool IsCompleted { get; set; }
         public HrFinalResultResponse? FinalResult { get; set; }
     }

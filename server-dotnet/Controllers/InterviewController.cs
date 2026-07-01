@@ -81,7 +81,8 @@ namespace InterviewPro.API.Controllers
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return StatusCode(500, new { message = "Lỗi khi khởi tạo phiên phỏng vấn.", error = ex.Message });
+                Console.WriteLine($"[Error in StartSession]: {ex.ToString()}");
+                return StatusCode(500, new { message = "Lỗi khi khởi tạo phiên phỏng vấn.", error = ex.ToString() });
             }
         }
 
