@@ -440,7 +440,7 @@ export default function AdminAIMonitor() {
         <div className="flex flex-col gap-6">
           {/* Status Box */}
           <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-sm shadow-blue-200">
-            <h3 className="text-lg font-bold mb-6">Tình trạng hệ thống</h3>
+            <h3 className="text-lg font-bold mb-6 text-white">Tình trạng hệ thống</h3>
 
             {loading ? (
               <div className="space-y-4 animate-pulse">

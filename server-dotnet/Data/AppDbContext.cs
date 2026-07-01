@@ -14,10 +14,17 @@ namespace InterviewPro.API.Data
         public DbSet<UserCV> UserCVs { get; set; }
         public DbSet<CvTemplate> CvTemplates { get; set; }
         public DbSet<CvTemplateComponent> CvTemplateComponents { get; set; }
+        public DbSet<CvSectionDefinition> CvSectionDefinitions { get; set; }
+        public DbSet<CvComponentDefinition> CvComponentDefinitions { get; set; }
+        public DbSet<CvTemplateContainer> CvTemplateContainers { get; set; }
+        public DbSet<CvTemplateSection> CvTemplateSections { get; set; }
         public DbSet<HrInterviewSession> HrInterviewSessions { get; set; }
         public DbSet<HrInterviewQuestion> HrInterviewQuestions { get; set; }
         public DbSet<HrInterviewAnswer> HrInterviewAnswers { get; set; }
-        public DbSet<HrInterviewFinalResult> HrInterviewFinalResults { get; set; }
+        public DbSet<HrInterviewDraft> HrInterviewDrafts { get; set; }
+        public DbSet<HrInterviewEvaluation> HrInterviewEvaluations { get; set; }
+        public DbSet<HrInterviewQuestionEvaluation> HrInterviewQuestionEvaluations { get; set; }
+        public DbSet<HrQuestionBank> HrQuestionBanks { get; set; }
         public DbSet<AiRequestLog> AiRequestLogs { get; set; }
 
         // ── Practice Sessions (Interview Data Management) ──
@@ -100,6 +107,18 @@ namespace InterviewPro.API.Data
                 .HasForeignKey(c => c.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<CvTemplate>()
+                .HasMany(t => t.Containers)
+                .WithOne(c => c.Template)
+                .HasForeignKey(c => c.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CvTemplateContainer>()
+                .HasMany(c => c.Sections)
+                .WithOne(s => s.Container)
+                .HasForeignKey(s => s.ContainerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             modelBuilder.Entity<HrInterviewSession>()
                 .HasMany(s => s.Questions)
                 .WithOne()
@@ -113,9 +132,21 @@ namespace InterviewPro.API.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<HrInterviewSession>()
+                .HasMany(s => s.Drafts)
+                .WithOne()
+                .HasForeignKey(d => d.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<HrInterviewSession>()
                 .HasOne(s => s.FinalResult)
                 .WithOne()
-                .HasForeignKey<HrInterviewFinalResult>(r => r.SessionId)
+                .HasForeignKey<HrInterviewEvaluation>(r => r.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            modelBuilder.Entity<HrInterviewAnswer>()
+                .HasOne(a => a.Evaluation)
+                .WithOne()
+                .HasForeignKey<HrInterviewQuestionEvaluation>(e => e.AnswerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Question Bank config ──
@@ -246,6 +277,136 @@ namespace InterviewPro.API.Data
                 e.Property(q => q.AiFeedback).HasColumnType("nvarchar(max)");
                 e.Property(q => q.Category).HasMaxLength(100);
             });
+
+            // ── CvTemplateSections config ──
+            modelBuilder.Entity<CvTemplateSection>(e =>
+            {
+                e.HasIndex(s => s.TemplateId);
+                e.HasIndex(s => s.OrderIndex);
+                e.HasIndex(s => s.Status);
+                e.HasQueryFilter(s => !s.IsDeleted); // Soft delete filter
+                // Removed unique index with filter because IsSingleInstance is not on this table. 
+                // Single-instance logic is handled in the Service layer.
+
+                e.HasOne(s => s.Template)
+                 .WithMany(t => t.Sections)
+                 .HasForeignKey(s => s.TemplateId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(s => s.SectionDefinition)
+                 .WithMany()
+                 .HasForeignKey(s => s.SectionDefinitionId)
+                 .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ── CvSectionDefinition config and Seed Data ──
+            modelBuilder.Entity<CvSectionDefinition>(e =>
+            {
+                e.HasIndex(d => d.Category);
+            });
+
+            var defPersonalId = Guid.Parse("10000000-0000-0000-0000-000000000001");
+            var defSummaryId = Guid.Parse("10000000-0000-0000-0000-000000000002");
+            var defExperienceId = Guid.Parse("10000000-0000-0000-0000-000000000003");
+            var defEducationId = Guid.Parse("10000000-0000-0000-0000-000000000004");
+            var defSkillsId = Guid.Parse("10000000-0000-0000-0000-000000000005");
+            var defProjectsId = Guid.Parse("10000000-0000-0000-0000-000000000006");
+            var defLanguagesId = Guid.Parse("10000000-0000-0000-0000-000000000007");
+            var defCertificatesId = Guid.Parse("10000000-0000-0000-0000-000000000008");
+            var defAwardsId = Guid.Parse("10000000-0000-0000-0000-000000000009");
+            var defActivitiesId = Guid.Parse("10000000-0000-0000-0000-000000000010");
+            var defReferencesId = Guid.Parse("10000000-0000-0000-0000-000000000011");
+            var defCustomId = Guid.Parse("10000000-0000-0000-0000-000000000012");
+
+            modelBuilder.Entity<CvSectionDefinition>().HasData(
+                new CvSectionDefinition { Id = defPersonalId, SectionType = "PersonalInfo", Name = "Personal Information", Category = "Core", IsRequired = true, IsRepeatable = false, IsSingleInstance = true, SortOrder = 1 },
+                new CvSectionDefinition { Id = defSummaryId, SectionType = "Summary", Name = "Professional Summary", Category = "Core", IsRequired = true, IsRepeatable = false, IsSingleInstance = true, SortOrder = 2 },
+                new CvSectionDefinition { Id = defExperienceId, SectionType = "Experience", Name = "Experience", Category = "Core", IsRequired = true, IsRepeatable = true, IsSingleInstance = false, SortOrder = 3 },
+                new CvSectionDefinition { Id = defEducationId, SectionType = "Education", Name = "Education", Category = "Core", IsRequired = true, IsRepeatable = true, IsSingleInstance = false, SortOrder = 4 },
+                new CvSectionDefinition { Id = defSkillsId, SectionType = "Skills", Name = "Skills", Category = "Core", IsRequired = true, IsRepeatable = false, IsSingleInstance = true, SortOrder = 5 },
+                
+                new CvSectionDefinition { Id = defProjectsId, SectionType = "Projects", Name = "Projects", Category = "Optional", IsRequired = false, IsRepeatable = true, IsSingleInstance = false, SortOrder = 6 },
+                new CvSectionDefinition { Id = defLanguagesId, SectionType = "Languages", Name = "Languages", Category = "Optional", IsRequired = false, IsRepeatable = true, IsSingleInstance = false, SortOrder = 7 },
+                new CvSectionDefinition { Id = defCertificatesId, SectionType = "Certificates", Name = "Certificates", Category = "Optional", IsRequired = false, IsRepeatable = false, IsSingleInstance = true, SortOrder = 8 },
+                new CvSectionDefinition { Id = defAwardsId, SectionType = "Awards", Name = "Awards", Category = "Optional", IsRequired = false, IsRepeatable = false, IsSingleInstance = true, SortOrder = 9 },
+                new CvSectionDefinition { Id = defActivitiesId, SectionType = "Activities", Name = "Activities", Category = "Optional", IsRequired = false, IsRepeatable = false, IsSingleInstance = true, SortOrder = 10 },
+                new CvSectionDefinition { Id = defReferencesId, SectionType = "References", Name = "References", Category = "Optional", IsRequired = false, IsRepeatable = false, IsSingleInstance = true, SortOrder = 11 },
+                
+                new CvSectionDefinition { Id = defCustomId, SectionType = "Custom", Name = "Custom Section", Category = "Custom", IsRequired = false, IsRepeatable = true, IsSingleInstance = false, SortOrder = 12 }
+            );
+
+            // ── CvTemplateComponent config ──
+            modelBuilder.Entity<CvTemplateComponent>(e =>
+            {
+                e.HasIndex(c => c.TemplateId);
+                e.HasIndex(c => c.SectionId);
+                e.HasIndex(c => c.OrderIndex);
+                e.HasQueryFilter(c => !c.IsDeleted);
+
+                e.HasOne(c => c.Template)
+                 .WithMany(t => t.Components)
+                 .HasForeignKey(c => c.TemplateId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(c => c.Section)
+                 .WithMany()
+                 .HasForeignKey(c => c.SectionId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(c => c.ParentComponent)
+                 .WithMany(pc => pc.ChildComponents)
+                 .HasForeignKey(c => c.ParentComponentId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(c => c.ComponentDefinition)
+                 .WithMany()
+                 .HasForeignKey(c => c.ComponentDefinitionId)
+                 .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ── CvComponentDefinition config & Seed Data ──
+            modelBuilder.Entity<CvComponentDefinition>(e =>
+            {
+                e.HasIndex(d => d.ComponentType);
+                e.HasIndex(d => d.Category);
+            });
+
+            var compAvatarId = Guid.Parse("20000000-0000-0000-0000-000000000001");
+            var compFullNameId = Guid.Parse("20000000-0000-0000-0000-000000000002");
+            var compJobTitleId = Guid.Parse("20000000-0000-0000-0000-000000000003");
+            var compContactRowId = Guid.Parse("20000000-0000-0000-0000-000000000004");
+            var compExpCardId = Guid.Parse("20000000-0000-0000-0000-000000000005");
+            var compTimelineId = Guid.Parse("20000000-0000-0000-0000-000000000006");
+            var compAchievementId = Guid.Parse("20000000-0000-0000-0000-000000000007");
+            var compTechTagsId = Guid.Parse("20000000-0000-0000-0000-000000000008");
+            var compEduCardId = Guid.Parse("20000000-0000-0000-0000-000000000009");
+            var compSkillTagsId = Guid.Parse("20000000-0000-0000-0000-000000000010");
+            var compSkillProgressId = Guid.Parse("20000000-0000-0000-0000-000000000011");
+            var compProjCardId = Guid.Parse("20000000-0000-0000-0000-000000000012");
+            var compDividerId = Guid.Parse("20000000-0000-0000-0000-000000000013");
+            var compContainerId = Guid.Parse("20000000-0000-0000-0000-000000000014");
+
+            modelBuilder.Entity<CvComponentDefinition>().HasData(
+                new CvComponentDefinition { Id = compAvatarId, ComponentType = "Avatar", Name = "Avatar", Category = "Personal", DefaultBindingPath = "Candidate.Avatar", SupportedVariantsJson = "[\"circle\", \"rounded\", \"square\"]", CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]", IsBindable = true, IsRepeatable = false, SortOrder = 1 },
+                new CvComponentDefinition { Id = compFullNameId, ComponentType = "FullName", Name = "Full Name", Category = "Personal", DefaultBindingPath = "Candidate.FullName", CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]", IsBindable = true, SortOrder = 2 },
+                new CvComponentDefinition { Id = compJobTitleId, ComponentType = "JobTitle", Name = "Job Title", Category = "Personal", DefaultBindingPath = "Candidate.JobTitle", CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]", IsBindable = true, SortOrder = 3 },
+                new CvComponentDefinition { Id = compContactRowId, ComponentType = "ContactRow", Name = "Contact Row", Category = "Personal", DefaultBindingPath = "Candidate.Contact", CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]", IsBindable = true, SortOrder = 4 },
+                
+                new CvComponentDefinition { Id = compExpCardId, ComponentType = "ExperienceCard", Name = "Experience Card", Category = "Experience", DefaultBindingPath = "Candidate.Experiences", SupportedVariantsJson = "[\"compact\", \"timeline\", \"detailed\"]", CompatibleSectionTypesJson = "[\"Experience\"]", IsRepeatable = true, SortOrder = 5 },
+                new CvComponentDefinition { Id = compTimelineId, ComponentType = "Timeline", Name = "Timeline", Category = "Experience", CompatibleSectionTypesJson = "[\"Experience\", \"Education\"]", SortOrder = 6 },
+                new CvComponentDefinition { Id = compAchievementId, ComponentType = "AchievementList", Name = "Achievement List", Category = "Experience", CompatibleSectionTypesJson = "[\"Experience\", \"Projects\"]", SortOrder = 7 },
+                new CvComponentDefinition { Id = compTechTagsId, ComponentType = "TechnologyTags", Name = "Technology Tags", Category = "Experience", CompatibleSectionTypesJson = "[\"Experience\", \"Projects\"]", SortOrder = 8 },
+                
+                new CvComponentDefinition { Id = compEduCardId, ComponentType = "EducationCard", Name = "Education Card", Category = "Education", DefaultBindingPath = "Candidate.Educations", CompatibleSectionTypesJson = "[\"Education\"]", IsRepeatable = true, SortOrder = 9 },
+                
+                new CvComponentDefinition { Id = compSkillTagsId, ComponentType = "SkillTags", Name = "Skill Tags", Category = "Skills", DefaultBindingPath = "Candidate.Skills", CompatibleSectionTypesJson = "[\"Skills\"]", SortOrder = 10 },
+                new CvComponentDefinition { Id = compSkillProgressId, ComponentType = "SkillProgress", Name = "Skill Progress", Category = "Skills", DefaultBindingPath = "Candidate.Skills", CompatibleSectionTypesJson = "[\"Skills\"]", SortOrder = 11 },
+                
+                new CvComponentDefinition { Id = compProjCardId, ComponentType = "ProjectCard", Name = "Project Card", Category = "Projects", DefaultBindingPath = "Candidate.Projects", CompatibleSectionTypesJson = "[\"Projects\"]", SortOrder = 12 },
+                
+                new CvComponentDefinition { Id = compDividerId, ComponentType = "Divider", Name = "Divider", Category = "Decoration", CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Summary\", \"Experience\", \"Education\", \"Skills\", \"Projects\", \"Certificates\", \"Languages\", \"Custom\"]", SortOrder = 13 },
+                new CvComponentDefinition { Id = compContainerId, ComponentType = "Container", Name = "Container", Category = "Layout", CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Summary\", \"Experience\", \"Education\", \"Skills\", \"Projects\", \"Certificates\", \"Languages\", \"Custom\"]", IsContainer = true, SortOrder = 14 }
+            );
 
         }
     }

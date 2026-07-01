@@ -1,4 +1,7 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using InterviewPro.API.Data;
+using InterviewPro.API.DTOs;
 using InterviewPro.API.Interfaces;
 using InterviewPro.API.Repositories;
 using InterviewPro.API.Services;
@@ -40,12 +43,17 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IInterviewRepository, InterviewRepository>();
 builder.Services.AddScoped<ICvTemplateRepository, CvTemplateRepository>();
 builder.Services.AddScoped<ICvTemplateService, CvTemplateService>();
+builder.Services.AddScoped<ICvTemplateSectionRepository, CvTemplateSectionRepository>();
+builder.Services.AddScoped<ICvTemplateSectionService, CvTemplateSectionService>();
+builder.Services.AddScoped<ICvTemplateComponentRepository, CvTemplateComponentRepository>();
+builder.Services.AddScoped<ICvTemplateComponentService, CvTemplateComponentService>();
 // HR Interview services
 builder.Services.AddScoped<IHrAiClient, HrAiClient>();
 builder.Services.AddScoped<IHrInterviewService, HrInterviewService>();
 
 // Admin AI Monitor service
 builder.Services.AddScoped<IAiMonitorService, AiMonitorService>();
+builder.Services.AddScoped<IHrQuestionBankService, HrQuestionBankService>();
 builder.Services.AddScoped<IAiRequestLogService, AiRequestLogService>();
 
 // Interview Data Management service
@@ -92,7 +100,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddControllers();
+// (Skip to builder.Services.AddControllers)
+builder.Services.AddControllers()
+    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<AddSectionRequestDtoValidator>());
 builder.Services.AddCors(opts =>
     opts.AddPolicy("AllowFrontend", p =>
         p.WithOrigins("http://localhost:5173", "http://localhost:5174")
@@ -121,6 +131,10 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
         Console.WriteLine("✅ Database migration applied.");
+
+        var questionBankService = scope.ServiceProvider.GetRequiredService<IHrQuestionBankService>();
+        questionBankService.SeedDefaultQuestionsAsync().GetAwaiter().GetResult();
+        Console.WriteLine("✅ HR Question Bank seeded.");
 
         // Populate missing UserCodes
         var usersWithNoCode = db.Users.Where(u => string.IsNullOrEmpty(u.UserCode)).ToList();

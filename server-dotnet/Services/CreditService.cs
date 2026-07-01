@@ -58,14 +58,61 @@ namespace InterviewPro.API.Services
                 _context.CreditHistories.Add(history);
                 await _context.SaveChangesAsync();
             }
+            else
+            {
+                var lastReset = await _context.CreditHistories
+                    .Where(h => h.UserId == userId && (h.Type == "FreeInitial" || h.Type == "DailyReset" || h.Type == "AdminAdjust"))
+                    .OrderByDescending(h => h.CreatedAt)
+                    .Select(h => h.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (lastReset != default && DateTime.UtcNow >= lastReset.AddHours(24))
+                {
+                    int currentFree = wallet.FreeCredits;
+                    
+                    if (currentFree < 3)
+                    {
+                        wallet.FreeCredits = 3;
+                        wallet.UpdatedAt = DateTime.UtcNow;
+
+                        var history = new CreditHistory
+                        {
+                            UserId = userId,
+                            ChangeAmount = 3 - currentFree,
+                            BalanceAfter = 3 + wallet.PaidCredits,
+                            Type = "DailyReset",
+                            Description = "Hệ thống khôi phục 3 lượt miễn phí (sau 24 giờ)",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.CreditHistories.Add(history);
+                    }
+                    else
+                    {
+                        // Record a sync event so the 24h clock moves forward
+                        var history = new CreditHistory
+                        {
+                            UserId = userId,
+                            ChangeAmount = 0,
+                            BalanceAfter = wallet.FreeCredits + wallet.PaidCredits,
+                            Type = "DailyReset",
+                            Description = "Kiểm tra mốc 24 giờ (đã có đủ 3 lượt miễn phí)",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.CreditHistories.Add(history);
+                    }
+                    
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             return wallet;
         }
 
         public async Task<bool> UseCreditAsync(int userId, string feature, Guid? referenceId = null)
         {
-            // Execute in transaction to ensure atomicity
-            using var dbTransaction = await _context.Database.BeginTransactionAsync();
+            var hasExistingTransaction = _context.Database.CurrentTransaction != null;
+            var dbTransaction = hasExistingTransaction ? null : await _context.Database.BeginTransactionAsync();
+
             try
             {
                 var wallet = await EnsureWalletExistsAsync(userId);
@@ -102,14 +149,28 @@ namespace InterviewPro.API.Services
 
                 _context.CreditHistories.Add(history);
                 await _context.SaveChangesAsync();
-                await dbTransaction.CommitAsync();
+                
+                if (dbTransaction != null)
+                {
+                    await dbTransaction.CommitAsync();
+                }
 
                 return true;
             }
             catch (Exception)
             {
-                await dbTransaction.RollbackAsync();
+                if (dbTransaction != null)
+                {
+                    await dbTransaction.RollbackAsync();
+                }
                 throw;
+            }
+            finally
+            {
+                if (dbTransaction != null)
+                {
+                    dbTransaction.Dispose();
+                }
             }
         }
 
