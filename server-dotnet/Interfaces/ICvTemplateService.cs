@@ -15,9 +15,6 @@ namespace InterviewPro.API.Interfaces
         Task<CvTemplateResponseDto> PublishTemplateAsync(Guid id);
         Task<CvTemplateResponseDto> UnpublishTemplateAsync(Guid id);
         
-        Task<CvTemplateComponentResponseDto> AddComponentAsync(CvTemplateComponentCreateDto dto);
-        Task<CvTemplateComponentResponseDto> UpdateComponentAsync(Guid templateId, Guid componentId, CvTemplateComponentUpdateDto dto);
-        Task DeleteComponentAsync(Guid templateId, Guid componentId);
-        Task ReorderComponentsAsync(Guid templateId, ComponentReorderDto dto);
+        
     }
 }

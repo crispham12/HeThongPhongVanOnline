@@ -263,6 +263,44 @@ namespace InterviewPro.API.Services
             user.DailyGithubAnalysisUsed = 0;
             user.UpdatedAt = DateTime.UtcNow;
 
+            var wallet = await _db.CreditWallets.FirstOrDefaultAsync(w => w.UserId == userId);
+            if (wallet != null)
+            {
+                wallet.FreeCredits = 3;
+                wallet.UpdatedAt = DateTime.UtcNow;
+                
+                _db.CreditHistories.Add(new CreditHistory
+                {
+                    UserId = userId,
+                    ChangeAmount = 3,
+                    BalanceAfter = 3 + wallet.PaidCredits,
+                    Type = "AdminAdjust",
+                    Description = "Admin reset giới hạn ngày (khôi phục lượt miễn phí)",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                wallet = new CreditWallet
+                {
+                    UserId = userId,
+                    FreeCredits = 3,
+                    PaidCredits = 0,
+                    TotalCreditsUsed = 0,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.CreditWallets.Add(wallet);
+                _db.CreditHistories.Add(new CreditHistory
+                {
+                    UserId = userId,
+                    ChangeAmount = 3,
+                    BalanceAfter = 3,
+                    Type = "AdminAdjust",
+                    Description = "Admin khởi tạo lượt miễn phí",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             await _db.SaveChangesAsync();
             return true;
         }

@@ -52,6 +52,41 @@ Trả về JSON hợp lệ, KHÔNG có text ngoài JSON:
 
 
 # ─────────────────────────────────────────────
+# Prompt 1.5: Sinh 1 câu hỏi HR (Fallback)
+# ─────────────────────────────────────────────
+HR_GENERATE_SINGLE_QUESTION_PROMPT = """Bạn là chuyên gia phỏng vấn HR cho ngành IT tại Việt Nam.
+
+Nhiệm vụ: Tạo 1 câu hỏi phỏng vấn HR DUY NHẤT cho ứng viên IT.
+
+Thông tin ứng viên & yêu cầu:
+- Vai trò ứng tuyển: {role}
+- Mức độ (Level): {level}
+- Category: {category}
+- Target Skill: {target_skill}
+- Suggested Method: {suggested_method}
+- Max Answer Time: {max_answer_time} giây
+
+Yêu cầu câu hỏi:
+1. Tập trung vào category và target skill được cung cấp.
+2. KHÔNG hỏi kiến thức kỹ thuật/công nghệ. Đây là phỏng vấn HR/hành vi.
+3. Đặt câu hỏi sao cho ứng viên có thể dùng phương pháp {suggested_method} để trả lời.
+4. Ngữ cảnh phù hợp với vai trò {role} và level {level}.
+5. Câu hỏi bằng tiếng Việt, ngắn gọn, xúc tích.
+6. Cung cấp hướng dẫn đánh giá (Expected Answer Guide).
+
+Trả về JSON hợp lệ, KHÔNG có text ngoài JSON:
+{{
+  "questionText": "...",
+  "category": "{category}",
+  "difficulty": "{level}",
+  "targetSkill": "{target_skill}",
+  "suggestedMethod": "{suggested_method}",
+  "maxAnswerTime": {max_answer_time},
+  "expectedAnswerGuide": "..."
+}}"""
+
+
+# ─────────────────────────────────────────────
 # Prompt 2: Đánh giá câu trả lời theo rubric STAR
 # ─────────────────────────────────────────────
 HR_EVALUATE_ANSWER_PROMPT = """Bạn là AI Evaluation Engine chuyên chấm điểm câu trả lời phỏng vấn HR trong hệ thống "Nền tảng Phỏng vấn IT Thông minh".

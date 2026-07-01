@@ -52,27 +52,7 @@ namespace InterviewPro.API.Repositories
             await Task.CompletedTask;
         }
 
-        public async Task<CvTemplateComponent?> GetComponentByIdAsync(Guid componentId)
-        {
-            return await _context.CvTemplateComponents.FindAsync(componentId);
-        }
 
-        public async Task AddComponentAsync(CvTemplateComponent component)
-        {
-            await _context.CvTemplateComponents.AddAsync(component);
-        }
-
-        public async Task UpdateComponentAsync(CvTemplateComponent component)
-        {
-            _context.CvTemplateComponents.Update(component);
-            await Task.CompletedTask;
-        }
-
-        public async Task DeleteComponentAsync(CvTemplateComponent component)
-        {
-            _context.CvTemplateComponents.Remove(component);
-            await Task.CompletedTask;
-        }
 
         public async Task SaveChangesAsync()
         {

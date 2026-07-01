@@ -25,6 +25,7 @@ namespace InterviewPro.API.Services
         private readonly IHrAiClient _aiClient;
         private readonly IInterviewDataService _interviewDataService;
         private readonly ICreditService _creditService;
+        private readonly IHrQuestionBankService _questionBankService;
         private readonly ILogger<HrInterviewService> _logger;
 
         private const int TotalQuestions = 10;
@@ -35,12 +36,14 @@ namespace InterviewPro.API.Services
             IHrAiClient aiClient,
             IInterviewDataService interviewDataService,
             ICreditService creditService,
+            IHrQuestionBankService questionBankService,
             ILogger<HrInterviewService> logger)
         {
             _db = db;
             _aiClient = aiClient;
             _interviewDataService = interviewDataService;
             _creditService = creditService;
+            _questionBankService = questionBankService;
             _logger = logger;
         }
 
@@ -75,25 +78,14 @@ namespace InterviewPro.API.Services
                 _db.HrInterviewSessions.Add(session);
                 await _db.SaveChangesAsync();
 
-                // Gọi AI tạo 10 câu hỏi
-                var aiResult = await _aiClient.GenerateHrQuestionsAsync(
-                    request.Role, request.Difficulty, request.TechStack);
+                // Gọi Selection Service tạo 10 câu hỏi theo Blueprint
+                var questions = await _questionBankService.GenerateSessionQuestionsAsync(
+                    session.Id, request.Role, request.Difficulty, request.QuestionMode);
 
+                _db.HrInterviewQuestions.AddRange(questions);
+                await _db.SaveChangesAsync();
 
-            // Lưu 10 câu hỏi vào DB
-            var questions = aiResult.Questions.Select(q => new HrInterviewQuestion
-            {
-                SessionId = session.Id,
-                QuestionIndex = q.QuestionIndex,
-                Category = q.Category,
-                QuestionText = q.QuestionText,
-                ExpectedAnswerGuide = q.ExpectedAnswerGuide
-            }).ToList();
-
-            _db.HrInterviewQuestions.AddRange(questions);
-            await _db.SaveChangesAsync();
-
-            await transactionScope.CommitAsync();
+                await transactionScope.CommitAsync();
 
             // Trả về cho frontend
             return new StartHrInterviewResponse
@@ -117,6 +109,101 @@ namespace InterviewPro.API.Services
             }
         }
 
+
+        // ─────────────────────────────────────────────
+        // 1.5. Draft Management (Lưu nháp câu trả lời)
+        // ─────────────────────────────────────────────
+        public async Task SaveDraftAsync(
+            int userId, string sessionId, string questionId, SubmitHrAnswerRequest request)
+        {
+            var session = await _db.HrInterviewSessions
+                .FirstOrDefaultAsync(s => s.SessionGuid == sessionId && s.UserId == userId)
+                ?? throw new KeyNotFoundException("Không tìm thấy phiên phỏng vấn.");
+
+            if (session.Status == "Completed") return; // Bỏ qua nếu đã xong
+
+            var question = await _db.HrInterviewQuestions
+                .FirstOrDefaultAsync(q => q.QuestionGuid == questionId && q.SessionId == session.Id)
+                ?? throw new KeyNotFoundException("Không tìm thấy câu hỏi.");
+
+            var draft = await _db.HrInterviewDrafts
+                .FirstOrDefaultAsync(d => d.SessionId == session.Id && d.QuestionId == question.Id);
+
+            if (draft == null)
+            {
+                draft = new HrInterviewDraft
+                {
+                    SessionId = session.Id,
+                    QuestionId = question.Id,
+                    AnswerText = request.AnswerText ?? "",
+                    Transcript = request.Transcript ?? "",
+                    DurationSeconds = request.DurationSeconds,
+                    WordCount = request.WordCount,
+                    FillerWords = request.FillerWords,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _db.HrInterviewDrafts.Add(draft);
+            }
+            else
+            {
+                draft.AnswerText = request.AnswerText ?? "";
+                draft.Transcript = request.Transcript ?? "";
+                draft.DurationSeconds = request.DurationSeconds;
+                draft.WordCount = request.WordCount;
+                draft.FillerWords = request.FillerWords;
+                draft.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<SubmitHrAnswerRequest?> GetDraftAsync(
+            int userId, string sessionId, string questionId)
+        {
+            var session = await _db.HrInterviewSessions
+                .FirstOrDefaultAsync(s => s.SessionGuid == sessionId && s.UserId == userId);
+            if (session == null) return null;
+
+            var question = await _db.HrInterviewQuestions
+                .FirstOrDefaultAsync(q => q.QuestionGuid == questionId && q.SessionId == session.Id);
+            if (question == null) return null;
+
+            var draft = await _db.HrInterviewDrafts
+                .FirstOrDefaultAsync(d => d.SessionId == session.Id && d.QuestionId == question.Id);
+
+            if (draft == null) return null;
+
+            return new SubmitHrAnswerRequest
+            {
+                QuestionId = questionId,
+                AnswerText = draft.AnswerText,
+                Transcript = draft.Transcript,
+                DurationSeconds = draft.DurationSeconds,
+                WordCount = draft.WordCount,
+                FillerWords = draft.FillerWords
+            };
+        }
+
+        public async Task DeleteDraftAsync(
+            int userId, string sessionId, string questionId)
+        {
+            var session = await _db.HrInterviewSessions
+                .FirstOrDefaultAsync(s => s.SessionGuid == sessionId && s.UserId == userId);
+            if (session == null) return;
+
+            var question = await _db.HrInterviewQuestions
+                .FirstOrDefaultAsync(q => q.QuestionGuid == questionId && q.SessionId == session.Id);
+            if (question == null) return;
+
+            var draft = await _db.HrInterviewDrafts
+                .FirstOrDefaultAsync(d => d.SessionId == session.Id && d.QuestionId == question.Id);
+
+            if (draft != null)
+            {
+                _db.HrInterviewDrafts.Remove(draft);
+                await _db.SaveChangesAsync();
+            }
+        }
 
         // ─────────────────────────────────────────────
         // 2. Nộp câu trả lời + AI đánh giá
@@ -147,29 +234,17 @@ namespace InterviewPro.API.Services
             if (string.IsNullOrWhiteSpace(request.AnswerText) || request.AnswerText.Trim().Length < MinAnswerLength)
                 throw new ArgumentException($"Câu trả lời quá ngắn. Vui lòng trả lời ít nhất {MinAnswerLength} ký tự.");
 
-            // Gọi AI đánh giá
-            var techStack = JsonSerializer.Deserialize<List<string>>(session.TechStackJson) ?? new List<string>();
-            var evaluation = await _aiClient.EvaluateHrAnswerAsync(
-                session.Role, session.Difficulty, techStack,
-                question.QuestionText, request.AnswerText);
-
-            // Lưu câu trả lời + kết quả đánh giá
+            // Cập nhật câu trả lời nhưng KHÔNG gọi AI đánh giá ngay lập tức
             var answer = new HrInterviewAnswer
             {
                 SessionId = session.Id,
                 QuestionId = question.Id,
                 AnswerText = request.AnswerText,
-                CommunicationScore = evaluation.CommunicationScore,
-                ClarityScore = evaluation.ClarityScore,
-                StarScore = evaluation.StarScore,
-                ProfessionalMindsetScore = evaluation.ProfessionalMindsetScore,
-                RelevanceScore = evaluation.RelevanceScore,
-                QuestionScore = evaluation.QuestionScore,
-                Level = evaluation.Level,
-                Feedback = evaluation.Feedback,
-                StrengthsJson = JsonSerializer.Serialize(evaluation.Strengths),
-                WeaknessesJson = JsonSerializer.Serialize(evaluation.Weaknesses),
-                ImprovementSuggestionsJson = JsonSerializer.Serialize(evaluation.ImprovementSuggestions)
+                Transcript = request.Transcript ?? "",
+                DurationSeconds = request.DurationSeconds,
+                WordCount = request.WordCount,
+                FillerWords = request.FillerWords,
+                SubmittedAt = DateTime.UtcNow
             };
 
             _db.HrInterviewAnswers.Add(answer);
@@ -187,23 +262,13 @@ namespace InterviewPro.API.Services
             if (isCompleted)
             {
                 // Tạo FinalResult sau câu thứ 10
+                var techStack = JsonSerializer.Deserialize<List<string>>(session.TechStackJson) ?? new List<string>();
                 finalResult = await CompleteInterviewAsync(session, techStack);
             }
 
             return new SubmitHrAnswerResponse
             {
                 AnswerId = answer.Id.ToString(),
-                QuestionScore = evaluation.QuestionScore,
-                CommunicationScore = evaluation.CommunicationScore,
-                ClarityScore = evaluation.ClarityScore,
-                StarScore = evaluation.StarScore,
-                ProfessionalMindsetScore = evaluation.ProfessionalMindsetScore,
-                RelevanceScore = evaluation.RelevanceScore,
-                Level = evaluation.Level,
-                Feedback = evaluation.Feedback,
-                Strengths = evaluation.Strengths,
-                Weaknesses = evaluation.Weaknesses,
-                ImprovementSuggestions = evaluation.ImprovementSuggestions,
                 IsCompleted = isCompleted,
                 FinalResult = finalResult
             };
@@ -232,8 +297,8 @@ namespace InterviewPro.API.Services
                 {
                     Question = q.QuestionText,
                     Answer = ans?.AnswerText ?? "",
-                    Score = ans?.QuestionScore ?? 0,
-                    Feedback = ans?.Feedback ?? ""
+                    Score = 0, // Sẽ được chấm chung
+                    Feedback = ""
                 };
             }).ToList();
 
@@ -242,7 +307,7 @@ namespace InterviewPro.API.Services
                 session.SessionGuid, session.Role, session.Difficulty, answerSummaries);
 
             // Lưu FinalResult vào DB
-            var dbFinalResult = new HrInterviewFinalResult
+            var dbFinalResult = new HrInterviewEvaluation
             {
                 SessionId = session.Id,
                 HrFinalScore = finalResult.HrFinalScore,
@@ -254,7 +319,7 @@ namespace InterviewPro.API.Services
                 ReadinessLevel = finalResult.ReadinessLevel
             };
 
-            _db.HrInterviewFinalResults.Add(dbFinalResult);
+            _db.HrInterviewEvaluations.Add(dbFinalResult);
 
             // Cập nhật session thành Completed
             session.Status = "Completed";

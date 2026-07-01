@@ -16,6 +16,12 @@ namespace InterviewPro.API.Interfaces
             string role, string difficulty, List<string> techStack);
 
         /// <summary>
+        /// Gọi AI sinh 1 câu hỏi HR duy nhất (Fallback).
+        /// </summary>
+        Task<SingleGeneratedQuestion> GenerateSingleHrQuestionAsync(
+            string role, string level, string category, string targetSkill, string suggestedMethod, int maxAnswerTime);
+
+        /// <summary>
         /// Gọi AI đánh giá câu trả lời theo 5 tiêu chí với rubric chuẩn.
         /// </summary>
         Task<AiEvaluationResult> EvaluateHrAnswerAsync(
@@ -41,6 +47,15 @@ namespace InterviewPro.API.Interfaces
         Task<HrSessionDetailResponse> GetInterviewAsync(
             int userId, string sessionId);
 
+        Task SaveDraftAsync(
+            int userId, string sessionId, string questionId, SubmitHrAnswerRequest request);
+
+        Task<SubmitHrAnswerRequest?> GetDraftAsync(
+            int userId, string sessionId, string questionId);
+
+        Task DeleteDraftAsync(
+            int userId, string sessionId, string questionId);
+
         Task<SubmitHrAnswerResponse> SubmitAnswerAsync(
             int userId, string sessionId, SubmitHrAnswerRequest request);
 
@@ -63,6 +78,17 @@ namespace InterviewPro.API.Interfaces
         public int QuestionIndex { get; set; }
         public string Category { get; set; } = string.Empty;
         public string QuestionText { get; set; } = string.Empty;
+        public string ExpectedAnswerGuide { get; set; } = string.Empty;
+    }
+
+    public class SingleGeneratedQuestion
+    {
+        public string QuestionText { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public string TargetSkill { get; set; } = string.Empty;
+        public string SuggestedMethod { get; set; } = string.Empty;
+        public int MaxAnswerTime { get; set; } = 120;
         public string ExpectedAnswerGuide { get; set; } = string.Empty;
     }
 

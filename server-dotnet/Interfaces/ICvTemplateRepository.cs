@@ -12,11 +12,7 @@ namespace InterviewPro.API.Interfaces
         Task AddAsync(CvTemplate template);
         Task UpdateAsync(CvTemplate template);
         Task DeleteAsync(CvTemplate template);
-        
-        Task<CvTemplateComponent?> GetComponentByIdAsync(Guid componentId);
-        Task AddComponentAsync(CvTemplateComponent component);
-        Task UpdateComponentAsync(CvTemplateComponent component);
-        Task DeleteComponentAsync(CvTemplateComponent component);
+
         
         Task SaveChangesAsync();
     }

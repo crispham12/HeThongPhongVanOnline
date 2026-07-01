@@ -124,33 +124,160 @@ namespace InterviewPro.API.Entities
         public int Height { get; set; }
         public string BackgroundColor { get; set; } = "#FFFFFF";
         public string ThumbnailUrl { get; set; } = string.Empty;
+        public string Thumbnail { get; set; } = string.Empty;
         public bool IsPublished { get; set; } = false;
+        public string Status { get; set; } = "Draft"; // Draft / Published
+        public string Version { get; set; } = "1.0.0";
+        public string Category { get; set; } = string.Empty;
         public int CreatedByAdminId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         public ICollection<CvTemplateComponent> Components { get; set; } = new List<CvTemplateComponent>();
+        public ICollection<CvTemplateSection> Sections { get; set; } = new List<CvTemplateSection>();
+        public ICollection<CvTemplateContainer> Containers { get; set; } = new List<CvTemplateContainer>();
+    }
+
+    public class CvTemplateContainer
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid TemplateId { get; set; }
+        
+        [Required]
+        public string LayoutType { get; set; } = "OneColumn"; // OneColumn, TwoColumns, LeftSidebar, RightSidebar, Grid2Columns
+        
+        public int OrderIndex { get; set; }
+        public string ConfigJson { get; set; } = "{}"; // Store container-specific settings like gap, padding, split ratio
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation properties
+        public CvTemplate? Template { get; set; }
+        public ICollection<CvTemplateSection> Sections { get; set; } = new List<CvTemplateSection>();
+    }
+
+    public class CvSectionDefinition
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        [Required]
+        public string SectionType { get; set; } = string.Empty;
+        [Required]
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        [Required]
+        public string Category { get; set; } = "Core"; // Core, Optional, Custom
+        public string DefaultBindingPath { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
+        
+        public bool IsRequired { get; set; }
+        public bool IsRepeatable { get; set; }
+        public bool IsSingleInstance { get; set; }
+        public bool IsATSFriendly { get; set; }
+        
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class CvTemplateSection
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid TemplateId { get; set; }
+        public Guid SectionDefinitionId { get; set; }
+        
+        public Guid? ContainerId { get; set; } // Nullable because legacy sections might not have it yet
+        public int ColumnIndex { get; set; } = 0; // 0 for left/main, 1 for right sidebar, etc.
+        public string LayoutConfigJson { get; set; } = "{}"; // JSON string storing WidthMode, HeightMode, CompactMode, Padding, Gap, etc.
+        
+        [Required]
+        public string DisplayName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string BindingPath { get; set; } = string.Empty;
+        
+        public int OrderIndex { get; set; }
+        public string Status { get; set; } = "Added"; // Added, Hidden, Locked, Deleted
+        
+        public bool IsRequired { get; set; }
+        public bool IsRepeatable { get; set; }
+        public bool IsHidden { get; set; }
+        public bool IsLocked { get; set; }
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Soft Delete
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+        public DateTime? RestoredAt { get; set; }
+        public string? RestoredBy { get; set; }
+
+        // Navigation properties
+        public CvTemplate? Template { get; set; }
+        public CvSectionDefinition? SectionDefinition { get; set; }
+        public CvTemplateContainer? Container { get; set; }
+    }
+
+    public class CvComponentDefinition
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        [Required]
+        public string ComponentType { get; set; } = string.Empty;
+        [Required]
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string DefaultBindingPath { get; set; } = string.Empty;
+        public string DefaultVariant { get; set; } = "default";
+        public string SupportedVariantsJson { get; set; } = "[]";
+        public string CompatibleSectionTypesJson { get; set; } = "[]";
+        public bool IsRepeatable { get; set; }
+        public bool IsBindable { get; set; }
+        public bool IsContainer { get; set; }
+        public bool IsSingleInstance { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class CvTemplateComponent
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public Guid TemplateId { get; set; }
-        public string Type { get; set; } = string.Empty; // label, image, circle, square, rectangle, line, section
-        public string Content { get; set; } = string.Empty;
-        public int X { get; set; }
-        public int Y { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public int Rotation { get; set; }
-        public int ZIndex { get; set; }
-        public string StyleJson { get; set; } = "{}"; // JSON string to store dynamic styles
+        public Guid SectionId { get; set; }
+        public Guid? ParentComponentId { get; set; }
+        public Guid ComponentDefinitionId { get; set; }
+        
+        [Required]
+        public string DisplayName { get; set; } = string.Empty;
+        [Required]
+        public string ComponentType { get; set; } = string.Empty;
+        public string Variant { get; set; } = "default";
+        public string BindingPath { get; set; } = string.Empty;
+        public int OrderIndex { get; set; }
+        public string PropertiesJson { get; set; } = "{}";
+        
+        public bool IsHidden { get; set; }
+        public bool IsLocked { get; set; }
+        
+        // Soft Delete
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+        public DateTime? RestoredAt { get; set; }
+        public string? RestoredBy { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         public CvTemplate? Template { get; set; }
+        public CvTemplateSection? Section { get; set; }
+        public CvTemplateComponent? ParentComponent { get; set; }
+        public CvComponentDefinition? ComponentDefinition { get; set; }
+        public ICollection<CvTemplateComponent> ChildComponents { get; set; } = new List<CvTemplateComponent>();
     }
 
     public class SubscriptionPlan
