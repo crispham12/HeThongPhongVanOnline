@@ -23,6 +23,7 @@ from typing import List, Optional
 from services.openai_service import call_openai, call_openai_with_usage
 from prompts.hr_prompts import (
     HR_GENERATE_QUESTIONS_PROMPT,
+    HR_GENERATE_SINGLE_QUESTION_PROMPT,
     HR_EVALUATE_ANSWER_PROMPT,
     HR_FINAL_EVALUATION_PROMPT
 )
@@ -54,6 +55,27 @@ class TokenUsageInfo(BaseModel):
 
 class GenerateHrQuestionsResponse(BaseModel):
     questions: List[GeneratedQuestion]
+    usage: Optional[TokenUsageInfo] = None
+
+class GenerateSingleHrQuestionRequest(BaseModel):
+    role: str
+    level: str
+    category: str
+    target_skill: str = ""
+    suggested_method: str = "STAR"
+    max_answer_time: int = 120
+
+class SingleGeneratedQuestion(BaseModel):
+    questionText: str
+    category: str
+    difficulty: str
+    targetSkill: str
+    suggestedMethod: str
+    maxAnswerTime: int
+    expectedAnswerGuide: str
+
+class GenerateSingleHrQuestionResponse(BaseModel):
+    question: SingleGeneratedQuestion
     usage: Optional[TokenUsageInfo] = None
 
 class EvaluateHrAnswerRequest(BaseModel):
@@ -176,6 +198,58 @@ async def generate_hr_questions(req: GenerateHrQuestionsRequest):
         print(f"[HR] Error generating questions: {e}")
         traceback.print_exc()
         return GenerateHrQuestionsResponse(questions=_build_fallback_questions(req.role, req.difficulty))
+
+
+# ═══════════════════════════════════════════════
+# Endpoint 1.5: Sinh 1 câu hỏi HR
+# ═══════════════════════════════════════════════
+
+@router.post("/generate-single-question", response_model=GenerateSingleHrQuestionResponse)
+async def generate_single_hr_question(req: GenerateSingleHrQuestionRequest):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key or api_key.startswith("AIza"):
+        # Fallback trivial
+        return GenerateSingleHrQuestionResponse(
+            question=SingleGeneratedQuestion(
+                questionText=f"Hãy nói về một lần bạn thể hiện kỹ năng {req.target_skill} trong công việc.",
+                category=req.category,
+                difficulty=req.level,
+                targetSkill=req.target_skill,
+                suggestedMethod=req.suggested_method,
+                maxAnswerTime=req.max_answer_time,
+                expectedAnswerGuide="Ứng viên nên dùng cấu trúc STAR."
+            )
+        )
+
+    try:
+        prompt = HR_GENERATE_SINGLE_QUESTION_PROMPT.format(
+            role=req.role,
+            level=req.level,
+            category=req.category,
+            target_skill=req.target_skill,
+            suggested_method=req.suggested_method,
+            max_answer_time=req.max_answer_time
+        )
+
+        result, usage_data = await call_openai_with_usage(prompt)
+        
+        return GenerateSingleHrQuestionResponse(
+            question=SingleGeneratedQuestion(**result),
+            usage=TokenUsageInfo(**usage_data)
+        )
+    except Exception as e:
+        print(f"[HR] Error generating single question: {e}")
+        return GenerateSingleHrQuestionResponse(
+            question=SingleGeneratedQuestion(
+                questionText=f"Hãy nói về một lần bạn thể hiện kỹ năng {req.target_skill} trong công việc.",
+                category=req.category,
+                difficulty=req.level,
+                targetSkill=req.target_skill,
+                suggestedMethod=req.suggested_method,
+                maxAnswerTime=req.max_answer_time,
+                expectedAnswerGuide="Ứng viên nên dùng cấu trúc STAR."
+            )
+        )
 
 
 # ═════════════════════════════════════════════
