@@ -24,8 +24,14 @@ namespace InterviewPro.API.Data
         public DbSet<HrInterviewDraft> HrInterviewDrafts { get; set; }
         public DbSet<HrInterviewEvaluation> HrInterviewEvaluations { get; set; }
         public DbSet<HrInterviewQuestionEvaluation> HrInterviewQuestionEvaluations { get; set; }
+        public DbSet<HrInterviewStrength> HrInterviewStrengths { get; set; }
+        public DbSet<HrInterviewImprovement> HrInterviewImprovements { get; set; }
+        public DbSet<HrInterviewRecommendedPractice> HrInterviewRecommendedPractices { get; set; }
         public DbSet<HrQuestionBank> HrQuestionBanks { get; set; }
         public DbSet<AiRequestLog> AiRequestLogs { get; set; }
+        
+        public DbSet<InterviewAnalysisJob> InterviewAnalysisJobs { get; set; }
+        public DbSet<InterviewAnalysisResult> InterviewAnalysisResults { get; set; }
 
         // ── Practice Sessions (Interview Data Management) ──
         public DbSet<PracticeSession> PracticeSessions { get; set; }
@@ -50,10 +56,32 @@ namespace InterviewPro.API.Data
         public DbSet<CreditWallet> CreditWallets { get; set; }
         public DbSet<CreditPaymentTransaction> CreditPaymentTransactions { get; set; }
         public DbSet<CreditHistory> CreditHistories { get; set; }
+        public DbSet<InterviewStrength> InterviewStrengths { get; set; }
+        public DbSet<InterviewImprovement> InterviewImprovements { get; set; }
+        public DbSet<InterviewStarAnalysis> InterviewStarAnalyses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // AI Analysis Configurations
+            modelBuilder.Entity<InterviewStrength>()
+                .HasOne(s => s.Result)
+                .WithMany(r => r.Strengths)
+                .HasForeignKey(s => s.ResultId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InterviewImprovement>()
+                .HasOne(i => i.Result)
+                .WithMany(r => r.Improvements)
+                .HasForeignKey(i => i.ResultId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InterviewStarAnalysis>()
+                .HasOne(sa => sa.Result)
+                .WithMany(r => r.StarAnalyses)
+                .HasForeignKey(sa => sa.ResultId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
 
@@ -146,7 +174,25 @@ namespace InterviewPro.API.Data
             modelBuilder.Entity<HrInterviewAnswer>()
                 .HasOne(a => a.Evaluation)
                 .WithOne()
-                .HasForeignKey<HrInterviewQuestionEvaluation>(e => e.AnswerId)
+                .HasForeignKey<HrInterviewQuestionEvaluation>(e => e.InterviewAnswerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<HrInterviewStrength>()
+                .HasOne<HrInterviewEvaluation>()
+                .WithMany(e => e.Strengths)
+                .HasForeignKey(s => s.EvaluationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<HrInterviewImprovement>()
+                .HasOne<HrInterviewEvaluation>()
+                .WithMany(e => e.Improvements)
+                .HasForeignKey(i => i.EvaluationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<HrInterviewRecommendedPractice>()
+                .HasOne<HrInterviewEvaluation>()
+                .WithMany(e => e.RecommendedPractices)
+                .HasForeignKey(rp => rp.EvaluationId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Question Bank config ──

@@ -4,6 +4,7 @@ using InterviewPro.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InterviewPro.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260702145806_UpdateHrEvaluationSchema")]
+    partial class UpdateHrEvaluationSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -380,7 +383,7 @@ namespace InterviewPro.API.Migrations
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 898, DateTimeKind.Utc).AddTicks(2313),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 300, DateTimeKind.Utc).AddTicks(8599),
                             Credits = 10,
                             IsActive = true,
                             Name = "Gói 10 lượt",
@@ -389,7 +392,7 @@ namespace InterviewPro.API.Migrations
                         new
                         {
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 898, DateTimeKind.Utc).AddTicks(2318),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 300, DateTimeKind.Utc).AddTicks(8606),
                             Credits = 25,
                             IsActive = true,
                             Name = "Gói 25 lượt",
@@ -398,7 +401,7 @@ namespace InterviewPro.API.Migrations
                         new
                         {
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 898, DateTimeKind.Utc).AddTicks(2320),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 300, DateTimeKind.Utc).AddTicks(8611),
                             Credits = 50,
                             IsActive = true,
                             Name = "Gói 50 lượt",
@@ -584,7 +587,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Personal",
                             CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
                             ComponentType = "Avatar",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7711),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6762),
                             DefaultBindingPath = "Candidate.Avatar",
                             DefaultVariant = "default",
                             Description = "",
@@ -603,7 +606,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Personal",
                             CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
                             ComponentType = "FullName",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7721),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6781),
                             DefaultBindingPath = "Candidate.FullName",
                             DefaultVariant = "default",
                             Description = "",
@@ -622,7 +625,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Personal",
                             CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
                             ComponentType = "JobTitle",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7723),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6784),
                             DefaultBindingPath = "Candidate.JobTitle",
                             DefaultVariant = "default",
                             Description = "",
@@ -641,7 +644,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Personal",
                             CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
                             ComponentType = "ContactRow",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7725),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6787),
                             DefaultBindingPath = "Candidate.Contact",
                             DefaultVariant = "default",
                             Description = "",
@@ -660,7 +663,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Experience",
                             CompatibleSectionTypesJson = "[\"Experience\"]",
                             ComponentType = "ExperienceCard",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7727),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6789),
                             DefaultBindingPath = "Candidate.Experiences",
                             DefaultVariant = "default",
                             Description = "",
@@ -679,7 +682,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Experience",
                             CompatibleSectionTypesJson = "[\"Experience\", \"Education\"]",
                             ComponentType = "Timeline",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7729),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6791),
                             DefaultBindingPath = "",
                             DefaultVariant = "default",
                             Description = "",
@@ -698,7 +701,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Experience",
                             CompatibleSectionTypesJson = "[\"Experience\", \"Projects\"]",
                             ComponentType = "AchievementList",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7730),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6793),
                             DefaultBindingPath = "",
                             DefaultVariant = "default",
                             Description = "",
@@ -717,7 +720,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Experience",
                             CompatibleSectionTypesJson = "[\"Experience\", \"Projects\"]",
                             ComponentType = "TechnologyTags",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7732),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6795),
                             DefaultBindingPath = "",
                             DefaultVariant = "default",
                             Description = "",
@@ -736,7 +739,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Education",
                             CompatibleSectionTypesJson = "[\"Education\"]",
                             ComponentType = "EducationCard",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7733),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6796),
                             DefaultBindingPath = "Candidate.Educations",
                             DefaultVariant = "default",
                             Description = "",
@@ -755,7 +758,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Skills",
                             CompatibleSectionTypesJson = "[\"Skills\"]",
                             ComponentType = "SkillTags",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7736),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6800),
                             DefaultBindingPath = "Candidate.Skills",
                             DefaultVariant = "default",
                             Description = "",
@@ -774,7 +777,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Skills",
                             CompatibleSectionTypesJson = "[\"Skills\"]",
                             ComponentType = "SkillProgress",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7738),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6802),
                             DefaultBindingPath = "Candidate.Skills",
                             DefaultVariant = "default",
                             Description = "",
@@ -793,7 +796,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Projects",
                             CompatibleSectionTypesJson = "[\"Projects\"]",
                             ComponentType = "ProjectCard",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7739),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6804),
                             DefaultBindingPath = "Candidate.Projects",
                             DefaultVariant = "default",
                             Description = "",
@@ -812,7 +815,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Decoration",
                             CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Summary\", \"Experience\", \"Education\", \"Skills\", \"Projects\", \"Certificates\", \"Languages\", \"Custom\"]",
                             ComponentType = "Divider",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7741),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6806),
                             DefaultBindingPath = "",
                             DefaultVariant = "default",
                             Description = "",
@@ -831,7 +834,7 @@ namespace InterviewPro.API.Migrations
                             Category = "Layout",
                             CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Summary\", \"Experience\", \"Education\", \"Skills\", \"Projects\", \"Certificates\", \"Languages\", \"Custom\"]",
                             ComponentType = "Container",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(7742),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 329, DateTimeKind.Utc).AddTicks(6808),
                             DefaultBindingPath = "",
                             DefaultVariant = "default",
                             Description = "",
@@ -908,7 +911,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000001"),
                             Category = "Core",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3599),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9521),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -925,7 +928,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000002"),
                             Category = "Core",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3608),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9536),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -942,7 +945,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000003"),
                             Category = "Core",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3610),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9539),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -959,7 +962,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000004"),
                             Category = "Core",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3612),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9541),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -976,7 +979,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000005"),
                             Category = "Core",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3614),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9544),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -993,7 +996,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000006"),
                             Category = "Optional",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3622),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9558),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1010,7 +1013,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000007"),
                             Category = "Optional",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3624),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9560),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1027,7 +1030,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000008"),
                             Category = "Optional",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3625),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9563),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1044,7 +1047,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000009"),
                             Category = "Optional",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3627),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9565),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1061,7 +1064,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000010"),
                             Category = "Optional",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3629),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9567),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1078,7 +1081,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000011"),
                             Category = "Optional",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3630),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9569),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1095,7 +1098,7 @@ namespace InterviewPro.API.Migrations
                         {
                             Id = new Guid("10000000-0000-0000-0000-000000000012"),
                             Category = "Custom",
-                            CreatedAt = new DateTime(2026, 7, 2, 19, 2, 37, 904, DateTimeKind.Utc).AddTicks(3670),
+                            CreatedAt = new DateTime(2026, 7, 2, 14, 58, 4, 328, DateTimeKind.Utc).AddTicks(9571),
                             DefaultBindingPath = "",
                             Description = "",
                             Icon = "",
@@ -1763,9 +1766,6 @@ namespace InterviewPro.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AnsweredQuestions")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -1775,18 +1775,9 @@ namespace InterviewPro.API.Migrations
                     b.Property<int>("CurrentQuestionIndex")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Difficulty")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DurationMinutes")
-                        .HasColumnType("int");
 
                     b.Property<string>("FinalLevel")
                         .HasColumnType("nvarchar(max)");
@@ -1796,9 +1787,6 @@ namespace InterviewPro.API.Migrations
 
                     b.Property<string>("FinalSummary")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -2120,9 +2108,6 @@ namespace InterviewPro.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AnsweredQuestions")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -2136,22 +2121,13 @@ namespace InterviewPro.API.Migrations
                     b.Property<int>("CurrentQuestionIndex")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Difficulty")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DurationMinutes")
-                        .HasColumnType("int");
-
                     b.Property<string>("InterviewType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
 
                     b.Property<string>("OverallFeedback")
                         .IsRequired()
@@ -2179,9 +2155,6 @@ namespace InterviewPro.API.Migrations
                     b.Property<string>("TechStack")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TotalQuestions")
-                        .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");

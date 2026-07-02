@@ -274,7 +274,7 @@ export default function HRInterview() {
   };
 
   const finishInterview = () => {
-     navigate(`/result/${sessionId}`);
+     navigate(`/interview/analysis/${sessionId}`);
   };
 
   const resetState = () => {
@@ -285,12 +285,6 @@ export default function HRInterview() {
     setWordCount(0);
     setFillerWords(0);
     setDraftStatus('idle');
-  };
-
-  const endInterviewEarly = () => {
-     if(window.confirm("Bạn có chắc chắn muốn kết thúc phỏng vấn sớm? Các câu chưa trả lời sẽ không được tính điểm.")) {
-         finishInterview();
-     }
   };
 
   // Dọn dẹp
@@ -341,9 +335,6 @@ export default function HRInterview() {
               {draftStatus === 'failed' && <span className="text-red-600 ml-1">Failed</span>}
               {draftStatus === 'idle' && <span className="text-gray-400 ml-1">-</span>}
             </span>
-            <button onClick={endInterviewEarly} className="px-4 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium ml-2">
-              End Interview
-            </button>
           </div>
         </div>
 

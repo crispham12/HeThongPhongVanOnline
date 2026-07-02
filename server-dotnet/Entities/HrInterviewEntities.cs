@@ -19,6 +19,12 @@ namespace InterviewPro.API.Entities
         public string? FinalSummary { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
+        
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+        public int AnsweredQuestions { get; set; } = 0;
+        public int DurationMinutes { get; set; } = 0;
 
         // Navigation properties
         public ICollection<HrInterviewQuestion> Questions { get; set; } = new List<HrInterviewQuestion>();
@@ -77,33 +83,96 @@ namespace InterviewPro.API.Entities
     public class HrInterviewQuestionEvaluation
     {
         public int Id { get; set; }
-        public int AnswerId { get; set; }
-        public double Score { get; set; }
-        public string Strength { get; set; } = string.Empty;
-        public string Weakness { get; set; } = string.Empty;
-        public string MissingStar { get; set; } = string.Empty;
-        public string SuggestedAnswer { get; set; } = string.Empty;
+        public int InterviewAnswerId { get; set; }
+        public double QuestionScore { get; set; }
+        public double StarScore { get; set; }
+        public double CommunicationScore { get; set; }
+        public double ConfidenceScore { get; set; }
+        public string Strengths { get; set; } = "[]";
+        public string Weaknesses { get; set; } = "[]";
+        public string Suggestions { get; set; } = "[]";
+        
+        // STAR Analysis Fields
+        public double SituationScore { get; set; }
+        public string SituationStatus { get; set; } = string.Empty;
+        public string SituationFeedback { get; set; } = string.Empty;
+        
+        public double TaskScore { get; set; }
+        public string TaskStatus { get; set; } = string.Empty;
+        public string TaskFeedback { get; set; } = string.Empty;
+        
+        public double ActionScore { get; set; }
+        public string ActionStatus { get; set; } = string.Empty;
+        public string ActionFeedback { get; set; } = string.Empty;
+        
+        public double ResultScore { get; set; }
+        public string ResultStatus { get; set; } = string.Empty;
+        public string ResultFeedback { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class HrInterviewEvaluation
     {
         public int Id { get; set; }
         public int SessionId { get; set; }
-        public double HrFinalScore { get; set; }
-        public double CommunicationScore { get; set; }
-        public double StarScore { get; set; }
-        public double ConfidenceScore { get; set; }
-        public double ProfessionalismScore { get; set; }
-        public double GrowthMindsetScore { get; set; }
-        public double CultureFitScore { get; set; }
         
-        public string Level { get; set; } = string.Empty;
-        public string Summary { get; set; } = string.Empty;
-        public string OverallStrengthsJson { get; set; } = "[]";
-        public string OverallWeaknessesJson { get; set; } = "[]";
-        public string ImprovementRoadmapJson { get; set; } = "[]";
-        public string ReadinessLevel { get; set; } = string.Empty;
+        // New Composite Scores
+        public double StarStructureScore { get; set; }
+        public double CommunicationScore { get; set; }
+        public double ProfessionalismScore { get; set; }
+        public double ConfidenceScore { get; set; }
+        public double LogicScore { get; set; }
+        public double CompletenessScore { get; set; }
+        public double ClarityScore { get; set; }
+        public double OverallScore { get; set; }
+
+        public string HiringReadiness { get; set; } = string.Empty;
+        public string OverallStatus { get; set; } = string.Empty;
+        public string PromptVersion { get; set; } = string.Empty;
+        public string EvaluationModel { get; set; } = string.Empty;
+        
+        // Summary Fields
+        public string OverallObservation { get; set; } = string.Empty;
+        public string StrengthSummary { get; set; } = string.Empty;
+        public string WeaknessSummary { get; set; } = string.Empty;
+        public string HiringRecommendation { get; set; } = string.Empty;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation
+        public ICollection<HrInterviewStrength> Strengths { get; set; } = new List<HrInterviewStrength>();
+        public ICollection<HrInterviewImprovement> Improvements { get; set; } = new List<HrInterviewImprovement>();
+        public ICollection<HrInterviewRecommendedPractice> RecommendedPractices { get; set; } = new List<HrInterviewRecommendedPractice>();
+    }
+
+    public class HrInterviewStrength
+    {
+        public int Id { get; set; }
+        public int EvaluationId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public double Score { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class HrInterviewImprovement
+    {
+        public int Id { get; set; }
+        public int EvaluationId { get; set; }
+        public string Priority { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class HrInterviewRecommendedPractice
+    {
+        public int Id { get; set; }
+        public int EvaluationId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string EstimatedTime { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public string RecommendedLevel { get; set; } = string.Empty;
     }
 
     public class AiRequestLog
@@ -141,6 +210,11 @@ namespace InterviewPro.API.Entities
 
         // Error detail (null nếu Success)
         public string? ErrorMessage { get; set; }
+
+        // Prompt metadata
+        public string PromptVersion { get; set; } = string.Empty;
+        public double Temperature { get; set; } = 0.0;
+        public double EvaluationTime { get; set; } = 0.0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

@@ -297,35 +297,204 @@ namespace InterviewPro.API.Services
                 {
                     Question = q.QuestionText,
                     Answer = ans?.AnswerText ?? "",
+                    Transcript = ans?.Transcript ?? "",
+                    DurationSeconds = ans?.DurationSeconds ?? 0,
+                    WordCount = ans?.WordCount ?? 0,
+                    FillerWords = ans?.FillerWords ?? 0,
                     Score = 0, // Sẽ được chấm chung
                     Feedback = ""
                 };
             }).ToList();
 
-            // Gọi AI tổng kết cuối bài
-            var finalResult = await _aiClient.GenerateHrFinalResultAsync(
-                session.SessionGuid, session.Role, session.Difficulty, answerSummaries);
+            HrFinalResultResponse finalResult;
+            if (!answerSummaries.Any(a => !string.IsNullOrWhiteSpace(a.Answer) || !string.IsNullOrWhiteSpace(a.Transcript)))
+            {
+                // Fallback zero-score result if no transcripts are found
+                finalResult = new HrFinalResultResponse
+                {
+                    SessionId = session.SessionGuid,
+                    OverallScore = 0.0,
+                    CompositeScores = new CompositeScoresDto(),
+                    OverallObservation = "Không có dữ liệu hợp lệ để đánh giá.",
+                    HiringRecommendation = "Không",
+                    ReadinessLevel = "Không"
+                };
+            }
+                // Gọi AI tổng kết cuối bài
+                finalResult = await _aiClient.GenerateHrFinalResultAsync(
+                    session.SessionGuid, session.Role, session.Difficulty, answerSummaries);
+
+                // --- BACKEND SCORING LOGIC ---
+                double sumScore = 0.0;
+                int validQuestions = 0;
+
+                if (finalResult.QuestionEvaluations != null && finalResult.QuestionEvaluations.Any())
+                {
+                    foreach (var qEval in finalResult.QuestionEvaluations)
+                    {
+                        if (qEval.StarAnalysis != null)
+                        {
+                            var sScore = qEval.StarAnalysis.Situation?.Score ?? 0;
+                            var tScore = qEval.StarAnalysis.Task?.Score ?? 0;
+                            var aScore = qEval.StarAnalysis.Action?.Score ?? 0;
+                            var rScore = qEval.StarAnalysis.Result?.Score ?? 0;
+                            
+                            // Trọng số STAR
+                            qEval.QuestionScore = sScore * 0.20 + tScore * 0.20 + aScore * 0.30 + rScore * 0.30;
+                            // Fallback properties for UI display mapping
+                            qEval.StarScore = qEval.QuestionScore;
+                            qEval.CommunicationScore = qEval.QuestionScore;
+                            qEval.ConfidenceScore = qEval.QuestionScore;
+
+                            sumScore += qEval.QuestionScore;
+                            validQuestions++;
+                        }
+                    }
+                }
+
+                // Final OverallScore must be calculated from compositeScores 7-criterion formula
+                if (finalResult.CompositeScores != null)
+                {
+                    var c = finalResult.CompositeScores;
+                    double overall = (c.StarStructureScore * 0.30)
+                                   + (c.CommunicationScore * 0.20)
+                                   + (c.ProfessionalismScore * 0.10)
+                                   + (c.ConfidenceScore * 0.10)
+                                   + (c.LogicScore * 0.15)
+                                   + (c.CompletenessScore * 0.05)
+                                   + (c.ClarityScore * 0.10);
+                    finalResult.OverallScore = Math.Round(overall, 1);
+                }
+                else
+                {
+                    finalResult.OverallScore = 0.0;
+                }
+
+                // Thresholds for Hiring Readiness
+                if (finalResult.OverallScore >= 8.0)
+                {
+                    finalResult.ReadinessLevel = $"Sẵn sàng phỏng vấn {session.Difficulty}";
+                }
+                else if (finalResult.OverallScore >= 6.0)
+                {
+                    finalResult.ReadinessLevel = $"Cần luyện thêm trước khi phỏng vấn {session.Difficulty}";
+                }
+                else
+                {
+                    finalResult.ReadinessLevel = "Cần chuẩn bị kỹ hơn";
+                }
+                
+                finalResult.Status = "completed";
 
             // Lưu FinalResult vào DB
             var dbFinalResult = new HrInterviewEvaluation
             {
                 SessionId = session.Id,
-                HrFinalScore = finalResult.HrFinalScore,
-                Level = finalResult.Level,
-                Summary = finalResult.Summary,
-                OverallStrengthsJson = JsonSerializer.Serialize(finalResult.OverallStrengths),
-                OverallWeaknessesJson = JsonSerializer.Serialize(finalResult.OverallWeaknesses),
-                ImprovementRoadmapJson = JsonSerializer.Serialize(finalResult.ImprovementRoadmap),
-                ReadinessLevel = finalResult.ReadinessLevel
+                StarStructureScore = finalResult.CompositeScores?.StarStructureScore ?? 0,
+                CommunicationScore = finalResult.CompositeScores?.CommunicationScore ?? 0,
+                ProfessionalismScore = finalResult.CompositeScores?.ProfessionalismScore ?? 0,
+                ConfidenceScore = finalResult.CompositeScores?.ConfidenceScore ?? 0,
+                LogicScore = finalResult.CompositeScores?.LogicScore ?? 0,
+                CompletenessScore = finalResult.CompositeScores?.CompletenessScore ?? 0,
+                ClarityScore = finalResult.CompositeScores?.ClarityScore ?? 0,
+                OverallScore = finalResult.OverallScore,
+                OverallObservation = finalResult.OverallObservation,
+                StrengthSummary = finalResult.StrengthSummary,
+                WeaknessSummary = finalResult.WeaknessSummary,
+                HiringRecommendation = finalResult.HiringRecommendation,
+                HiringReadiness = finalResult.ReadinessLevel,
+                OverallStatus = "completed"
             };
+
+            if (finalResult.Strengths != null)
+            {
+                foreach (var s in finalResult.Strengths)
+                {
+                    dbFinalResult.Strengths.Add(new HrInterviewStrength
+                    {
+                        Title = s.Title,
+                        Description = s.Description,
+                        Score = s.Score,
+                        Status = s.Status
+                    });
+                }
+            }
+
+            if (finalResult.Improvements != null)
+            {
+                foreach (var i in finalResult.Improvements)
+                {
+                    dbFinalResult.Improvements.Add(new HrInterviewImprovement
+                    {
+                        Priority = i.Priority,
+                        Title = i.Title,
+                        Description = i.Description
+                    });
+                }
+            }
+
+            if (finalResult.RecommendedPractice != null)
+            {
+                foreach (var r in finalResult.RecommendedPractice)
+                {
+                    dbFinalResult.RecommendedPractices.Add(new HrInterviewRecommendedPractice
+                    {
+                        Title = r.Title,
+                        EstimatedTime = r.EstimatedTime,
+                        Difficulty = r.Difficulty,
+                        RecommendedLevel = r.RecommendedLevel
+                    });
+                }
+            }
 
             _db.HrInterviewEvaluations.Add(dbFinalResult);
 
+            // Ghi nhận điểm từng câu hỏi nếu có trả về
+            if (finalResult.QuestionEvaluations != null && finalResult.QuestionEvaluations.Any())
+            {
+                foreach (var qEval in finalResult.QuestionEvaluations)
+                {
+                    // Map theo index sử dụng biến local thay vì navigation property
+                    var question = questions.FirstOrDefault(q => q.QuestionIndex == qEval.QuestionIndex);
+                    if (question != null)
+                    {
+                        var answer = answers.FirstOrDefault(a => a.QuestionId == question.Id);
+                        if (answer != null)
+                        {
+                            var dbQuestionEval = new HrInterviewQuestionEvaluation
+                            {
+                                InterviewAnswerId = answer.Id,
+                                QuestionScore = qEval.QuestionScore,
+                                StarScore = qEval.StarScore,
+                                CommunicationScore = qEval.CommunicationScore,
+                                ConfidenceScore = qEval.ConfidenceScore,
+                                Strengths = JsonSerializer.Serialize(qEval.Strengths ?? new List<string>()),
+                                Weaknesses = JsonSerializer.Serialize(qEval.Weaknesses ?? new List<string>()),
+                                Suggestions = JsonSerializer.Serialize(qEval.Suggestions ?? new List<string>()),
+                                SituationScore = qEval.StarAnalysis?.Situation?.Score ?? 0,
+                                SituationStatus = qEval.StarAnalysis?.Situation?.Status ?? "",
+                                SituationFeedback = qEval.StarAnalysis?.Situation?.Feedback ?? "",
+                                TaskScore = qEval.StarAnalysis?.Task?.Score ?? 0,
+                                TaskStatus = qEval.StarAnalysis?.Task?.Status ?? "",
+                                TaskFeedback = qEval.StarAnalysis?.Task?.Feedback ?? "",
+                                ActionScore = qEval.StarAnalysis?.Action?.Score ?? 0,
+                                ActionStatus = qEval.StarAnalysis?.Action?.Status ?? "",
+                                ActionFeedback = qEval.StarAnalysis?.Action?.Feedback ?? "",
+                                ResultScore = qEval.StarAnalysis?.Result?.Score ?? 0,
+                                ResultStatus = qEval.StarAnalysis?.Result?.Status ?? "",
+                                ResultFeedback = qEval.StarAnalysis?.Result?.Feedback ?? ""
+                            };
+                            _db.HrInterviewQuestionEvaluations.Add(dbQuestionEval);
+                        }
+                    }
+                }
+            }
+
             // Cập nhật session thành Completed
             session.Status = "Completed";
-            session.FinalScore = finalResult.HrFinalScore;
-            session.FinalLevel = finalResult.Level;
-            session.FinalSummary = finalResult.Summary;
+            session.FinalScore = finalResult.OverallScore;
+            session.FinalLevel = finalResult.ReadinessLevel;
+            session.FinalSummary = finalResult.OverallObservation;
             session.CompletedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
@@ -392,20 +561,75 @@ namespace InterviewPro.API.Services
                 ?? throw new KeyNotFoundException("Không tìm thấy phiên phỏng vấn.");
 
             if (session.FinalResult == null)
-                throw new InvalidOperationException("Kết quả tổng kết chưa có. Hãy hoàn thành đủ 10 câu hỏi.");
+            {
+                if (session.Status == "Completed")
+                {
+                    // Fallback for old sessions that completed without a generated result
+                    return new HrFinalResultResponse
+                    {
+                        SessionId = session.SessionGuid,
+                        OverallScore = 0.0,
+                        CompositeScores = new CompositeScoresDto(),
+                        OverallObservation = "Không có dữ liệu hợp lệ để đánh giá.",
+                        HiringRecommendation = "Không",
+                        ReadinessLevel = "Không",
+                        Status = "Completed"
+                    };
+                }
+
+                // Cập nhật: Cho phép kết thúc sớm nếu đã trả lời ít nhất 1 câu
+                var totalAnswered = await _db.HrInterviewAnswers.CountAsync(a => a.SessionId == session.Id);
+                if (totalAnswered >= 1)
+                {
+                    var techStack = System.Text.Json.JsonSerializer.Deserialize<List<string>>(session.TechStackJson) ?? new List<string>();
+                    var generatedResult = await CompleteInterviewAsync(session, techStack);
+                    return generatedResult;
+                }
+
+                throw new InvalidOperationException("Kết quả tổng kết chưa có. Vui lòng hoàn thành ít nhất 1 câu hỏi.");
+            }
 
             var fr = session.FinalResult;
             return new HrFinalResultResponse
             {
                 SessionId = session.SessionGuid,
-                HrFinalScore = fr.HrFinalScore,
-                Level = fr.Level,
-                Summary = fr.Summary,
-                OverallStrengths = JsonSerializer.Deserialize<List<string>>(fr.OverallStrengthsJson) ?? new(),
-                OverallWeaknesses = JsonSerializer.Deserialize<List<string>>(fr.OverallWeaknessesJson) ?? new(),
-                ImprovementRoadmap = JsonSerializer.Deserialize<List<RoadmapItemDto>>(fr.ImprovementRoadmapJson) ?? new(),
-                ReadinessLevel = fr.ReadinessLevel,
-                Status = session.Status
+                OverallScore = fr.OverallScore,
+                CompositeScores = new CompositeScoresDto
+                {
+                    StarStructureScore = fr.StarStructureScore,
+                    CommunicationScore = fr.CommunicationScore,
+                    ProfessionalismScore = fr.ProfessionalismScore,
+                    ConfidenceScore = fr.ConfidenceScore,
+                    LogicScore = fr.LogicScore,
+                    CompletenessScore = fr.CompletenessScore,
+                    ClarityScore = fr.ClarityScore
+                },
+                OverallObservation = fr.OverallObservation,
+                StrengthSummary = fr.StrengthSummary,
+                WeaknessSummary = fr.WeaknessSummary,
+                HiringRecommendation = fr.HiringRecommendation,
+                ReadinessLevel = fr.HiringReadiness,
+                Status = session.Status,
+                Strengths = fr.Strengths.Select(s => new HrStrengthDto
+                {
+                    Title = s.Title,
+                    Description = s.Description,
+                    Score = s.Score,
+                    Status = s.Status
+                }).ToList(),
+                Improvements = fr.Improvements.Select(i => new HrImprovementDto
+                {
+                    Priority = i.Priority,
+                    Title = i.Title,
+                    Description = i.Description
+                }).ToList(),
+                RecommendedPractice = fr.RecommendedPractices.Select(r => new HrRecommendedPracticeDto
+                {
+                    Title = r.Title,
+                    EstimatedTime = r.EstimatedTime,
+                    Difficulty = r.Difficulty,
+                    RecommendedLevel = r.RecommendedLevel
+                }).ToList()
             };
         }
 
