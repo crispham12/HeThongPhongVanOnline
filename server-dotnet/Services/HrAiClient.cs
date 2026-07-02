@@ -205,20 +205,7 @@ namespace InterviewPro.API.Services
                 var result = JsonSerializer.Deserialize<AiEvaluationResult>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (result != null)
-                {
-                    result.QuestionScore = result.OverallScore;
-                    result.CommunicationScore = result.OverallScore;
-                    result.ClarityScore = result.OverallScore;
-                    result.StarScore = result.StarAnalysis != null ? 
-                        (result.StarAnalysis.Situation.Score * 0.20 + 
-                         result.StarAnalysis.Task.Score * 0.20 + 
-                         result.StarAnalysis.Action.Score * 0.30 + 
-                         result.StarAnalysis.Result.Score * 0.30) : result.OverallScore;
-                    result.ProfessionalMindsetScore = result.OverallScore;
-                    result.RelevanceScore = result.OverallScore;
-                    result.Feedback = result.Summary;
-                }
+                // Removed property mapping block as it's now computed by the backend
 
                 sw.Stop();
                 return result ?? BuildFallbackEvaluation();
@@ -380,32 +367,31 @@ namespace InterviewPro.API.Services
 
         private static AiEvaluationResult BuildFallbackEvaluation() => new()
         {
-            CommunicationScore = 7,
-            ClarityScore = 7,
-            StarScore = 6,
-            ProfessionalMindsetScore = 7,
-            RelevanceScore = 7,
-            QuestionScore = 6.9,
-            Level = "Khá",
-            Feedback = "AI Service tạm thời không khả dụng. Điểm số này là ước tính tự động.",
-            Strengths = new List<string> { "Có cố gắng trả lời đúng trọng tâm câu hỏi" },
-            Weaknesses = new List<string> { "Không thể đánh giá chi tiết do AI Service lỗi" },
-            ImprovementSuggestions = new List<string> { "Hãy thử lại sau khi hệ thống ổn định." }
+            Summary = "Không thể đánh giá do lỗi hệ thống AI hoặc không có dữ liệu hợp lệ.",
+
+            Strengths = new List<string>(),
+            Weaknesses = new List<string>(),
+            ImprovementSuggestions = new List<string>(),
+            StarCompletion = 0,
+            StarChecklist = new StarChecklist(),
+            StarAnalysis = new StarAnalysisResult(),
+            ImprovedAnswer = new ImprovedAnswerResult()
         };
 
         private static HrFinalResultResponse BuildFallbackFinal(string sessionId) => new()
         {
             SessionId = sessionId,
-            HrFinalScore = 7.0,
-            Level = "Khá",
-            Summary = "Tổng kết tự động do AI Service tạm thời không khả dụng.",
-            OverallStrengths = new List<string> { "Hoàn thành đủ 10 câu hỏi phỏng vấn." },
-            OverallWeaknesses = new List<string> { "Không thể phân tích chi tiết lúc này." },
-            ImprovementRoadmap = new List<RoadmapItemDto>
-            {
-                new() { Title = "Luyện STAR method", Description = "Chuẩn bị theo 4 bước: Situation, Task, Action, Result." }
-            },
-            ReadinessLevel = "Đang đánh giá",
+            OverallScore = 0.0,
+            CompositeScores = new CompositeScoresDto(),
+            QuestionEvaluations = new List<HrQuestionEvaluationDto>(),
+            Strengths = new List<HrStrengthDto>(),
+            Improvements = new List<HrImprovementDto>(),
+            RecommendedPractice = new List<HrRecommendedPracticeDto>(),
+            OverallObservation = "Tổng kết tự động: Không có dữ liệu hợp lệ để đánh giá.",
+            StrengthSummary = "Chưa có đủ dữ liệu để đánh giá điểm mạnh.",
+            WeaknessSummary = "Chưa có đủ dữ liệu để đánh giá điểm yếu.",
+            HiringRecommendation = "Chưa có đủ dữ liệu để đưa ra khuyến nghị tuyển dụng.",
+            ReadinessLevel = "Cần luyện thêm",
             Status = "completed"
         };
     }

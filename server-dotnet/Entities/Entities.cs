@@ -76,6 +76,12 @@ namespace InterviewPro.API.Entities
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
+        
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public int TotalQuestions { get; set; } = 10;
+        public int AnsweredQuestions { get; set; } = 0;
+        public int DurationMinutes { get; set; } = 0;
 
         public ICollection<InterviewQuestion> Questions { get; set; } = new List<InterviewQuestion>();
     }

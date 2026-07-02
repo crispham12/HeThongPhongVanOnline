@@ -180,6 +180,13 @@ namespace InterviewPro.API.Controllers
                 req.Answer
             );
 
+            // Tính điểm cục bộ dựa trên trọng số STAR
+            float sScore = (float)(aiResult.StarAnalysis?.Situation?.Score ?? 0);
+            float tScore = (float)(aiResult.StarAnalysis?.Task?.Score ?? 0);
+            float aScore = (float)(aiResult.StarAnalysis?.Action?.Score ?? 0);
+            float rScore = (float)(aiResult.StarAnalysis?.Result?.Score ?? 0);
+            float calculatedScore = (float)Math.Round(sScore * 0.20f + tScore * 0.20f + aScore * 0.30f + rScore * 0.30f, 1);
+
             // Save practice history
             var history = new Entities.UserQuestionPracticeHistory
             {
@@ -187,8 +194,8 @@ namespace InterviewPro.API.Controllers
                 QuestionId = id,
                 UserAnswer = req.Answer,
                 PracticeStatus = "Practiced",
-                AiScore = (float)aiResult.QuestionScore,
-                AiFeedback = aiResult.Feedback,
+                AiScore = calculatedScore,
+                AiFeedback = aiResult.Summary ?? "",
                 StrengthsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Strengths),
                 WeaknessesJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Weaknesses),
                 ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.ImprovementSuggestions),

@@ -94,25 +94,13 @@ namespace InterviewPro.API.Interfaces
 
     public class AiEvaluationResult
     {
-        // Legacy fields (kept for compatibility)
-        public double QuestionScore { get; set; }
-        public double CommunicationScore { get; set; }
-        public double ClarityScore { get; set; }
-        public double StarScore { get; set; }
-        public double ProfessionalMindsetScore { get; set; }
-        public double RelevanceScore { get; set; }
-        public string Level { get; set; } = string.Empty;
-        public string Feedback { get; set; } = string.Empty;
-        public List<string> Strengths { get; set; } = new();
-        public List<string> Weaknesses { get; set; } = new();
-        public List<string> ImprovementSuggestions { get; set; } = new();
-
-        // New STAR fields
-        public double OverallScore { get; set; }
         public string Summary { get; set; } = string.Empty;
         public int StarCompletion { get; set; }
         public StarChecklist StarChecklist { get; set; } = new();
         public StarAnalysisResult StarAnalysis { get; set; } = new();
+        public List<string> Strengths { get; set; } = new();
+        public List<string> Weaknesses { get; set; } = new();
+        public List<string> ImprovementSuggestions { get; set; } = new();
         public ImprovedAnswerResult ImprovedAnswer { get; set; } = new();
         public string NextRecommendation { get; set; } = string.Empty;
     }
@@ -151,6 +139,10 @@ namespace InterviewPro.API.Interfaces
     {
         public string Question { get; set; } = string.Empty;
         public string Answer { get; set; } = string.Empty;
+        public string Transcript { get; set; } = string.Empty;
+        public int DurationSeconds { get; set; }
+        public int WordCount { get; set; }
+        public int FillerWords { get; set; }
         public double Score { get; set; }
         public string Feedback { get; set; } = string.Empty;
     }

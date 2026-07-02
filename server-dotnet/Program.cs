@@ -56,8 +56,16 @@ builder.Services.AddScoped<IAiMonitorService, AiMonitorService>();
 builder.Services.AddScoped<IHrQuestionBankService, HrQuestionBankService>();
 builder.Services.AddScoped<IAiRequestLogService, AiRequestLogService>();
 
+// Background Analysis Worker
+builder.Services.AddSingleton<IInterviewAnalysisQueue, InterviewAnalysisQueue>();
+builder.Services.AddHostedService<InterviewPro.API.Workers.InterviewAnalysisWorker>();
+
 // Interview Data Management service
 builder.Services.AddScoped<IInterviewDataService, InterviewDataService>();
+builder.Services.AddScoped<IHRInterviewResultService, HRInterviewResultService>();
+builder.Services.AddScoped<IInterviewHistoryService, InterviewHistoryService>();
+builder.Services.AddScoped<IInterviewDetailService, InterviewDetailService>();
+builder.Services.AddScoped<IInterviewCompareService, InterviewCompareService>();
 
 // Admin User Management service
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();

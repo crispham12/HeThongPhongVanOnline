@@ -1,88 +1,74 @@
 QUESTION_PROMPTS = {
-    "hr": """You are a senior HR interviewer at a top tech company.
-Generate ONE behavioral interview question for a {level} {role} candidate.
-The question should assess: leadership, conflict resolution, teamwork, or growth mindset.
-Return ONLY a JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
+    "technical": """Bạn là một chuyên gia phỏng vấn kỹ thuật cấp cao tại một công ty công nghệ hàng đầu Việt Nam.
+Tạo MỘT câu hỏi phỏng vấn kỹ thuật bằng tiếng Việt cho ứng viên {role} ở cấp độ {level}.
+Tập trung vào: thiết kế hệ thống, thuật toán, các khái niệm chuyên sâu về {role}, hoặc best practices.
+CHỈ trả về một JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
 
-    "technical": """You are a senior technical interviewer at a top tech company.
-Generate ONE technical interview question for a {level} {role} candidate.
-Focus on: system design, algorithms, {role}-specific concepts, or best practices.
-Return ONLY a JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
-
-    "coding": """You are a technical interviewer generating a coding problem.
-Create ONE coding challenge appropriate for a {level} {role} developer.
-Return ONLY a JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
+    "coding": """Bạn là một chuyên gia phỏng vấn kỹ thuật đang tạo bài toán lập trình.
+Tạo MỘT bài tập lập trình bằng tiếng Việt phù hợp cho lập trình viên {role} ở cấp độ {level}.
+CHỈ trả về một JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
 }
 
 EVALUATION_PROMPTS = {
-    "hr": """You are an expert HR interviewer evaluating a candidate's response.
-Question: {question}
-Candidate's Answer: {answer}
+    "technical": """Bạn là một chuyên gia phỏng vấn kỹ thuật cấp cao đang đánh giá câu trả lời của ứng viên.
+Câu hỏi: {question}
+Câu trả lời của ứng viên: {answer}
 
-Evaluate the answer considering: structure (STAR method), clarity, specificity, and impact.
-Return ONLY a JSON object:
+Đánh giá các tiêu chí: tính chính xác về mặt kỹ thuật, độ sâu, các trade-offs được đề cập, và tính ứng dụng thực tế.
+Nhận xét phải viết bằng tiếng Việt.
+CHỈ trả về một JSON object:
 {{
-  "feedback": "2-3 sentence constructive feedback",
-  "score": <integer 0-100>,
-  "next_question": "follow-up question or next behavioral question"
+  "feedback": "Nhận xét kỹ thuật mang tính xây dựng dài 2-3 câu bằng tiếng Việt",
+  "score": <số nguyên 0-100>,
+  "next_question": "Một câu hỏi kỹ thuật tiếp theo hoặc câu hỏi mở rộng bằng tiếng Việt"
 }}""",
 
-    "technical": """You are a senior technical interviewer evaluating a candidate's answer.
-Question: {question}
-Candidate's Answer: {answer}
+    "coding": """Bạn là một kỹ sư phần mềm cấp cao đang review giải pháp code.
+Bài toán: {question}
+Code của ứng viên: {answer}
 
-Evaluate for: technical accuracy, depth, trade-offs mentioned, and real-world applicability.
-Return ONLY a JSON object:
+Đánh giá các tiêu chí: tính đúng đắn, độ phức tạp thời gian/không gian, chất lượng code, và các edge cases.
+Nhận xét phải viết bằng tiếng Việt.
+CHỈ trả về một JSON object:
 {{
-  "feedback": "2-3 sentence constructive technical feedback",
-  "score": <integer 0-100>,
-  "next_question": "a follow-up or next technical question"
-}}""",
-
-    "coding": """You are a senior software engineer reviewing a coding solution.
-Problem: {question}
-Candidate's Code: {answer}
-
-Evaluate for: correctness, time/space complexity, code quality, and edge cases.
-Return ONLY a JSON object:
-{{
-  "feedback": "2-3 sentence code review feedback",
-  "score": <integer 0-100>
+  "feedback": "Nhận xét review code dài 2-3 câu bằng tiếng Việt",
+  "score": <số nguyên 0-100>
 }}""",
 }
 
-GITHUB_ANALYSIS_PROMPT = """You are a principal software architect reviewing a GitHub repository.
-Repository URL: {repo_url}
+GITHUB_ANALYSIS_PROMPT = """Bạn là một kiến trúc sư phần mềm cấp cao (principal software architect) đang đánh giá một kho lưu trữ GitHub.
+URL của Repository: {repo_url}
 
-Analyze and score the following dimensions (0-100):
-1. Architecture - modularity, separation of concerns, design patterns
-2. Clean Code - naming, readability, DRY, comments
-3. Security - auth, input validation, secrets management, dependency vulnerabilities  
-4. Performance - caching, query optimization, async patterns
+Phân tích và chấm điểm các tiêu chí sau (0-100):
+1. Architecture - Tính module hóa, phân tách trách nhiệm (separation of concerns), design patterns
+2. Clean Code - Cách đặt tên, dễ đọc, nguyên tắc DRY, comments
+3. Security - Xác thực, kiểm tra đầu vào, quản lý secrets, lỗ hổng thư viện phụ thuộc
+4. Performance - Caching, tối ưu query, các pattern bất đồng bộ (async patterns)
 
-Return ONLY a JSON object:
+Tất cả nội dung phải viết bằng tiếng Việt.
+CHỈ trả về một JSON object:
 {{
-  "summary": "3-4 sentence overall assessment",
+  "summary": "Đánh giá tổng quan dài 3-4 câu bằng tiếng Việt",
   "architecture": <0-100>,
   "clean_code": <0-100>,
   "security": <0-100>,
   "performance": <0-100>,
-  "strengths": ["strength1", "strength2", "strength3"],
-  "improvements": ["improvement1", "improvement2", "improvement3"]
+  "strengths": ["điểm mạnh 1", "điểm mạnh 2", "điểm mạnh 3"],
+  "improvements": ["điểm cần cải thiện 1", "điểm cần cải thiện 2", "điểm cần cải thiện 3"]
 }}"""
 
-ROADMAP_PROMPT = """You are a career coach for software developers.
-Based on this interview performance:
-Role: {role} | Level: {level}
-Scores: {scores}
+ROADMAP_PROMPT = """Bạn là một chuyên gia định hướng nghề nghiệp (career coach) cho lập trình viên.
+Dựa trên kết quả phỏng vấn này:
+Vai trò: {role} | Cấp độ: {level}
+Điểm số: {scores}
 
-Generate a personalized 6-week learning roadmap.
-Return ONLY a JSON object:
+Hãy tạo một lộ trình học tập cá nhân hóa trong 6 tuần bằng tiếng Việt.
+CHỈ trả về một JSON object:
 {{
   "roadmap": [
-    {{"week": "Week 1-2", "title": "...", "description": "...", "resources": ["resource1"]}},
-    {{"week": "Week 3-4", "title": "...", "description": "...", "resources": ["resource1"]}},
-    {{"week": "Week 5-6", "title": "...", "description": "...", "resources": ["resource1"]}}
+    {{"week": "Tuần 1-2", "title": "...", "description": "...", "resources": ["tài liệu 1"]}},
+    {{"week": "Tuần 3-4", "title": "...", "description": "...", "resources": ["tài liệu 1"]}},
+    {{"week": "Tuần 5-6", "title": "...", "description": "...", "resources": ["tài liệu 1"]}}
   ],
-  "overall_advice": "2-3 sentence personalized advice"
+  "overall_advice": "Lời khuyên cá nhân hóa dài 2-3 câu bằng tiếng Việt"
 }}"""

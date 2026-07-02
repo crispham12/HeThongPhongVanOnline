@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 using InterviewPro.API.Services;
+using InterviewPro.API.Data;
+using InterviewPro.API.Entities;
 
 namespace InterviewPro.API.Controllers
 {
@@ -245,6 +247,93 @@ namespace InterviewPro.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+            }
+        }
+        // ─────────────────────────────────────────────
+        // POST /api/hr-interviews/{sessionId}/analysis/start
+        // Start background AI Analysis
+        // ─────────────────────────────────────────────
+        [HttpPost("{sessionId}/analysis/start")]
+        public async Task<IActionResult> StartAnalysis(string sessionId, [FromServices] AppDbContext db, [FromServices] IInterviewAnalysisQueue queue)
+        {
+            var session = db.HrInterviewSessions.FirstOrDefault(s => s.SessionGuid == sessionId && s.UserId == GetUserId());
+            if (session == null) return NotFound("Session not found");
+
+            // Check if job already exists
+            var existingJob = db.InterviewAnalysisJobs.FirstOrDefault(j => j.SessionId == session.Id);
+            if (existingJob != null && existingJob.Status != "Failed")
+            {
+                return Ok(new { jobId = existingJob.Id, message = "Analysis already started" });
+            }
+
+            var job = new InterviewAnalysisJob { SessionId = session.Id };
+            db.InterviewAnalysisJobs.Add(job);
+            await db.SaveChangesAsync();
+
+            await queue.QueueAnalysisJobAsync(job.Id);
+
+            return Ok(new { jobId = job.Id, message = "Analysis started" });
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /api/hr-interviews/{sessionId}/analysis/status
+        // Get background AI Analysis status
+        // ─────────────────────────────────────────────
+        [HttpGet("{sessionId}/analysis/status")]
+        public IActionResult GetAnalysisStatus(string sessionId, [FromServices] AppDbContext db)
+        {
+            var session = db.HrInterviewSessions.FirstOrDefault(s => s.SessionGuid == sessionId && s.UserId == GetUserId());
+            if (session == null) return NotFound("Session not found");
+
+            var job = db.InterviewAnalysisJobs.OrderByDescending(j => j.CreatedAt).FirstOrDefault(j => j.SessionId == session.Id);
+            if (job == null) return NotFound("No analysis job found");
+
+            return Ok(new AnalysisStatusResponseDto
+            {
+                SessionId = session.Id,
+                Status = job.Status,
+                Progress = job.Progress,
+                CurrentStep = job.CurrentStep,
+                CanRedirect = job.Status == "Completed",
+                ErrorMessage = job.ErrorMessage
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /api/hr-interviews/{sessionId}/analysis/result
+        // Get background AI Analysis result
+        // ─────────────────────────────────────────────
+        [HttpGet("{sessionId}/analysis/result")]
+        public async Task<IActionResult> GetAnalysisResult(string sessionId, [FromServices] IHRInterviewResultService resultService)
+        {
+            try
+            {
+                var isAdmin = User.IsInRole("Admin") || (User.FindFirst("Role")?.Value == "1");
+                var result = await resultService.GetResultAsync(sessionId, GetUserId(), isAdmin);
+
+                if (result == null)
+                {
+                    return NotFound(new { message = "Session not found." });
+                }
+
+                if (!result.IsReady)
+                {
+                    return StatusCode(202, result); // Accepted but not ready
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching the result.", detail = ex.Message });
             }
         }
     }

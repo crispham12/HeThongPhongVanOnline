@@ -329,7 +329,7 @@ namespace InterviewPro.API.Services
                 DurationSeconds = duration,
                 StartedAt     = hrSession.CreatedAt,
                 CompletedAt   = hrSession.CompletedAt,
-                Summary       = hrSession.FinalResult?.Summary ?? string.Empty
+                Summary       = hrSession.FinalResult?.OverallObservation ?? string.Empty
                                 // CHỈ lưu summary, KHÔNG lưu full prompt hay API response raw
             };
             _db.PracticeAttempts.Add(attempt);
@@ -345,9 +345,9 @@ namespace InterviewPro.API.Services
                     SourceQuestionId = q.Id,
                     Question         = q.QuestionText,
                     UserAnswer       = ans?.AnswerText ?? string.Empty,
-                    Score            = ans?.Evaluation?.Score ?? 0,
+                    Score            = ans?.Evaluation?.QuestionScore ?? 0,
                     // Chỉ lưu feedback tổng hợp, KHÔNG lưu full AI prompt
-                    AiFeedback       = ans?.Evaluation?.Weakness ?? string.Empty,
+                    AiFeedback       = ans?.Evaluation?.Weaknesses ?? string.Empty,
                     Category         = q.Category
                 };
             }).ToList();

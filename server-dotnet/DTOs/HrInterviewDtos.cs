@@ -72,20 +72,80 @@ namespace InterviewPro.API.DTOs
     public class HrFinalResultResponse
     {
         public string SessionId { get; set; } = string.Empty;
-        public double HrFinalScore { get; set; }
-        public string Level { get; set; } = string.Empty;
-        public string Summary { get; set; } = string.Empty;
-        public List<string> OverallStrengths { get; set; } = new();
-        public List<string> OverallWeaknesses { get; set; } = new();
-        public List<RoadmapItemDto> ImprovementRoadmap { get; set; } = new();
+        public double OverallScore { get; set; }
+        public CompositeScoresDto CompositeScores { get; set; } = new();
+        public List<HrQuestionEvaluationDto> QuestionEvaluations { get; set; } = new();
+        public List<HrStrengthDto> Strengths { get; set; } = new();
+        public List<HrImprovementDto> Improvements { get; set; } = new();
+        public List<HrRecommendedPracticeDto> RecommendedPractice { get; set; } = new();
+        public string OverallObservation { get; set; } = string.Empty;
+        public string StrengthSummary { get; set; } = string.Empty;
+        public string WeaknessSummary { get; set; } = string.Empty;
+        public string HiringRecommendation { get; set; } = string.Empty;
         public string ReadinessLevel { get; set; } = string.Empty;
         public string Status { get; set; } = "completed";
     }
 
-    public class RoadmapItemDto
+    public class CompositeScoresDto
+    {
+        public double StarStructureScore { get; set; }
+        public double CommunicationScore { get; set; }
+        public double ProfessionalismScore { get; set; }
+        public double ConfidenceScore { get; set; }
+        public double LogicScore { get; set; }
+        public double CompletenessScore { get; set; }
+        public double ClarityScore { get; set; }
+    }
+
+    public class HrQuestionEvaluationDto
+    {
+        public int QuestionIndex { get; set; }
+        public double QuestionScore { get; set; }
+        public double StarScore { get; set; }
+        public double CommunicationScore { get; set; }
+        public double ConfidenceScore { get; set; }
+        public List<string> Strengths { get; set; } = new();
+        public List<string> Weaknesses { get; set; } = new();
+        public List<string> Suggestions { get; set; } = new();
+        public StarAnalysisDto StarAnalysis { get; set; } = new();
+    }
+
+    public class StarAnalysisDto
+    {
+        public StarItemDto Situation { get; set; } = new();
+        public StarItemDto Task { get; set; } = new();
+        public StarItemDto Action { get; set; } = new();
+        public StarItemDto Result { get; set; } = new();
+    }
+
+    public class StarItemDto
+    {
+        public double Score { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Feedback { get; set; } = string.Empty;
+    }
+
+    public class HrStrengthDto
     {
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public double Score { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class HrImprovementDto
+    {
+        public string Priority { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class HrRecommendedPracticeDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string EstimatedTime { get; set; } = string.Empty;
+        public string Difficulty { get; set; } = string.Empty;
+        public string RecommendedLevel { get; set; } = string.Empty;
     }
 
     // ─────────────────────────────────────────────
