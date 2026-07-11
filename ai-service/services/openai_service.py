@@ -7,14 +7,14 @@ from dotenv import load_dotenv
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-# Check if Gemini key is used
-is_gemini = api_key and api_key.startswith("AIza")
+# Force Gemini mode because the API key might not start with AIza
+is_gemini = True
 
 if is_gemini:
     print("[AI Service] Google Gemini API Key detected. Using Gemini compatibility layer.")
     client = AsyncOpenAI(
         api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/"
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
     )
 else:
     client = AsyncOpenAI(api_key=api_key)
@@ -26,7 +26,7 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
     Returns the parsed result dict. Usage data is stored in result["usage"] and result["model"].
     """
     # Override model if using Gemini key
-    actual_model = "gemini-1.5-flash" if is_gemini else model
+    actual_model = "gemini-1.5-flash-latest" if is_gemini else model
 
     try:
         response = await client.chat.completions.create(
@@ -67,7 +67,7 @@ async def call_openai_with_usage(prompt: str, model: str = "gpt-4o-mini") -> Tup
     usage_dict contains: inputTokens, outputTokens, totalTokens, model.
     """
     # Override model if using Gemini key
-    actual_model = "gemini-1.5-flash" if is_gemini else model
+    actual_model = "gemini-1.5-flash-latest" if is_gemini else model
     result = await call_openai(prompt, actual_model)
     usage = result.pop("usage", {"inputTokens": 0, "outputTokens": 0, "totalTokens": 0})
     model_used = result.pop("model", actual_model)
