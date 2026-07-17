@@ -8,9 +8,7 @@ import {
 const menuItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Bảng điều khiển' },
   { to: '/question-bank', icon: Database, label: 'Ngân hàng câu hỏi' },
-  { to: '/history', icon: History, label: 'Lịch sử phỏng vấn' },
-  { to: '/github-analysis', icon: GitBranch, label: 'Phân tích GitHub' },
-  { to: '/create-cv', icon: FileText, label: 'Tạo CV' },
+  { to: '/history', icon: History, label: 'Lịch sử phỏng vấn' }
 ];
 
 export default function Sidebar() {

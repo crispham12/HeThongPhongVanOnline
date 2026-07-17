@@ -4,6 +4,7 @@ using InterviewPro.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InterviewPro.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715091334_RemoveOutOfScopePhaseA")]
+    partial class RemoveOutOfScopePhaseA
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -306,6 +309,872 @@ namespace InterviewPro.API.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("CodingProblems");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvComponentDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CompatibleSectionTypesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ComponentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DefaultBindingPath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DefaultVariant")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsBindable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsContainer")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRepeatable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSingleInstance")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SupportedVariantsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("ComponentType");
+
+                    b.ToTable("CvComponentDefinitions");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000001"),
+                            Category = "Personal",
+                            CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
+                            ComponentType = "Avatar",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4669),
+                            DefaultBindingPath = "Candidate.Avatar",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = true,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Avatar",
+                            SortOrder = 1,
+                            SupportedVariantsJson = "[\"circle\", \"rounded\", \"square\"]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000002"),
+                            Category = "Personal",
+                            CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
+                            ComponentType = "FullName",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4683),
+                            DefaultBindingPath = "Candidate.FullName",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = true,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Full Name",
+                            SortOrder = 2,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000003"),
+                            Category = "Personal",
+                            CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
+                            ComponentType = "JobTitle",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4685),
+                            DefaultBindingPath = "Candidate.JobTitle",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = true,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Job Title",
+                            SortOrder = 3,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000004"),
+                            Category = "Personal",
+                            CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Header\"]",
+                            ComponentType = "ContactRow",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4687),
+                            DefaultBindingPath = "Candidate.Contact",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = true,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Contact Row",
+                            SortOrder = 4,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000005"),
+                            Category = "Experience",
+                            CompatibleSectionTypesJson = "[\"Experience\"]",
+                            ComponentType = "ExperienceCard",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4689),
+                            DefaultBindingPath = "Candidate.Experiences",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = true,
+                            IsSingleInstance = false,
+                            Name = "Experience Card",
+                            SortOrder = 5,
+                            SupportedVariantsJson = "[\"compact\", \"timeline\", \"detailed\"]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000006"),
+                            Category = "Experience",
+                            CompatibleSectionTypesJson = "[\"Experience\", \"Education\"]",
+                            ComponentType = "Timeline",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4691),
+                            DefaultBindingPath = "",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Timeline",
+                            SortOrder = 6,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000007"),
+                            Category = "Experience",
+                            CompatibleSectionTypesJson = "[\"Experience\", \"Projects\"]",
+                            ComponentType = "AchievementList",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4693),
+                            DefaultBindingPath = "",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Achievement List",
+                            SortOrder = 7,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000008"),
+                            Category = "Experience",
+                            CompatibleSectionTypesJson = "[\"Experience\", \"Projects\"]",
+                            ComponentType = "TechnologyTags",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4694),
+                            DefaultBindingPath = "",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Technology Tags",
+                            SortOrder = 8,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000009"),
+                            Category = "Education",
+                            CompatibleSectionTypesJson = "[\"Education\"]",
+                            ComponentType = "EducationCard",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4696),
+                            DefaultBindingPath = "Candidate.Educations",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = true,
+                            IsSingleInstance = false,
+                            Name = "Education Card",
+                            SortOrder = 9,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000010"),
+                            Category = "Skills",
+                            CompatibleSectionTypesJson = "[\"Skills\"]",
+                            ComponentType = "SkillTags",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4699),
+                            DefaultBindingPath = "Candidate.Skills",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Skill Tags",
+                            SortOrder = 10,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000011"),
+                            Category = "Skills",
+                            CompatibleSectionTypesJson = "[\"Skills\"]",
+                            ComponentType = "SkillProgress",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4701),
+                            DefaultBindingPath = "Candidate.Skills",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Skill Progress",
+                            SortOrder = 11,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000012"),
+                            Category = "Projects",
+                            CompatibleSectionTypesJson = "[\"Projects\"]",
+                            ComponentType = "ProjectCard",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4702),
+                            DefaultBindingPath = "Candidate.Projects",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Project Card",
+                            SortOrder = 12,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000013"),
+                            Category = "Decoration",
+                            CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Summary\", \"Experience\", \"Education\", \"Skills\", \"Projects\", \"Certificates\", \"Languages\", \"Custom\"]",
+                            ComponentType = "Divider",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4704),
+                            DefaultBindingPath = "",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = false,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Divider",
+                            SortOrder = 13,
+                            SupportedVariantsJson = "[]"
+                        },
+                        new
+                        {
+                            Id = new Guid("20000000-0000-0000-0000-000000000014"),
+                            Category = "Layout",
+                            CompatibleSectionTypesJson = "[\"PersonalInfo\", \"Summary\", \"Experience\", \"Education\", \"Skills\", \"Projects\", \"Certificates\", \"Languages\", \"Custom\"]",
+                            ComponentType = "Container",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(4706),
+                            DefaultBindingPath = "",
+                            DefaultVariant = "default",
+                            Description = "",
+                            IsActive = true,
+                            IsBindable = false,
+                            IsContainer = true,
+                            IsRepeatable = false,
+                            IsSingleInstance = false,
+                            Name = "Container",
+                            SortOrder = 14,
+                            SupportedVariantsJson = "[]"
+                        });
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvSectionDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DefaultBindingPath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsATSFriendly")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRepeatable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSingleInstance")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SectionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.ToTable("CvSectionDefinitions");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                            Category = "Core",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(462),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = true,
+                            IsSingleInstance = true,
+                            Name = "Personal Information",
+                            SectionType = "PersonalInfo",
+                            SortOrder = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
+                            Category = "Core",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(466),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = true,
+                            IsSingleInstance = true,
+                            Name = "Professional Summary",
+                            SectionType = "Summary",
+                            SortOrder = 2
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                            Category = "Core",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(469),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = true,
+                            IsRequired = true,
+                            IsSingleInstance = false,
+                            Name = "Experience",
+                            SectionType = "Experience",
+                            SortOrder = 3
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000004"),
+                            Category = "Core",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(470),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = true,
+                            IsRequired = true,
+                            IsSingleInstance = false,
+                            Name = "Education",
+                            SectionType = "Education",
+                            SortOrder = 4
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000005"),
+                            Category = "Core",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(472),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = true,
+                            IsSingleInstance = true,
+                            Name = "Skills",
+                            SectionType = "Skills",
+                            SortOrder = 5
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000006"),
+                            Category = "Optional",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(485),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = true,
+                            IsRequired = false,
+                            IsSingleInstance = false,
+                            Name = "Projects",
+                            SectionType = "Projects",
+                            SortOrder = 6
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000007"),
+                            Category = "Optional",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(486),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = true,
+                            IsRequired = false,
+                            IsSingleInstance = false,
+                            Name = "Languages",
+                            SectionType = "Languages",
+                            SortOrder = 7
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000008"),
+                            Category = "Optional",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(489),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = false,
+                            IsSingleInstance = true,
+                            Name = "Certificates",
+                            SectionType = "Certificates",
+                            SortOrder = 8
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000009"),
+                            Category = "Optional",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(491),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = false,
+                            IsSingleInstance = true,
+                            Name = "Awards",
+                            SectionType = "Awards",
+                            SortOrder = 9
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000010"),
+                            Category = "Optional",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(492),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = false,
+                            IsSingleInstance = true,
+                            Name = "Activities",
+                            SectionType = "Activities",
+                            SortOrder = 10
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000011"),
+                            Category = "Optional",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(494),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = false,
+                            IsRequired = false,
+                            IsSingleInstance = true,
+                            Name = "References",
+                            SectionType = "References",
+                            SortOrder = 11
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000012"),
+                            Category = "Custom",
+                            CreatedAt = new DateTime(2026, 7, 15, 9, 13, 33, 589, DateTimeKind.Utc).AddTicks(496),
+                            DefaultBindingPath = "",
+                            Description = "",
+                            Icon = "",
+                            IsATSFriendly = false,
+                            IsActive = true,
+                            IsRepeatable = true,
+                            IsRequired = false,
+                            IsSingleInstance = false,
+                            Name = "Custom Section",
+                            SectionType = "Custom",
+                            SortOrder = 12
+                        });
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BackgroundColor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByAdminId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Thumbnail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CvTemplates");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateComponent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BindingPath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ComponentDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ComponentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ParentComponentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PropertiesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RestoredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RestoredBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentDefinitionId");
+
+                    b.HasIndex("OrderIndex");
+
+                    b.HasIndex("ParentComponentId");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("CvTemplateComponents");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateContainer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConfigJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LayoutType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("CvTemplateContainers");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateSection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BindingPath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ColumnIndex")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ContainerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRepeatable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LayoutConfigJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RestoredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RestoredBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SectionDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainerId");
+
+                    b.HasIndex("OrderIndex");
+
+                    b.HasIndex("SectionDefinitionId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("CvTemplateSections");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.HrInterviewAnswer", b =>
@@ -1490,6 +2359,71 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.UserCV", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiFeedback")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AiScore")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoreStack")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Education")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Experience")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Languages")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PersonalInfo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Proficiencies")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Skills")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TemplateId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserCVs");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.UserCodingProblemProgress", b =>
                 {
                     b.Property<int>("Id")
@@ -1598,6 +2532,77 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
 
                     b.Navigation("CodingProblem");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateComponent", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.CvComponentDefinition", "ComponentDefinition")
+                        .WithMany()
+                        .HasForeignKey("ComponentDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InterviewPro.API.Entities.CvTemplateComponent", "ParentComponent")
+                        .WithMany("ChildComponents")
+                        .HasForeignKey("ParentComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("InterviewPro.API.Entities.CvTemplateSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InterviewPro.API.Entities.CvTemplate", "Template")
+                        .WithMany("Components")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ComponentDefinition");
+
+                    b.Navigation("ParentComponent");
+
+                    b.Navigation("Section");
+
+                    b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateContainer", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.CvTemplate", "Template")
+                        .WithMany("Containers")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateSection", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.CvTemplateContainer", "Container")
+                        .WithMany("Sections")
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("InterviewPro.API.Entities.CvSectionDefinition", "SectionDefinition")
+                        .WithMany()
+                        .HasForeignKey("SectionDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InterviewPro.API.Entities.CvTemplate", "Template")
+                        .WithMany("Sections")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Container");
+
+                    b.Navigation("SectionDefinition");
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.HrInterviewAnswer", b =>
@@ -1756,6 +2761,25 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplate", b =>
+                {
+                    b.Navigation("Components");
+
+                    b.Navigation("Containers");
+
+                    b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateComponent", b =>
+                {
+                    b.Navigation("ChildComponents");
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.CvTemplateContainer", b =>
+                {
+                    b.Navigation("Sections");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.HrInterviewAnswer", b =>

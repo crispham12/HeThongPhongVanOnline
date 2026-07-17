@@ -24,7 +24,6 @@ namespace InterviewPro.API.Services
         private readonly AppDbContext _db;
         private readonly IHrAiClient _aiClient;
         private readonly IInterviewDataService _interviewDataService;
-        private readonly ICreditService _creditService;
         private readonly IHrQuestionBankService _questionBankService;
         private readonly ILogger<HrInterviewService> _logger;
 
@@ -35,14 +34,12 @@ namespace InterviewPro.API.Services
             AppDbContext db,
             IHrAiClient aiClient,
             IInterviewDataService interviewDataService,
-            ICreditService creditService,
             IHrQuestionBankService questionBankService,
             ILogger<HrInterviewService> logger)
         {
             _db = db;
             _aiClient = aiClient;
             _interviewDataService = interviewDataService;
-            _creditService = creditService;
             _questionBankService = questionBankService;
             _logger = logger;
         }
@@ -62,8 +59,7 @@ namespace InterviewPro.API.Services
             using var transactionScope = await _db.Database.BeginTransactionAsync();
             try
             {
-                // Trừ lượt phỏng vấn bằng CreditService
-                await _creditService.UseCreditAsync(userId, $"Phỏng vấn HR: {request.Role}");
+
 
                 // Tạo session mới trong DB
                 var session = new HrInterviewSession

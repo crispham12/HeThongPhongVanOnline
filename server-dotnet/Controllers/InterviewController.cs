@@ -20,7 +20,6 @@ namespace InterviewPro.API.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IAiRequestLogService _aiRequestLogService;
         private readonly IInterviewDataService _interviewDataService;
-        private readonly ICreditService _creditService;
         private readonly AppDbContext _context;
 
         public InterviewController(
@@ -28,14 +27,12 @@ namespace InterviewPro.API.Controllers
             IHttpClientFactory httpClientFactory,
             IAiRequestLogService aiRequestLogService,
             IInterviewDataService interviewDataService,
-            ICreditService creditService,
             AppDbContext context)
         {
             _repo = repo;
             _httpClientFactory = httpClientFactory;
             _aiRequestLogService = aiRequestLogService;
             _interviewDataService = interviewDataService;
-            _creditService = creditService;
             _context = context;
         }
 
@@ -51,8 +48,6 @@ namespace InterviewPro.API.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Trừ lượt phỏng vấn
-                await _creditService.UseCreditAsync(userId, $"Phỏng vấn {request.Type}: {request.Role}");
 
                 var session = new InterviewSession
                 {
@@ -70,14 +65,7 @@ namespace InterviewPro.API.Controllers
 
                 return Ok(new { sessionId = session.SessionGuid });
             }
-            catch (Services.NotEnoughCreditsException ex)
-            {
-                await transaction.RollbackAsync();
-                return StatusCode(402, new {
-                    message = ex.Message,
-                    requiredPayment = true
-                });
-            }
+
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();

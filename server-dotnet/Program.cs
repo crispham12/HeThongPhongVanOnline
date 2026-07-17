@@ -41,12 +41,7 @@ builder.Services.AddAuthorization();
 // ──────────────── DI (Dependency Injection) ────────────────
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IInterviewRepository, InterviewRepository>();
-builder.Services.AddScoped<ICvTemplateRepository, CvTemplateRepository>();
-builder.Services.AddScoped<ICvTemplateService, CvTemplateService>();
-builder.Services.AddScoped<ICvTemplateSectionRepository, CvTemplateSectionRepository>();
-builder.Services.AddScoped<ICvTemplateSectionService, CvTemplateSectionService>();
-builder.Services.AddScoped<ICvTemplateComponentRepository, CvTemplateComponentRepository>();
-builder.Services.AddScoped<ICvTemplateComponentService, CvTemplateComponentService>();
+
 // HR Interview services
 builder.Services.AddScoped<IHrAiClient, HrAiClient>();
 builder.Services.AddScoped<IHrInterviewService, HrInterviewService>();
@@ -73,10 +68,6 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 // Admin Dashboard service
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
-// Credit & Payment systems
-builder.Services.AddScoped<ICreditService, CreditService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-builder.Services.AddScoped<ISePayWebhookService, SePayWebhookService>();
 
 
 // Coding Problem Bank services
@@ -110,10 +101,10 @@ builder.Services.AddSwaggerGen(c =>
 
 // (Skip to builder.Services.AddControllers)
 builder.Services.AddControllers()
-    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<AddSectionRequestDtoValidator>());
+    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<Program>());
 builder.Services.AddCors(opts =>
     opts.AddPolicy("AllowFrontend", p =>
-        p.WithOrigins("http://localhost:5173", "http://localhost:5174")
+        p.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:5175")
          .AllowAnyMethod()
          .AllowAnyHeader()
          .AllowCredentials()));

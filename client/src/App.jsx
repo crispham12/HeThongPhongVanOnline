@@ -10,18 +10,14 @@ import HRInterview from './pages/user/interview/HRInterview';
 import TechnicalInterview from './pages/user/interview/TechnicalInterview';
 import CodingAssessment from './pages/user/interview/CodingAssessment';
 import InterviewAnalysis from './pages/user/interview/InterviewAnalysis';
-import GithubAnalysis from './pages/user/GithubAnalysis';
 import EvaluationResult from './pages/user/EvaluationResult';
 import HRInterviewResultPage from './pages/user/interview/HRInterviewResultPage';
 import History from './pages/user/History';
 import HistoryDetail from './pages/user/HistoryDetail';
 import HistoryCompare from './pages/user/HistoryCompare';
-import CreateCV from './pages/user/CreateCV';
 import UserQuestionBank from './pages/user/UserQuestionBank';
 import PracticeQuestion from './pages/user/PracticeQuestion';
 import CodingPracticeWorkspace from './pages/user/CodingPracticeWorkspace';
-import AdminTemplates from './pages/admin/AdminTemplates';
-import AdminTemplateEditor from './pages/admin/AdminTemplateEditor';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -73,12 +69,10 @@ export default function App() {
             <Route path="/interviews/hr/:sessionId/result" element={<HRInterviewResultPage />} />
             <Route path="/interview/technical" element={<TechnicalInterview />} />
             <Route path="/interview/coding" element={<CodingAssessment />} />
-            <Route path="/github-analysis" element={<GithubAnalysis />} />
             <Route path="/evaluation/:id" element={<EvaluationResult />} />
             <Route path="/history" element={<History />} />
             <Route path="/history/compare" element={<HistoryCompare />} />
             <Route path="/history/:id" element={<HistoryDetail />} />
-            <Route path="/create-cv" element={<CreateCV />} />
             <Route path="/question-bank" element={<UserQuestionBank />} />
             <Route path="/question-bank/practice/:id" element={<PracticeQuestion />} />
 
@@ -98,13 +92,12 @@ export default function App() {
             <Route path="/admin/coding-bank" element={<AdminCodingBank />} />
             <Route path="/admin/coding-bank/add" element={<AdminAddCodingProblem />} />
             <Route path="/admin/coding-bank/edit/:id" element={<AdminAddCodingProblem />} />
-            <Route path="/admin/templates" element={<AdminTemplates />} />
+
 
             {/* Add other admin routes here in the future */}
           </Route>
 
-          {/* Full-screen Editor outside Sidebar layout */}
-          <Route path="/admin/templates/editor/:id" element={<ProtectedRoute><AdminRoute><AdminTemplateEditor /></AdminRoute></ProtectedRoute>} />
+
           <Route path="/coding-practice/:id" element={<ProtectedRoute><CodingPracticeWorkspace /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>

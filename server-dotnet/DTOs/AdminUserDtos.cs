@@ -35,8 +35,6 @@ namespace InterviewPro.API.DTOs
         public string Status { get; set; } = "Active";
         
         public int DailyInterviewUsed { get; set; }
-        public int DailyGithubAnalysisUsed { get; set; }
-        
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public DateTime UpdatedAt { get; set; }

@@ -13,8 +13,7 @@ const menuItems = [
   { to: '/admin/payments', icon: CreditCard, label: 'Thanh toán' },
   { to: '/admin/ai-monitor', icon: Activity, label: 'Giám sát AI' },
   { to: '/admin/question-bank', icon: Database, label: 'Ngân hàng câu hỏi' },
-  { to: '/admin/coding-bank', icon: Code, label: 'Ngân hàng Coding' },
-  { to: '/admin/templates', icon: FileText, label: 'Mẫu CV' },
+  { to: '/admin/coding-bank', icon: Code, label: 'Ngân hàng Coding' }
 ];
 
 export default function AdminLayout() {

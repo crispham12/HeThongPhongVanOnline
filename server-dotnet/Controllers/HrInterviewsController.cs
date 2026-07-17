@@ -54,14 +54,7 @@ namespace InterviewPro.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (NotEnoughCreditsException ex)
-            {
-                // 402 Payment Required: hết lượt miễn phí / trả phí
-                return StatusCode(402, new { 
-                    message = ex.Message,
-                    requiredPayment = true
-                });
-            }
+
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Không thể tạo phiên phỏng vấn.", detail = ex.Message });
