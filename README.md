@@ -1,6 +1,6 @@
 # InterviewPro AI – Nền Tảng Luyện Tập & Phỏng Vấn AI
 
-InterviewPro là một nền tảng fullstack (React + ASP.NET Core + FastAPI) mô phỏng các buổi phỏng vấn bằng AI, bao gồm phỏng vấn Nhân sự (HR), Kỹ thuật (Technical), và Đánh giá lập trình (Coding Assessment) với khả năng phân tích Github và đưa ra lộ trình học tập.
+InterviewPro là một nền tảng fullstack (React + ASP.NET Core + FastAPI) mô phỏng các buổi phỏng vấn bằng AI, bao gồm phỏng vấn Nhân sự (HR), Kỹ thuật (Technical), và Đánh giá lập trình (Coding Assessment) và đưa ra lộ trình học tập.
 
 ---
 
@@ -66,8 +66,6 @@ Hệ thống có hai phân quyền chính: **Admin** và **User**.
 4. **Luyện tập Ngân Hàng Câu Hỏi**:
    - Truy cập **Ngân hàng luyện tập**. User sẽ thấy toàn bộ câu hỏi (Đã Publish) từ Admin.
    - Trả lời các câu hỏi HR, Kỹ thuật (Text) hoặc Lập trình (Trình soạn thảo Monaco Editor).
-5. **Phân tích GitHub**:
-   - Dán link GitHub Profile, AI sẽ phân tích source code và đưa ra điểm mạnh, điểm yếu.
 
 ---
 
@@ -94,7 +92,7 @@ HeThongPhongVanOnline/
 - **Xác thực**: `/api/auth/register`, `/api/auth/login`
 - **Người dùng (Client)**: `/api/practice/questions`, `/api/practice/coding`, `/api/practice/progress`
 - **Quản trị (Admin)**: `/api/admin/questions`, `/api/admin/coding`
-- **Trí tuệ nhân tạo (AI - Python)**: `/generate-question`, `/evaluate-answer`, `/analyze-github`
+- **Trí tuệ nhân tạo (AI - Python)**: `/generate-question`, `/evaluate-answer`
 
 ---
 
