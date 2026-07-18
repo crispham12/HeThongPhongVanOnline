@@ -1,195 +1,388 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BrainCircuit, Zap, GitBranch, Code2, BarChart3, ChevronRight, Globe, Shield, Star } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export default function Landing() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white">
+    <div className="min-h-screen bg-white flex flex-col font-sans" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <BrainCircuit className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-gray-900 text-lg">InterviewPro AI</span>
+      <nav className="sticky top-0 z-50 w-full bg-white/85 backdrop-blur-md py-4 px-8 md:px-16 flex items-center justify-between border-b border-gray-100/80 transition-all">
+        <div className="flex items-center gap-12">
+          {/* Logo */}
+          <Link to="/" className="text-2xl font-black tracking-tight" style={{ color: '#163300' }}>
+            Logo
+          </Link>
+
+          {/* Links */}
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="font-bold text-sm hover:opacity-80 transition-opacity" style={{ color: '#090A08' }}>
+              Tính năng
+            </a>
+            <a href="#pricing" className="font-bold text-sm hover:opacity-80 transition-opacity" style={{ color: '#090A08' }}>
+              Bảng giá
+            </a>
           </div>
-          <div className="flex items-center gap-6">
-            {isAuthenticated ? (
-              <button onClick={() => navigate('/setup')} className="btn-primary py-2 px-6">Vào ứng dụng</button>
-            ) : (
-              <>
-                <Link to="/login" className="text-sm font-semibold text-gray-600 hover:text-primary-600">Đăng nhập</Link>
-                <Link to="/register" className="btn-primary py-2 px-6 shadow-md shadow-primary-200">Dùng thử miễn phí</Link>
-              </>
-            )}
-          </div>
+        </div>
+
+        {/* Auth Buttons */}
+        <div className="flex items-center gap-6">
+          {isAuthenticated ? (
+            <button
+              onClick={() => navigate('/setup')}
+              className="px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-all shadow-sm"
+              style={{ backgroundColor: '#9BE870', color: '#163300' }}
+            >
+              Vào ứng dụng
+            </button>
+          ) : (
+            <>
+              <Link to="/login" className="font-bold text-sm hover:opacity-80 transition-opacity" style={{ color: '#090A08' }}>
+                Đăng nhập
+              </Link>
+              <Link
+                to="/register"
+                className="px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-all shadow-sm"
+                style={{ backgroundColor: '#9BE870', color: '#163300' }}
+              >
+                Đăng ký
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 text-primary-700 text-xs font-bold uppercase tracking-wider mb-8"
-          >
-            <Zap className="w-3.5 h-3.5 fill-current" /> Nền tảng phỏng vấn AI thế hệ mới
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-5xl lg:text-7xl font-black text-gray-900 mb-6 leading-[1.1]"
-          >
-            Nâng tầm kỹ năng <br />
-            <span className="text-primary-600">Phỏng vấn Kỹ thuật</span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed"
-          >
-            Luyện tập phỏng vấn với AI thông minh. Nhận đánh giá chi tiết về mã nguồn,
-            tư duy kiến trúc và kỹ năng mềm để chinh phục các tập đoàn công nghệ lớn.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <button
-              onClick={() => navigate(isAuthenticated ? '/setup' : '/register')}
-              className="btn-primary px-10 py-4 text-lg shadow-xl shadow-primary-100 flex items-center gap-2"
-            >
-              Bắt đầu ngay bây giờ <ChevronRight className="w-5 h-5" />
-            </button>
-            <button className="px-10 py-4 text-lg font-bold text-gray-700 hover:text-primary-600 transition-colors">
-              Xem bản Demo
-            </button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-12 border-y border-gray-100 bg-gray-50/30">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            <div>
-              <p className="text-3xl font-black text-gray-900">50,000+</p>
-              <p className="text-sm text-gray-500 font-medium">Buổi phỏng vấn đã thực hiện</p>
-            </div>
-            <div>
-              <p className="text-3xl font-black text-gray-900">98%</p>
-              <p className="text-sm text-gray-500 font-medium">Tỉ lệ hài lòng của ứng viên</p>
-            </div>
-            <div>
-              <p className="text-3xl font-black text-gray-900">200+</p>
-              <p className="text-sm text-gray-500 font-medium">Kịch bản phỏng vấn chuyên sâu</p>
-            </div>
-            <div>
-              <p className="text-3xl font-black text-gray-900">10x</p>
-              <p className="text-sm text-gray-500 font-medium">Tăng tốc độ nhận lời mời làm việc</p>
-            </div>
+      {/* Hero Section Container */}
+      <main className="w-full bg-white flex flex-col items-center px-6 pt-16 pb-24">
+        {/* Trust Badges */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 mb-8 text-xs md:text-sm font-bold">
+          <div className="flex items-center gap-2" style={{ color: '#163300' }}>
+            <span>5 ★</span>
+            <span>Được mọi người tin dùng hằng ngày</span>
+          </div>
+          <div className="flex items-center gap-2" style={{ color: '#163300' }}>
+            <span>5 ★</span>
+            <span>Giúp giải quyết các vấn đề về học tập</span>
           </div>
         </div>
-      </section>
 
-      {/* Features Grid */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Mọi thứ bạn cần để thành công</h2>
-          <p className="text-gray-500 max-w-xl mx-auto">Kết hợp giữa trí tuệ nhân tạo và kinh nghiệm phỏng vấn thực tế từ các chuyên gia hàng đầu.</p>
+        {/* Hero Title */}
+        <h1
+          className="text-4xl md:text-6xl font-black text-center max-w-4xl leading-tight mb-6 tracking-tight"
+          style={{ color: '#090A08' }}
+        >
+          Luyện phỏng vấn IT cùng AI <br /> tự tin xin việc ngay tại nhà
+        </h1>
+
+        {/* Subtitle / Description */}
+        <div
+          className="text-center text-base md:text-lg max-w-2xl leading-relaxed mb-8 flex flex-col gap-1"
+          style={{ color: '#595959' }}
+        >
+          <p>Dành cho sinh viên năm cuối và fresher</p>
+          <p>Thực hành đủ 3 vòng: HR, kỹ thuật và coding</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              icon: Code2,
-              title: 'Phân tích mã nguồn chuyên sâu',
-              desc: 'AI phân tích logic, độ phức tạp và phong cách lập trình của bạn trong thời gian thực.',
-              color: 'bg-blue-500'
-            },
-            {
-              icon: GitBranch,
-              title: 'Đánh giá GitHub Repo',
-              desc: 'Kết nối kho mã nguồn của bạn để AI đánh giá kiến trúc hệ thống và khả năng Clean Code.',
-              color: 'bg-purple-500'
-            },
-            {
-              icon: Globe,
-              title: 'Đa dạng vị trí & Cấp độ',
-              desc: 'Từ Frontend, Backend đến AI Engineer. Phù hợp cho cả Intern và Senior Developer.',
-              color: 'bg-green-500'
-            },
-            {
-              icon: Shield,
-              title: 'Bảo mật dữ liệu tuyệt đối',
-              desc: 'Toàn bộ nội dung phỏng vấn được mã hóa và bảo mật theo tiêu chuẩn doanh nghiệp.',
-              color: 'bg-red-500'
-            },
-            {
-              icon: BarChart3,
-              title: 'Lộ trình phát triển riêng',
-              desc: 'Sau mỗi buổi phỏng vấn, AI sẽ đề xuất tài liệu học tập để bù đắp các lỗ hổng kiến thức.',
-              color: 'bg-orange-500'
-            },
-            {
-              icon: Star,
-              title: 'Mô phỏng áp lực thực tế',
-              desc: 'Trải nghiệm áp lực thời gian và các câu hỏi hóc búa như khi phỏng vấn tại FAANG.',
-              color: 'bg-yellow-500'
-            }
-          ].map((feature, i) => (
-            <div key={i} className="p-8 rounded-3xl border border-gray-100 hover:border-primary-100 hover:shadow-xl hover:shadow-primary-50/50 transition-all group">
-              <div className={`w-12 h-12 ${feature.color} rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-${feature.color.split('-')[1]}-200 group-hover:scale-110 transition-transform`}>
-                <feature.icon className="w-6 h-6" />
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-16">
+          <button
+            onClick={() => navigate(isAuthenticated ? '/setup' : '/register')}
+            className="px-10 py-4 rounded-full font-bold text-base md:text-lg hover:opacity-90 transition-all shadow-md"
+            style={{ backgroundColor: '#9BE870', color: '#163300' }}
+          >
+            Dùng thử ngay
+          </button>
+          <button
+            onClick={() => {
+              const featuresSection = document.getElementById('features');
+              if (featuresSection) {
+                featuresSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="px-10 py-4 rounded-full font-bold text-base md:text-lg bg-white hover:bg-gray-50 transition-all border border-gray-200 shadow-md"
+            style={{ color: '#163300' }}
+          >
+            Xem demo
+          </button>
+        </div>
+
+        {/* Demo Video Block */}
+        <div
+          className="w-full max-w-4xl aspect-[16/9] rounded-2xl flex items-center justify-center shadow-lg border border-gray-200 overflow-hidden relative"
+          style={{ backgroundColor: '#D9D9D9' }}
+        >
+          <span className="text-3xl md:text-5xl font-black tracking-tight" style={{ color: '#090A08' }}>
+            demo video
+          </span>
+        </div>
+      </main>
+
+      {/* Features (Tính năng) Section - Full Width Grey Background */}
+      <section id="features" className="w-full py-20 px-6" style={{ backgroundColor: '#F6F5F4' }}>
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl font-black mb-10 tracking-tight" style={{ color: '#090A08' }}>
+            Tính năng
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Card 1: Voice Practice */}
+            <div className="bg-white border border-gray-100 rounded-3xl pt-8 shadow-sm flex flex-col justify-between overflow-hidden">
+              <div className="px-8 mb-6">
+                <h3 className="text-2xl font-black mb-2" style={{ color: '#090A08' }}>Luyện tập bằng giọng nói</h3>
+                <p className="text-sm font-semibold" style={{ color: '#595959' }}>Phân tích: tốc độ nói, từ đệm và độ rõ ràng</p>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+              <div className="w-full pt-6 px-6 pb-0 flex flex-col justify-between border-t border-blue-100/30" style={{ backgroundColor: '#8FD9EC' }}>
+                {/* The white workspace container */}
+                <div className="bg-[#FAFBFD] rounded-t-2xl pt-3 px-3 pb-0 flex flex-col shadow-sm border-t border-x border-blue-200/20 text-[8px] font-sans">
+
+                  {/* Upper Section: Split Column Layout */}
+                  <div className="grid grid-cols-12 gap-2">
+
+                    {/* Left Column (Video/Audio/Transcript) - 7 cols */}
+                    <div className="col-span-7 flex flex-col gap-2">
+                      {/* Not recording status bar */}
+                      <div className="bg-white rounded-lg p-1.5 border border-gray-100 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-1">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                          <span className="font-bold text-[7px]" style={{ color: '#595959' }}>Not recording</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[7px]">📹</span>
+                          <span className="text-[7px]">🎙️</span>
+                          <span className="bg-gray-100 text-[6px] px-1.5 py-0.5 rounded font-extrabold text-gray-500">Connection</span>
+                        </div>
+                      </div>
+
+                      {/* Video Box */}
+                      <div className="bg-white rounded-lg border border-dashed border-gray-200 p-3 flex flex-col items-center justify-center gap-1.5 min-h-[95px] relative">
+                        <span className="font-bold text-[7px] text-center" style={{ color: '#595959' }}>Camera preview will appear here</span>
+                        <button className="bg-black text-white text-[7px] font-bold px-2.5 py-1 rounded">Enable Camera</button>
+                      </div>
+
+                      {/* Recording duration bar */}
+                      <div className="bg-white rounded-lg p-1.5 border border-gray-100 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-1">
+                          <div className="flex gap-0.5">
+                            <span className="w-0.5 h-2 bg-gray-300 rounded-full"></span>
+                            <span className="w-0.5 h-3 bg-gray-300 rounded-full"></span>
+                            <span className="w-0.5 h-1 bg-gray-300 rounded-full"></span>
+                            <span className="w-0.5 h-2.5 bg-gray-300 rounded-full"></span>
+                          </div>
+                          <span className="text-[7px] font-bold" style={{ color: '#7F7F7F' }}>Recording duration: 00:00</span>
+                        </div>
+                        <button className="bg-[#7F7F7F] text-white text-[7px] font-bold px-2 py-1 rounded">Start Recording</button>
+                      </div>
+
+                      {/* Transcript Panel */}
+                      <div className="bg-white rounded-lg p-2 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[75px]">
+                        <h4 className="font-black text-[7px]" style={{ color: '#090A08' }}>Your Answer Transcript</h4>
+                        <div className="border border-gray-100 rounded p-1.5 bg-gray-50/50 mt-1 flex-1 text-[7px] italic font-semibold leading-relaxed" style={{ color: '#7F7F7F' }}>
+                          Your answer transcript will appear here after recording starts.
+                        </div>
+                        <div className="flex justify-between text-[6px] font-bold mt-2" style={{ color: '#7F7F7F' }}>
+                          <span>Word count: 0</span>
+                          <span>Duration: 00:00</span>
+                          <span>Filler words: 0</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column (Question/Timers/Tips/Progress) - 5 cols */}
+                    <div className="col-span-5 flex flex-col gap-2">
+                      {/* Question Card */}
+                      <div className="bg-white rounded-lg p-2 border border-gray-100 shadow-sm">
+                        <span className="text-[6px] font-bold" style={{ color: '#7F7F7F' }}>Question 1 of 10</span>
+                        <div className="flex gap-1 mt-1">
+                          <span className="bg-gray-100 text-[6px] px-1 py-0.5 rounded font-bold text-gray-500">Category: Introduction</span>
+                          <span className="bg-gray-100 text-[6px] px-1 py-0.5 rounded font-bold text-gray-500">Suggested Method STAR</span>
+                        </div>
+                        <p className="font-black text-[8px] mt-1.5 leading-tight" style={{ color: '#090A08' }}>
+                          Hãy giới thiệu ngắn gọn về bản thân và kinh nghiệm làm việc của bạn.
+                        </p>
+                      </div>
+
+                      {/* Timers */}
+                      <div className="grid grid-cols-2 gap-1">
+                        <div className="bg-white rounded-lg p-1 border border-gray-100 shadow-sm text-center">
+                          <span className="text-[5px] font-bold block" style={{ color: '#7F7F7F' }}>Preparation Timer</span>
+                          <span className="text-[10px] font-black" style={{ color: '#090A08' }}>00:30</span>
+                        </div>
+                        <div className="bg-white rounded-lg p-1 border border-gray-100 shadow-sm text-center">
+                          <span className="text-[5px] font-bold block" style={{ color: '#7F7F7F' }}>Answer Timer</span>
+                          <span className="text-[10px] font-black" style={{ color: '#090A08' }}>00:00</span>
+                        </div>
+                      </div>
+
+                      {/* Start buttons */}
+                      <div className="grid grid-cols-2 gap-1">
+                        <button className="bg-[#7F7F7F] text-white text-[7px] font-bold py-1 rounded">Start Preparation</button>
+                        <button className="bg-gray-100 text-gray-400 text-[7px] font-bold py-1 rounded cursor-not-allowed">Start Answer</button>
+                      </div>
+
+                      {/* STAR Tips */}
+                      <div className="bg-white rounded-lg p-2 border border-gray-100 shadow-sm">
+                        <h4 className="font-black text-[7px] mb-1" style={{ color: '#090A08' }}>STAR Tips</h4>
+                        <ul className="text-[5px] font-semibold flex flex-col gap-0.5" style={{ color: '#595959' }}>
+                          <li><strong style={{ color: '#090A08' }}>S — Situation:</strong> Briefly describe the context and challenge.</li>
+                          <li><strong style={{ color: '#090A08' }}>T — Task:</strong> Explain your specific responsibility.</li>
+                          <li><strong style={{ color: '#090A08' }}>A — Action:</strong> Share the steps you took and why.</li>
+                          <li><strong style={{ color: '#090A08' }}>R — Result:</strong> Summarize the measurable outcome and learning.</li>
+                        </ul>
+                      </div>
+
+                      {/* Question Progress */}
+                      <div className="bg-white rounded-lg p-2 border border-gray-100 shadow-sm">
+                        <h4 className="font-black text-[7px] mb-1" style={{ color: '#090A08' }}>Question Progress</h4>
+                        <div className="grid grid-cols-5 gap-1 text-center font-bold text-[6px]">
+                          <span className="w-3 h-3 rounded-full bg-black text-white flex items-center justify-center">1</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">2</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">3</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">4</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">5</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">6</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">7</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">8</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">9</span>
+                          <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center font-extrabold">10</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Bar inside workspace */}
+                  <div className="bg-white border-t border-gray-100 p-2.5 flex items-center justify-end gap-2 rounded-t-lg mt-2 shadow-sm">
+                    <button className="border border-gray-200 text-gray-500 text-[7px] font-bold px-3 py-1 rounded">Save Draft</button>
+                    <button className="bg-[#7F7F7F] text-white text-[7px] font-bold px-3 py-1 rounded">Submit Answer & Next</button>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
+
+            {/* Card 2: 3 Interview Rounds */}
+            <div className="bg-white border border-gray-100 rounded-3xl pt-8 shadow-sm flex flex-col justify-between overflow-hidden">
+              <div className="px-8 mb-6">
+                <h3 className="text-2xl font-black mb-2" style={{ color: '#090A08' }}>Đủ 3 vòng phỏng vấn thật</h3>
+                <p className="text-sm font-semibold" style={{ color: '#595959' }}>Người dùng được test qua 3 vòng HR, kỹ thuật và coding</p>
+              </div>
+              <div className="w-full p-6 flex flex-col gap-4 justify-center aspect-[4/3] border-t border-red-100/30" style={{ backgroundColor: '#FAD2D2' }}>
+                {/* Round 1 */}
+                <div className="bg-white p-4 rounded-xl border border-red-200/20 shadow-sm flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white bg-red-400">01</div>
+                  <div>
+                    <h4 className="text-xs font-black" style={{ color: '#090A08' }}>HR</h4>
+                    <p className="text-[10px] font-semibold mt-1" style={{ color: '#595959' }}>Câu hỏi hành vi, kỹ năng mềm và định hướng nghề nghiệp.</p>
+                  </div>
+                </div>
+                {/* Round 2 */}
+                <div className="bg-white p-4 rounded-xl border border-red-200/20 shadow-sm flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white bg-red-400">02</div>
+                  <div>
+                    <h4 className="text-xs font-black" style={{ color: '#090A08' }}>Kỹ thuật</h4>
+                    <p className="text-[10px] font-semibold mt-1" style={{ color: '#595959' }}>Kiến thức chuyên môn theo tech stack bạn chọn.</p>
+                  </div>
+                </div>
+                {/* Round 3 */}
+                <div className="bg-white p-4 rounded-xl border border-red-200/20 shadow-sm flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white bg-red-400">03</div>
+                  <div>
+                    <h4 className="text-xs font-black" style={{ color: '#090A08' }}>Coding</h4>
+                    <p className="text-[10px] font-semibold mt-1" style={{ color: '#595959' }}>Bài tập lập trình thực tế phù hợp cấp độ Intern, Fresher hoặc Junior.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto rounded-[2rem] bg-gray-900 p-12 text-center text-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_-20%,#2563eb,transparent)] opacity-40"></div>
-          <div className="relative z-10">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-6">Sẵn sàng để bắt đầu hành trình sự nghiệp?</h2>
-            <p className="text-gray-400 mb-10 max-w-xl mx-auto">Tham gia cùng hàng nghìn lập trình viên khác đang sử dụng InterviewPro AI mỗi ngày.</p>
-            <button onClick={() => navigate(isAuthenticated ? '/setup' : '/register')} className="btn-primary border-none bg-white text-gray-900 hover:bg-gray-100 px-10 py-4 text-lg">
-              Đăng ký ngay - Hoàn toàn miễn phí
-            </button>
+      {/* Pricing (Gói dịch vụ) Section - White Background */}
+      <section id="pricing" className="w-full py-20 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl font-black mb-10 tracking-tight" style={{ color: '#090A08' }}>
+            Gói dịch vụ
+          </h2>
+
+          <div className="border border-gray-200 rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-2 mb-8 shadow-sm">
+            {/* Free Plan */}
+            <div className="p-10 flex flex-col justify-between bg-white border-b md:border-b-0 md:border-r border-gray-200">
+              <div>
+                <h3 className="text-4xl font-black mb-4" style={{ color: '#090A08' }}>Free</h3>
+                <p className="text-sm font-semibold mb-8 leading-relaxed" style={{ color: '#595959' }}>
+                  Phù hợp để trải nghiệm đầy đủ tính năng cơ bản mỗi ngày.
+                </p>
+                <div className="flex flex-col gap-6 font-bold text-sm" style={{ color: '#090A08' }}>
+                  <div className="border-t border-gray-100 pt-4">3 buổi mỗi ngày</div>
+                  <div className="border-t border-gray-100 pt-4">Full Mock Interview tính 3 buổi</div>
+                  <div className="border-t border-gray-100 pt-4 pb-4">Practice Mode, ghi âm, báo cáo, lịch sử & tiến độ</div>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate(isAuthenticated ? '/setup' : '/register')}
+                className="w-full py-3.5 rounded-full font-bold text-sm text-white hover:opacity-90 transition-opacity mt-8"
+                style={{ backgroundColor: '#090A08' }}
+              >
+                Đăng ký miễn phí
+              </button>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="p-10 flex flex-col justify-between" style={{ backgroundColor: '#9BE870', color: '#163300' }}>
+              <div>
+                <h3 className="text-4xl font-black mb-4">Premium</h3>
+                <p className="text-sm font-bold mb-8 leading-relaxed opacity-90">
+                  Dành cho người cần luyện tập không giới hạn và theo dõi tiến độ liên tục.
+                </p>
+                <div className="flex flex-col gap-6 font-bold text-sm">
+                  <div className="border-t border-[#163300]/20 pt-4">Không giới hạn số buổi</div>
+                  <div className="border-t border-[#163300]/20 pt-4">Full Mock Interview & Practice Mode</div>
+                  <div className="border-t border-[#163300]/20 pt-4 pb-4">Ghi âm, báo cáo chi tiết, lịch sử & tiến độ</div>
+                </div>
+              </div>
+              <div className="h-[52px]"></div> {/* Space matching the button height in Free column */}
+            </div>
+          </div>
+
+          {/* Notices */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 p-4 rounded-xl border text-xs md:text-sm font-bold" style={{ backgroundColor: '#E6F7ED', borderColor: '#B3E8C4', color: '#1C5B32' }}>
+              <span className="text-lg">✓</span>
+              <span>Tài khoản Free không cần thẻ tín dụng. Hệ thống reset 3 buổi mỗi ngày lúc 00:00.</span>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-xl border text-xs md:text-sm font-bold" style={{ backgroundColor: '#F0EBFB', borderColor: '#D3C6F7', color: '#4D2C9D' }}>
+              <span className="text-lg">✓</span>
+              <span>Gói Premium cần liên hệ email để Admin cấp tài khoản – minh bạch, không gây nhầm lẫn về thanh toán online.</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <BrainCircuit className="w-5 h-5 text-primary-600" />
-            <span className="font-bold text-gray-900">InterviewPro AI</span>
-          </div>
-          <div className="text-sm text-gray-500">
-            © 2024 InterviewPro AI. Tất cả quyền được bảo lưu.
-          </div>
-          <div className="flex gap-6 text-sm font-medium text-gray-600">
-            <a href="#" className="hover:text-primary-600">Điều khoản</a>
-            <a href="#" className="hover:text-primary-600">Bảo mật</a>
-            <a href="#" className="hover:text-primary-600">Liên hệ</a>
-          </div>
+      {/* Get Started Today Section */}
+      <section className="w-full py-24 px-6 flex flex-col items-center justify-center text-center" style={{ backgroundColor: '#F6F5F4' }}>
+        <h2 className="text-4xl md:text-5xl font-black mb-8 tracking-tight animate-fade-in" style={{ color: '#090A08' }}>
+          Get started today.
+        </h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(isAuthenticated ? '/setup' : '/register')}
+            className="px-6 py-2.5 rounded-lg font-bold text-xs hover:opacity-95 active:scale-95 transition-all shadow-sm"
+            style={{ backgroundColor: '#9BE870', color: '#163300' }}
+          >
+            Dùng thử ngay
+          </button>
+          <button
+            onClick={() => {
+              const featuresSection = document.getElementById('features');
+              if (featuresSection) {
+                featuresSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="px-6 py-2.5 rounded-lg font-bold text-xs bg-white hover:bg-gray-50 active:scale-95 transition-all border border-gray-200/80 shadow-sm"
+            style={{ color: '#163300' }}
+          >
+            Xem demo
+          </button>
         </div>
-      </footer>
+      </section>
     </div>
   );
 }

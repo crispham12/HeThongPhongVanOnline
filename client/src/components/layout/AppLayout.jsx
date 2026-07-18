@@ -1,12 +1,18 @@
-import { Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar';
+import { Outlet, useLocation } from 'react-router-dom';
+import GlassNavbar from './GlassNavbar';
 
 export default function AppLayout() {
+  const location = useLocation();
+  const isUiTest = location.pathname === '/ui-test';
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="relative h-screen w-full overflow-hidden bg-white">
+      {/* Liquid Glass Navbar on Top */}
+      <GlassNavbar />
+
+      {/* Main Content Area */}
+      <main className="w-full h-full pt-20 pb-4 overflow-y-auto bg-white">
+        <div className="max-w-7xl mx-auto px-6 bg-white">
           <Outlet />
         </div>
       </main>
