@@ -46,6 +46,11 @@
         color: var(--color-text);
         font-weight: 800;
         letter-spacing: -0.02em;
+        font-family: 'Nunito', sans-serif;
+    }
+
+    nav {
+        font-family: 'Nunito', sans-serif;
     }
 }
 

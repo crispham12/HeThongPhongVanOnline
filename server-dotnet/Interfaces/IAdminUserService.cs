@@ -22,6 +22,8 @@ namespace InterviewPro.API.Interfaces
         
         Task<bool> ResetDailyLimitAsync(int userId);
         
+        Task<bool> UpdatePlanAsync(int userId, string plan);
+        
         Task<AdminUserReportDto> GetReportDataAsync(string? search, string? plan, string? status);
     }
 }

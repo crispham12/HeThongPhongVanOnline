@@ -20,6 +20,7 @@ namespace InterviewPro.API.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IAiRequestLogService _aiRequestLogService;
         private readonly IInterviewDataService _interviewDataService;
+        private readonly IInterviewQuotaService _quotaService;
         private readonly AppDbContext _context;
 
         public InterviewController(
@@ -27,13 +28,26 @@ namespace InterviewPro.API.Controllers
             IHttpClientFactory httpClientFactory,
             IAiRequestLogService aiRequestLogService,
             IInterviewDataService interviewDataService,
+            IInterviewQuotaService quotaService,
             AppDbContext context)
         {
             _repo = repo;
             _httpClientFactory = httpClientFactory;
             _aiRequestLogService = aiRequestLogService;
             _interviewDataService = interviewDataService;
+            _quotaService = quotaService;
             _context = context;
+        }
+
+        [HttpGet("quota")]
+        public async Task<IActionResult> GetQuotaStatus()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized("Không xác định được người dùng.");
+
+            int userId = int.Parse(userIdClaim.Value);
+            var status = await _quotaService.GetQuotaStatusAsync(userId);
+            return Ok(status);
         }
 
         [HttpPost("start")]
@@ -44,6 +58,16 @@ namespace InterviewPro.API.Controllers
             if (userIdClaim == null) return Unauthorized("Không xác định được người dùng.");
             
             int userId = int.Parse(userIdClaim.Value);
+
+            // Kiểm tra và áp dụng quota phỏng vấn trước khi bắt đầu session
+            try
+            {
+                await _quotaService.ConsumeQuotaAsync(userId);
+            }
+            catch (QuotaExceededException ex)
+            {
+                return StatusCode(429, new { message = ex.Message });
+            }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try

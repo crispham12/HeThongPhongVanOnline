@@ -2,13 +2,14 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, History, GitBranch, Plus,
-  Settings, LogOut, BrainCircuit, FileText, Database, Code2
+  Settings, LogOut, BrainCircuit, FileText, Database, Code2, FlaskConical
 } from 'lucide-react';
 
 const menuItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Bảng điều khiển' },
   { to: '/question-bank', icon: Database, label: 'Ngân hàng câu hỏi' },
-  { to: '/history', icon: History, label: 'Lịch sử phỏng vấn' }
+  { to: '/history', icon: History, label: 'Lịch sử phỏng vấn' },
+  { to: '/ui-test', icon: FlaskConical, label: 'Kiểm tra giao diện' },
 ];
 
 export default function Sidebar() {

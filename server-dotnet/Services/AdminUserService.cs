@@ -265,6 +265,18 @@ namespace InterviewPro.API.Services
             return true;
         }
 
+        public async Task<bool> UpdatePlanAsync(int userId, string plan)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+                ?? throw new KeyNotFoundException($"Không tìm thấy người dùng ID={userId}.");
+
+            user.Plan = plan;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<AdminUserReportDto> GetReportDataAsync(string? search, string? plan, string? status)
         {
             var overview = await GetOverviewAsync();

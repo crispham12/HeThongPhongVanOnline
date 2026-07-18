@@ -25,6 +25,7 @@ namespace InterviewPro.API.Services
         private readonly IHrAiClient _aiClient;
         private readonly IInterviewDataService _interviewDataService;
         private readonly IHrQuestionBankService _questionBankService;
+        private readonly IInterviewQuotaService _quotaService;
         private readonly ILogger<HrInterviewService> _logger;
 
         private const int TotalQuestions = 10;
@@ -35,12 +36,14 @@ namespace InterviewPro.API.Services
             IHrAiClient aiClient,
             IInterviewDataService interviewDataService,
             IHrQuestionBankService questionBankService,
+            IInterviewQuotaService quotaService,
             ILogger<HrInterviewService> logger)
         {
             _db = db;
             _aiClient = aiClient;
             _interviewDataService = interviewDataService;
             _questionBankService = questionBankService;
+            _quotaService = quotaService;
             _logger = logger;
         }
 
@@ -55,6 +58,9 @@ namespace InterviewPro.API.Services
                 throw new ArgumentException("Vui lòng chọn vai trò.");
             if (string.IsNullOrWhiteSpace(request.Difficulty))
                 throw new ArgumentException("Vui lòng chọn mức độ khó.");
+
+            // Áp dụng giới hạn quota phỏng vấn
+            await _quotaService.ConsumeQuotaAsync(userId);
 
             using var transactionScope = await _db.Database.BeginTransactionAsync();
             try
