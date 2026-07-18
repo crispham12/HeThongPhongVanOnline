@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Database, Layout, Layers, BrainCircuit, RotateCcw,
-  ArrowRight, CheckCircle2, Code2, Cpu, Globe, Server
+import {
+  Database, Layers, BrainCircuit, RotateCcw,
+  ArrowRight, ArrowLeft, Check, Globe, Server, Code2, Cpu
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../../lib/axios';
 
 const roles = [
@@ -16,23 +15,23 @@ const roles = [
 
 const techOptions = {
   backend: [
-    { category: 'Programming Language', options: ['C#', 'Java', 'Node.js', 'Python', 'Go'] },
-    { category: 'Backend Framework', options: ['ASP.NET Core', 'Spring Boot', 'ExpressJS', 'FastAPI', 'Gin'] },
-    { category: 'Database', options: ['PostgreSQL', 'MySQL', 'MongoDB', 'SQL Server'] },
+    { category: 'Programming Language', label: 'Ngôn ngữ', options: ['C#', 'Java', 'Node.js', 'Python', 'Go'] },
+    { category: 'Backend Framework', label: 'Frameworks', options: ['ASP.NET Core', 'Spring Boot', 'ExpressJS', 'FastAPI', 'Gin'] },
+    { category: 'Database', label: 'Database', options: ['PostgreSQL', 'MySQL', 'MongoDB', 'SQL Server'] },
   ],
   frontend: [
-    { category: 'Languages', options: ['JavaScript', 'TypeScript'] },
-    { category: 'Frameworks', options: ['React', 'Vue', 'Angular', 'Next.js'] },
+    { category: 'Languages', label: 'Ngôn ngữ', options: ['JavaScript', 'TypeScript'] },
+    { category: 'Frameworks', label: 'Frameworks', options: ['React', 'Vue', 'Angular', 'Next.js'] },
   ],
   fullstack: [
-    { category: 'Frontend Stack', options: ['React', 'Next.js', 'TypeScript'] },
-    { category: 'Backend Stack', options: ['Node.js', 'ASP.NET Core', 'Python'] },
-    { category: 'Database', options: ['PostgreSQL', 'MongoDB', 'SQL Server'] },
+    { category: 'Frontend Stack', label: 'Ngôn ngữ', options: ['React', 'Next.js', 'TypeScript'] },
+    { category: 'Backend Stack', label: 'Frameworks', options: ['Node.js', 'ASP.NET Core', 'Python'] },
+    { category: 'Database', label: 'Database', options: ['PostgreSQL', 'MongoDB', 'SQL Server'] },
   ],
   ai: [
-    { category: 'Core Languages', options: ['Python', 'C++', 'R'] },
-    { category: 'Frameworks', options: ['PyTorch', 'TensorFlow', 'Scikit-learn'] },
-    { category: 'Tools', options: ['Docker', 'Kubernetes', 'HuggingFace'] },
+    { category: 'Core Languages', label: 'Ngôn ngữ', options: ['Python', 'C++', 'R'] },
+    { category: 'Frameworks', label: 'Frameworks', options: ['PyTorch', 'TensorFlow', 'Scikit-learn'] },
+    { category: 'Tools', label: 'Database', options: ['Docker', 'Kubernetes', 'HuggingFace'] },
   ]
 };
 
@@ -67,15 +66,15 @@ const FRAMEWORK_TO_LANG = {
 
 export default function InterviewSetup() {
   const navigate = useNavigate();
-  const [config, setConfig] = useState({ 
-    role: 'backend', 
-    stack: [], 
-    level: 'fresher', 
-    type: 'technical' 
+  const [currentStep, setCurrentStep] = useState(1);
+  const [config, setConfig] = useState({
+    role: 'ai',
+    stack: [],
+    level: 'fresher',
+    type: 'technical'
   });
 
   const isOptionDisabled = (opt) => {
-    // If it's a language
     if (LANG_TO_FRAMEWORK[opt]) {
       const selectedFrameworks = config.stack.filter(item => FRAMEWORK_TO_LANG[item]);
       if (selectedFrameworks.length > 0) {
@@ -83,7 +82,6 @@ export default function InterviewSetup() {
         return !allowedLangs.includes(opt);
       }
     }
-    // If it's a framework
     if (FRAMEWORK_TO_LANG[opt]) {
       const selectedLangs = config.stack.filter(item => LANG_TO_FRAMEWORK[item]);
       if (selectedLangs.length > 0) {
@@ -91,16 +89,94 @@ export default function InterviewSetup() {
         return !allowedFrameworks.includes(opt);
       }
     }
+
+    // Ràng buộc bổ sung cho vai trò Fullstack (React/Next.js không đi với ASP.NET Core/Python)
+    if (config.role === 'fullstack') {
+      if (opt === 'ASP.NET Core' || opt === 'Python') {
+        if (config.stack.includes('React') || config.stack.includes('Next.js')) {
+          return true;
+        }
+      }
+      if (opt === 'React' || opt === 'Next.js') {
+        if (config.stack.includes('ASP.NET Core') || config.stack.includes('Python')) {
+          return true;
+        }
+      }
+    }
+
     return false;
   };
 
   const toggleStack = (tech) => {
     setConfig(prev => ({
       ...prev,
-      stack: prev.stack.includes(tech) 
-        ? prev.stack.filter(s => s !== tech) 
+      stack: prev.stack.includes(tech)
+        ? prev.stack.filter(s => s !== tech)
         : [...prev.stack, tech]
     }));
+  };
+
+  const handleSelectChange = (cat, val) => {
+    setConfig(prev => {
+      // 1. Loại bỏ lựa chọn cũ của category hiện tại
+      let newStack = prev.stack.filter(item => !cat.options.includes(item));
+
+      if (val) {
+        newStack.push(val);
+
+        // 2. Tự động chọn Framework tương ứng khi chọn Ngôn ngữ
+        if (LANG_TO_FRAMEWORK[val]) {
+          const targetFramework = LANG_TO_FRAMEWORK[val];
+          const roleCats = techOptions[prev.role];
+          const frameworkCat = roleCats.find(c => c.category.toLowerCase().includes('framework') || c.category.toLowerCase().includes('backend stack'));
+          if (frameworkCat && frameworkCat.options.includes(targetFramework)) {
+            newStack = newStack.filter(item => !frameworkCat.options.includes(item));
+            newStack.push(targetFramework);
+          }
+        }
+
+        // 3. Tự động chọn Ngôn ngữ tương ứng khi chọn Framework
+        if (FRAMEWORK_TO_LANG[val]) {
+          const targetLang = FRAMEWORK_TO_LANG[val];
+          const roleCats = techOptions[prev.role];
+          const langCat = roleCats.find(c =>
+            c.category.toLowerCase().includes('language') ||
+            c.category.toLowerCase().includes('lang') ||
+            c.category.toLowerCase().includes('frontend stack')
+          );
+          if (langCat && langCat.options.includes(targetLang)) {
+            newStack = newStack.filter(item => !langCat.options.includes(item));
+            newStack.push(targetLang);
+          }
+        }
+      } else {
+        // Nếu chọn trống, tự động hủy bỏ lựa chọn liên đới để người dùng chọn lại thoải mái
+        const roleCats = techOptions[prev.role];
+        const currentCatIsLang = cat.category.toLowerCase().includes('language') || cat.category.toLowerCase().includes('lang') || cat.category.toLowerCase().includes('frontend stack');
+        const currentCatIsFramework = cat.category.toLowerCase().includes('framework') || cat.category.toLowerCase().includes('backend stack');
+
+        if (currentCatIsLang) {
+          const frameworkCat = roleCats.find(c => c.category.toLowerCase().includes('framework') || c.category.toLowerCase().includes('backend stack'));
+          if (frameworkCat) {
+            newStack = newStack.filter(item => !frameworkCat.options.includes(item));
+          }
+        } else if (currentCatIsFramework) {
+          const langCat = roleCats.find(c =>
+            c.category.toLowerCase().includes('language') ||
+            c.category.toLowerCase().includes('lang') ||
+            c.category.toLowerCase().includes('frontend stack')
+          );
+          if (langCat) {
+            newStack = newStack.filter(item => !langCat.options.includes(item));
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        stack: newStack
+      };
+    });
   };
 
   const canStartInterview = () => {
@@ -144,166 +220,156 @@ export default function InterviewSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfcfd] pb-32 pt-12 px-6">
+    <div className="w-full bg-white pb-6 pt-0 px-2">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-12">
-          <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Thiết lập phỏng vấn AI</h1>
-          <p className="text-gray-500 max-w-xl text-sm">Tùy chỉnh lộ trình để AI tạo ra các câu hỏi sát với thực tế công việc của bạn nhất.</p>
+        <header className="mb-12 mt-0">
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Thiết lập kỹ năng</h1>
+          <p className="text-slate-400 text-xs font-medium">Tùy chỉnh kỹ năng của bạn để AI tạo ra bộ câu hỏi phù hợp nhất</p>
         </header>
 
-        {/* Step 1: Role */}
-        <section className="mb-12">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center font-bold text-xs">01</span>
-            <h2 className="font-bold text-lg text-gray-900 uppercase tracking-wider">Chọn vai trò</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {roles.map(r => (
-              <button
-                key={r.id}
-                onClick={() => setConfig(p => ({ ...p, role: r.id, stack: [] }))}
-                className={`p-6 rounded-2xl border-2 transition-all text-left relative ${
-                  config.role === r.id ? 'border-primary-600 bg-white shadow-xl ring-4 ring-primary-50' : 'border-gray-100 bg-white'
-                }`}
-              >
-                <r.icon className={`w-8 h-8 mb-4 ${config.role === r.id ? 'text-primary-600' : 'text-gray-300'}`} />
-                <h3 className="font-bold text-gray-900 mb-1">{r.name}</h3>
-                <p className="text-[11px] text-gray-500 leading-tight">{r.desc}</p>
-                {config.role === r.id && <CheckCircle2 className="absolute top-4 right-4 w-5 h-5 text-primary-600" />}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Step 2: Tech Stack (Dynamic) */}
-        <section className="mb-12">
-          <div className="flex items-center gap-3 mb-6">
-            <span className={`w-8 h-8 rounded-lg ${config.type === 'hr' ? 'bg-gray-400' : 'bg-primary-600'} text-white flex items-center justify-center font-bold text-xs`}>02</span>
-            <h2 className="font-bold text-lg text-gray-900 uppercase tracking-wider">Ngôn ngữ & Công nghệ</h2>
-          </div>
-          
-          {config.type === 'hr' ? (
-            <div className="bg-gray-50 border border-gray-100 rounded-3xl p-8 shadow-sm flex items-center justify-center">
-              <p className="text-gray-500 font-medium text-sm">Phỏng vấn HR không yêu cầu chọn công nghệ.</p>
+        {/* STEP 1: CHỌN VAI TRÒ */}
+        {currentStep === 1 && (
+          <section className="animate-fade-in">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">01</span>
+              <h2 className="font-extrabold text-[12px] text-slate-800 uppercase tracking-widest">CHỌN VAI TRÒ</h2>
             </div>
-          ) : (
-            <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {techOptions[config.role].map((cat, i) => (
-                  <div key={i}>
-                    <p className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-4">{cat.category}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {cat.options.map(opt => {
-                        const disabled = isOptionDisabled(opt);
-                        return (
-                          <button
-                            key={opt}
-                            disabled={disabled}
-                            onClick={() => !disabled && toggleStack(opt)}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                              config.stack.includes(opt) 
-                                ? 'bg-primary-600 border-primary-600 text-white' 
-                                : disabled
-                                  ? 'bg-gray-100 border-transparent text-gray-300 cursor-not-allowed opacity-50'
-                                  : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        );
-                      })}
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+              {roles.map(r => {
+                const Icon = r.icon;
+                const isSelected = config.role === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => setConfig(p => ({ ...p, role: r.id, stack: [] }))}
+                    className={`p-8 rounded-2xl border text-left relative transition-all duration-300 ${isSelected
+                      ? 'border-slate-800 bg-white shadow-lg ring-1 ring-slate-800'
+                      : 'border-slate-100 bg-white hover:border-slate-200'
+                      }`}
+                  >
+                    <Icon className={`w-8 h-8 mb-5 ${isSelected ? 'text-slate-900' : 'text-slate-400'}`} />
+                    <h3 className="font-bold text-slate-800 text-base mb-1.5">{r.name}</h3>
+                    <p className="text-[12px] text-slate-400 font-medium leading-relaxed">{r.desc}</p>
+                    {isSelected && (
+                      <div className="absolute top-5 right-5 w-4.5 h-4.5 rounded-full border border-slate-900 flex items-center justify-center bg-transparent">
+                        <Check className="w-2.5 h-2.5 text-slate-900 stroke-[3]" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end items-center mt-12">
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="px-8 py-3 bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 text-sm font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-sm shadow-[#b2f396]/20"
+              >
+                Tiếp tục <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 2: NGÔN NGỮ & CÔNG NGHỆ */}
+        {currentStep === 2 && (
+          <section className="animate-fade-in">
+            <div className="flex items-center gap-3 mb-10">
+              <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">02</span>
+              <h2 className="font-extrabold text-[12px] text-slate-800 uppercase tracking-widest">NGÔN NGỮ & CÔNG NGHỆ</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-16 max-w-3xl mx-auto justify-items-center">
+              {techOptions[config.role].map((cat, i) => {
+                const currentVal = config.stack.find(item => cat.options.includes(item)) || '';
+                return (
+                  <div key={i} className="flex flex-col gap-3 w-full items-start max-w-[170px]">
+                    <label className="text-sm font-bold text-slate-950 ml-1">{cat.label}</label>
+                    <div className="relative w-full">
+                      <select
+                        value={currentVal}
+                        onChange={(e) => handleSelectChange(cat, e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 bg-white text-slate-800 font-bold text-sm focus:border-slate-800 focus:outline-none appearance-none pr-10 cursor-pointer text-left"
+                      >
+                        {!currentVal && <option value="">Chọn...</option>}
+                        {cat.options.filter(opt => !isOptionDisabled(opt) || currentVal === opt).map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 font-bold text-[10px]">
+                        v
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end items-center mt-12">
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="px-8 py-3 bg-[#F1F3F5] hover:bg-slate-200 text-slate-800 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all mr-4 min-w-[130px]"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
+              </button>
+              <button
+                onClick={() => setCurrentStep(3)}
+                className="px-8 py-3 bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm shadow-[#b2f396]/20 min-w-[130px]"
+              >
+                Tiếp tục <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 3: MỨC ĐỘ */}
+        {currentStep === 3 && (
+          <section className="animate-fade-in">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">03</span>
+              <h2 className="font-extrabold text-[12px] text-slate-800 uppercase tracking-widest">MỨC ĐỘ</h2>
+            </div>
+
+            <div className="max-w-2xl mx-auto mb-16">
+              <div className="grid grid-cols-2 gap-4">
+                {levels.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => setConfig(p => ({ ...p, level: l.id }))}
+                    className={`p-6 rounded-xl border text-left transition-all duration-300 ${config.level === l.id
+                        ? 'border-slate-800 bg-white ring-1 ring-slate-800 shadow-md'
+                        : 'border-slate-100 bg-white hover:border-slate-200'
+                      }`}
+                  >
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1.5">{l.label}</p>
+                    <p className="font-bold text-base text-slate-900">{l.name}</p>
+                  </button>
                 ))}
               </div>
-              {config.stack.length === 0 && (
-                <div className="mt-8 pt-6 border-t border-gray-50 flex items-center gap-2 text-amber-500">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  <p className="text-[11px] font-bold">Vui lòng chọn ít nhất 1 công nghệ để AI có thể đặt câu hỏi kỹ thuật.</p>
-                </div>
-              )}
             </div>
-          )}
-        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Step 3: Difficulty */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center font-bold text-xs">03</span>
-              <h2 className="font-bold text-lg text-gray-900 uppercase tracking-wider">Mức độ</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {levels.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => setConfig(p => ({ ...p, level: l.id }))}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
-                    config.level === l.id ? 'border-primary-600 bg-white ring-2 ring-primary-50' : 'border-gray-100 bg-white'
+            <div className="flex justify-end items-center mt-12">
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="px-8 py-3 bg-[#F1F3F5] hover:bg-slate-200 text-slate-800 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all mr-4 min-w-[130px]"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
+              </button>
+              <button
+                onClick={handleStart}
+                disabled={!canStartInterview()}
+                className={`px-8 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all min-w-[160px] ${canStartInterview()
+                    ? 'bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 shadow-sm shadow-[#b2f396]/20'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   }`}
-                >
-                  <p className="text-[9px] font-black text-gray-400 uppercase mb-1">{l.label}</p>
-                  <p className="font-bold text-sm text-gray-900">{l.name}</p>
-                </button>
-              ))}
+              >
+                Bắt đầu phỏng vấn <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </section>
+        )}
 
-          {/* Step 4: Type */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center font-bold text-xs">04</span>
-              <h2 className="font-bold text-lg text-gray-900 uppercase tracking-wider">Hình thức</h2>
-            </div>
-            <div className="space-y-3">
-              {types.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setConfig(p => ({ ...p, type: t.id }))}
-                  className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${
-                    config.type === t.id ? 'border-primary-600 bg-white ring-2 ring-primary-50' : 'border-gray-100 bg-white'
-                  }`}
-                >
-                  <div>
-                    <p className="font-bold text-sm text-gray-900">{t.name}</p>
-                    <p className="text-[10px] text-gray-500">{t.desc}</p>
-                  </div>
-                  {config.type === t.id && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
-
-      {/* Bottom Floating Bar */}
-      <div className="fixed bottom-0 left-64 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 z-50 py-6">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
-              <span className="text-[10px] font-bold text-gray-400 block uppercase">Bạn đã chọn</span>
-              <span className="text-xs font-bold text-gray-900">
-                {roles.find(r => r.id === config.role)?.name} • {config.type === 'hr' ? 'Phỏng vấn HR' : `${config.stack.length} Công nghệ`}
-              </span>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <button onClick={() => setConfig({ role: 'backend', stack: [], level: 'fresher', type: 'technical' })} className="px-6 py-3 font-bold text-gray-400 hover:text-gray-900 text-sm flex items-center gap-2">
-              <RotateCcw className="w-4 h-4" /> Reset
-            </button>
-            <button
-              onClick={handleStart}
-              disabled={!canStartInterview()}
-              className={`px-12 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${
-                canStartInterview() 
-                ? 'bg-primary-600 text-white shadow-xl shadow-primary-200 hover:-translate-y-0.5 active:translate-y-0' 
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Bắt đầu phỏng vấn <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
