@@ -68,7 +68,9 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 // Admin Dashboard service
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
-
+// Quota Management services
+builder.Services.AddScoped<IInterviewQuotaService, InterviewQuotaService>();
+builder.Services.AddHostedService<InterviewPro.API.Workers.DailyQuotaResetWorker>();
 
 // Coding Problem Bank services
 builder.Services.AddScoped<IAdminCodingProblemService, AdminCodingProblemService>();

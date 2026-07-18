@@ -80,6 +80,13 @@ namespace InterviewPro.API.DTOs
         public string Reason { get; set; } = string.Empty;
     }
 
+    public class UpdateUserPlanDto
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.RegularExpression("^(Free|Premium)$", ErrorMessage = "Plan chỉ được là 'Free' hoặc 'Premium'.")]
+        public string Plan { get; set; } = "Free";
+    }
+
     public class AdminUserReportDto
     {
         public string ReportTitle { get; set; } = "Báo cáo Quản lý Người dùng";

@@ -210,5 +210,34 @@ namespace InterviewPro.API.Controllers
                 return StatusCode(500, new { message = "Lỗi khi lấy dữ liệu báo cáo PDF.", error = ex.Message });
             }
         }
+
+        // PATCH /api/admin/users/{id}/plan
+        [HttpPatch("{id:int}/plan")]
+        public async Task<IActionResult> UpdatePlan(int id, [FromBody] UpdateUserPlanDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var success = await _service.UpdatePlanAsync(id, dto.Plan);
+                return Ok(new
+                {
+                    message = $"Đã cập nhật Plan thành '{dto.Plan}' cho user.",
+                    userId = id,
+                    plan = dto.Plan
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật Plan.", error = ex.Message });
+            }
+        }
     }
 }
