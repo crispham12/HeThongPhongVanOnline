@@ -10,7 +10,7 @@ namespace InterviewPro.API.Services
     public class InterviewQuotaService : IInterviewQuotaService
     {
         private readonly AppDbContext _context;
-        private const int FREE_DAILY_LIMIT = 3;
+        private const int FREE_DAILY_LIMIT = 12;
 
         public InterviewQuotaService(AppDbContext context)
         {
@@ -28,7 +28,7 @@ namespace InterviewPro.API.Services
             // Free: kiểm tra giới hạn
             if (user.DailyInterviewUsed >= FREE_DAILY_LIMIT)
                 throw new QuotaExceededException(
-                    "Bạn đã sử dụng hết 3 buổi hôm nay. Vui lòng liên hệ để nâng cấp tài khoản Premium.");
+                    "Bạn đã sử dụng hết 12 buổi hôm nay. Vui lòng liên hệ để nâng cấp tài khoản Premium.");
 
             user.DailyInterviewUsed += 1;
             await _context.SaveChangesAsync();
