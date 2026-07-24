@@ -42,12 +42,23 @@ namespace InterviewPro.API.Controllers
         [HttpGet("quota")]
         public async Task<IActionResult> GetQuotaStatus()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized("Không xác định được người dùng.");
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized("Không xác định được người dùng.");
 
-            int userId = int.Parse(userIdClaim.Value);
-            var status = await _quotaService.GetQuotaStatusAsync(userId);
-            return Ok(status);
+                int userId = int.Parse(userIdClaim.Value);
+                var status = await _quotaService.GetQuotaStatusAsync(userId);
+                return Ok(status);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         [HttpPost("start")]

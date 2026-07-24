@@ -42,12 +42,6 @@ const levels = [
   { id: 'senior', label: 'Level 04', name: 'Senior' },
 ];
 
-const types = [
-  { id: 'hr', name: 'Phỏng vấn HR', desc: 'Văn hóa, kỹ năng mềm & lãnh đạo.', path: '/interview/hr' },
-  { id: 'technical', name: 'Phỏng vấn Kỹ thuật', desc: 'Thuật toán & Hệ thống.', path: '/interview/technical' },
-  { id: 'coding', name: 'Đánh giá toàn diện', desc: 'Toàn bộ quy trình 9 bước AI.', path: '/interview/coding', recommended: true },
-];
-
 const LANG_TO_FRAMEWORK = {
   'C#': 'ASP.NET Core',
   'Java': 'Spring Boot',
@@ -68,11 +62,12 @@ export default function InterviewSetup() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [config, setConfig] = useState({
-    role: 'ai',
+    role: 'backend',
     stack: [],
     level: 'fresher',
-    type: 'technical'
   });
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState('');
 
   const isOptionDisabled = (opt) => {
     if (LANG_TO_FRAMEWORK[opt]) {
@@ -104,6 +99,21 @@ export default function InterviewSetup() {
       }
     }
 
+    // Ràng buộc bổ sung cho vai trò AI Engineer (PyTorch, TensorFlow, Scikit-learn chỉ đi với Python)
+    if (config.role === 'ai') {
+      const aiFrameworks = ['PyTorch', 'TensorFlow', 'Scikit-learn'];
+      if (aiFrameworks.includes(opt)) {
+        if (config.stack.includes('C++') || config.stack.includes('R')) {
+          return true;
+        }
+      }
+      if (opt === 'C++' || opt === 'R') {
+        if (config.stack.some(item => aiFrameworks.includes(item))) {
+          return true;
+        }
+      }
+    }
+
     return false;
   };
 
@@ -120,9 +130,17 @@ export default function InterviewSetup() {
     setConfig(prev => {
       // 1. Loại bỏ lựa chọn cũ của category hiện tại
       let newStack = prev.stack.filter(item => !cat.options.includes(item));
-
+      
       if (val) {
         newStack.push(val);
+
+        // Ràng buộc cho vai trò AI Engineer khi chọn ngôn ngữ
+        if (prev.role === 'ai') {
+          const aiFrameworks = ['PyTorch', 'TensorFlow', 'Scikit-learn'];
+          if (val === 'C++' || val === 'R') {
+            newStack = newStack.filter(item => !aiFrameworks.includes(item));
+          }
+        }
 
         // 2. Tự động chọn Framework tương ứng khi chọn Ngôn ngữ
         if (LANG_TO_FRAMEWORK[val]) {
@@ -179,43 +197,43 @@ export default function InterviewSetup() {
     });
   };
 
+  const isStep2Completed = () => {
+    const categories = techOptions[config.role] || [];
+    return categories.every(cat =>
+      config.stack.some(item => cat.options.includes(item))
+    );
+  };
+
   const canStartInterview = () => {
-    if (!config.role || !config.level || !config.type) return false;
-    if (config.type === 'hr') return true;
-    if (config.type === 'technical' || config.type === 'coding') {
-      return config.stack.length > 0;
-    }
-    return false;
+    return !!config.role && !!config.level && isStep2Completed();
   };
 
   const handleStart = async () => {
+    setStarting(true);
+    setStartError('');
     try {
-      if (config.type === 'hr') {
-        const response = await api.post('/hr-interviews/start', {
+      const { data } = await api.post('/full-mock', {
+        role: config.role,
+        difficulty: config.level,
+        stack: config.stack,
+      });
+      // Navigate sang FullMockInterview với đủ context
+      navigate('/interview/full-mock', {
+        state: {
+          fullMockSessionGuid: data.fullMockSessionGuid,
           role: config.role,
-          techStack: [],
-          difficulty: config.level
-        });
-        const { sessionId } = response.data;
-        const target = types.find(t => t.id === config.type)?.path;
-        navigate(target, { state: { ...config, sessionId } });
-      } else {
-        const response = await api.post('/interview/start', {
-          role: config.role,
-          stack: config.stack,
           difficulty: config.level,
-          type: config.type
-        });
-        const { sessionId } = response.data;
-        const target = types.find(t => t.id === config.type)?.path;
-        navigate(target, { state: { ...config, sessionId } });
-      }
+          stack: config.stack,
+        }
+      });
     } catch (error) {
-      if (error.response && error.response.status === 402) {
-        alert(error.response.data.message || "Bạn đã dùng hết 3 lượt phỏng vấn miễn phí hôm nay. Vui lòng nâng cấp Premium để tiếp tục.");
+      if (error.response?.status === 429) {
+        setStartError(error.response.data.message || 'Bạn đã dùng hết buổi hôm nay. Vui lòng thử lại vào ngày mai.');
       } else {
-        alert("Lỗi từ Server: " + JSON.stringify(error.response?.data || {}));
+        setStartError('Có lỗi xảy ra. Vui lòng thử lại.');
       }
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -315,7 +333,12 @@ export default function InterviewSetup() {
               </button>
               <button
                 onClick={() => setCurrentStep(3)}
-                className="px-8 py-3 bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm shadow-[#b2f396]/20 min-w-[130px]"
+                disabled={!isStep2Completed()}
+                className={`px-8 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all min-w-[130px] ${
+                  isStep2Completed()
+                    ? 'bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 shadow-sm shadow-[#b2f396]/20'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
               >
                 Tiếp tục <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -349,24 +372,37 @@ export default function InterviewSetup() {
               </div>
             </div>
 
-            <div className="flex justify-end items-center mt-12">
-              <button
-                onClick={() => setCurrentStep(2)}
-                className="px-8 py-3 bg-[#F1F3F5] hover:bg-slate-200 text-slate-800 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all mr-4 min-w-[130px]"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
-              </button>
-              <button
-                onClick={handleStart}
-                disabled={!canStartInterview()}
-                className={`px-8 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all min-w-[160px] ${canStartInterview()
-                    ? 'bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 shadow-sm shadow-[#b2f396]/20'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              {startError && (
+                <p className="text-red-500 text-xs font-medium text-right mb-3 w-full block">{startError}</p>
+              )}
+              <div className="flex justify-end items-center w-full">
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="px-8 py-3 bg-[#F1F3F5] hover:bg-slate-200 text-slate-800 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all mr-4 min-w-[130px]"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
+                </button>
+                <button
+                  onClick={handleStart}
+                  disabled={!canStartInterview() || starting}
+                  className={`px-8 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all min-w-[160px] ${
+                    canStartInterview() && !starting
+                      ? 'bg-[#b2f396] hover:bg-[#a1e285] text-slate-900 shadow-sm shadow-[#b2f396]/20'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   }`}
-              >
-                Bắt đầu phỏng vấn <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                >
+                  {starting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                      Đang tạo phiên...
+                    </>
+                  ) : (
+                    <>
+                      Bắt đầu Full Mock <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
           </section>
         )}
 

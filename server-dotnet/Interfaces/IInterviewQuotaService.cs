@@ -16,6 +16,9 @@ namespace InterviewPro.API.Interfaces
         /// Lấy thông tin quota hiện tại của user.
         /// </summary>
         Task<QuotaStatusDto> GetQuotaStatusAsync(int userId);
+
+        /// <summary>Kiểm tra user còn đủ N buổi không. Trả về true/false, không throw.</summary>
+        Task<bool> HasEnoughQuotaAsync(int userId, int required);
     }
 
     public class QuotaExceededException : Exception
