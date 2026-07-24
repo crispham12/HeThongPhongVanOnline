@@ -12,6 +12,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState(state?.sessionId || null);
   const sessionIdRef = useRef(state?.sessionId || null);
+  const isSubmittingRef = useRef(false);
 
   const updateSessionId = (id) => {
     setSessionId(id);
@@ -76,6 +77,10 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
   };
 
   const createHrSession = async () => {
+    if (!role || !difficulty) {
+      console.error('Missing role or difficulty for HR session');
+      return;
+    }
     try {
       const { data } = await api.post('/hr-interviews/start', {
         role: role,
@@ -85,7 +90,8 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
       setSessionId(data.sessionId);
       sessionIdRef.current = data.sessionId;
     } catch (error) {
-      alert('Không thể tạo phiên HR. Vui lòng thử lại.');
+      console.error('HR start error:', error.response?.data || error);
+      alert('Không thể tạo phiên HR: ' + (error.response?.data?.message || error.response?.data?.detail || 'Vui lòng thử lại.'));
     }
   };
 
@@ -99,11 +105,12 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
     }
   }, [sessionId]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (onQuestionChange && session?.totalQuestions) {
       onQuestionChange(currentQIndex + 1, session.totalQuestions);
     }
-  }, [currentQIndex, session?.totalQuestions, onQuestionChange]);
+  }, [currentQIndex, session?.totalQuestions]);
 
   const fetchSession = async () => {
     setLoading(true);
@@ -125,11 +132,12 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
   // ────────────────────────────────────────────────────────
   // DRAFT LOGIC
   // ────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (currentQuestion) {
       loadDraft();
     }
-  }, [currentQuestion]);
+  }, [currentQuestion?.questionId]);
 
   const loadDraft = async () => {
     if (!currentQuestion) return;
@@ -297,8 +305,12 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
   // SUBMIT
   // ────────────────────────────────────────────────────────
   const submitAnswer = async () => {
+    // Guard: chặn double-submit
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
     try {
-      setDraftStatus('saving'); // Dùng spinner của draft cho chung
+      setDraftStatus('saving');
       await api.post(`/hr-interviews/${sessionId}/answers`, {
         questionId: currentQuestion.questionId,
         answerText: transcript,
@@ -311,7 +323,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
 
       setAnswerState('submitted');
       // Clear draft
-      await api.delete(`/hr-interviews/${sessionId}/questions/${currentQuestion.questionId}/draft`).catch(() => console.log("Delete draft failed"));
+      await api.delete(`/hr-interviews/${sessionId}/questions/${currentQuestion.questionId}/draft`).catch(() => {});
       localStorage.removeItem(`hr_draft_${sessionId}_${currentQuestion.questionId}`);
 
       // Chuyển câu or Finish
@@ -323,8 +335,21 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
       }
 
     } catch (error) {
-      alert("Lỗi nộp bài: " + (error.response?.data?.message || ""));
-      setDraftStatus('failed');
+      // 409 = câu đã nộp rồi → bỏ qua, tự động chuyển câu tiếp
+      if (error.response?.status === 409) {
+        console.warn('Câu hỏi đã được nộp trước đó, chuyển tiếp.');
+        if (currentQIndex < (session.totalQuestions - 1)) {
+          setCurrentQIndex(prev => prev + 1);
+          resetState();
+        } else {
+          finishInterview();
+        }
+      } else {
+        alert("Lỗi nộp bài: " + (error.response?.data?.message || ""));
+        setDraftStatus('failed');
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
