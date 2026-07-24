@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
-import { 
-  Code2, Play, Send, Loader2, Info, CheckCircle2, 
-  Timer, ShieldCheck, Save, ChevronRight, Star, Share2,
-  Terminal, Monitor, Settings, ExternalLink
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+  import { useNavigate } from 'react-router-dom';
+  import Editor from '@monaco-editor/react';
+  import { 
+    Code2, Play, Send, Loader2, Info, CheckCircle2, 
+    Timer, ShieldCheck, Save, ChevronRight, Star, Share2,
+    Terminal, Monitor, Settings, ExternalLink
+  } from 'lucide-react';
+  import { motion } from 'framer-motion';
+  import api from '../../../lib/axios';
 
-export default function CodingAssessment() {
+export default function CodingAssessment({ fullMockMode = false, role, difficulty, stack, onComplete }) {
   const navigate = useNavigate();
   const [code, setCode] = useState(`function solution(candidates, B) {
   // Initialize DP table for budget B
@@ -51,6 +52,25 @@ export default function CodingAssessment() {
     setTimeout(() => setLoading(false), 1000);
   };
 
+  const handleFinalSubmit = async () => {
+    if (fullMockMode && onComplete) {
+      try {
+        const { data } = await api.post('/interview/start', {
+          role: role || 'backend',
+          stack: stack || [],
+          difficulty: difficulty || 'fresher',
+          type: 'coding',
+        });
+        onComplete(String(data.sessionId));
+      } catch (error) {
+        alert('Không thể lưu kết quả Coding. Vui lòng thử lại.');
+        // Không gọi onComplete — giữ user ở màn hình Coding để thử lại
+      }
+    } else {
+      navigate('/result/123');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-[#f8f9fa] z-[100] flex flex-col font-sans text-[13px]">
       {/* Top Navigation Bar */}
@@ -75,7 +95,7 @@ export default function CodingAssessment() {
           </div>
           <button className="text-sm font-semibold text-gray-500 hover:text-gray-900 px-4">Lưu bản nháp</button>
           <button 
-            onClick={() => navigate('/result/123')}
+            onClick={handleFinalSubmit}
             className="bg-primary-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary-100 hover:bg-primary-700 flex items-center gap-2"
           >
             Nộp bài đánh giá <ChevronRight className="w-4 h-4" />

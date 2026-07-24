@@ -69,11 +69,16 @@ namespace InterviewPro.API.Controllers
                 .ToListAsync();
 
             // Get this user's practice history for these questions
-            var practiceMap = await _db.UserQuestionPracticeHistories
+            var historyList = await _db.UserQuestionPracticeHistories
                 .Where(h => h.UserId == userId && questionIds.Contains(h.QuestionId))
+                .ToListAsync();
+
+            var practiceMap = historyList
                 .GroupBy(h => h.QuestionId)
-                .Select(g => new { QuestionId = g.Key, Status = g.OrderByDescending(h => h.CreatedAt).First().PracticeStatus })
-                .ToDictionaryAsync(x => x.QuestionId, x => x.Status);
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(h => h.CreatedAt).First().PracticeStatus
+                );
 
             var questions = await query
                 .OrderByDescending(q => q.CreatedAt)

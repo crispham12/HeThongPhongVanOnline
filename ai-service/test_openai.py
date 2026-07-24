@@ -4,20 +4,22 @@ from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
 
-async def test():
-    api_key = os.getenv("OPENAI_API_KEY")
-    print(f"API Key starting with: {api_key[:15]}... length: {len(api_key)}")
-    client = AsyncOpenAI(api_key=api_key)
+async def test_openai_sdk():
+    client = AsyncOpenAI(
+        api_key=api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": "say hi"}],
-            max_tokens=5
+            model="gemini-2.5-flash",
+            messages=[{"role": "user", "content": "Return a JSON object with key 'status' and value 'ok'. Must be valid JSON."}],
+            response_format={"type": "json_object"}
         )
-        print("Success!")
+        print("SDK JSON Success!")
         print(response.choices[0].message.content)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"SDK JSON Error: {e}")
 
-asyncio.run(test())
+asyncio.run(test_openai_sdk())

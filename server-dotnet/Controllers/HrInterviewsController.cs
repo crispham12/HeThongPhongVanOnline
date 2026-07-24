@@ -54,7 +54,10 @@ namespace InterviewPro.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Không thể tạo phiên phỏng vấn.", detail = ex.Message });
