@@ -44,6 +44,7 @@ namespace InterviewPro.API.Data
         public DbSet<InterviewStrength> InterviewStrengths { get; set; }
         public DbSet<InterviewImprovement> InterviewImprovements { get; set; }
         public DbSet<InterviewStarAnalysis> InterviewStarAnalyses { get; set; }
+        public DbSet<FullMockSession> FullMockSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

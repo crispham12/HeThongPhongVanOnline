@@ -12,6 +12,8 @@ import CodingAssessment from './pages/user/interview/CodingAssessment';
 import InterviewAnalysis from './pages/user/interview/InterviewAnalysis';
 import EvaluationResult from './pages/user/EvaluationResult';
 import HRInterviewResultPage from './pages/user/interview/HRInterviewResultPage';
+import FullMockInterview from './pages/user/interview/FullMockInterview';
+import FullMockReport from './pages/user/interview/FullMockReport';
 import History from './pages/user/History';
 import HistoryDetail from './pages/user/HistoryDetail';
 import HistoryCompare from './pages/user/HistoryCompare';
@@ -68,6 +70,8 @@ export default function App() {
             <Route path="/interviews/hr/:sessionId/result" element={<HRInterviewResultPage />} />
             <Route path="/interview/technical" element={<TechnicalInterview />} />
             <Route path="/interview/coding" element={<CodingAssessment />} />
+            <Route path="/interview/full-mock" element={<FullMockInterview />} />
+            <Route path="/interview/full-mock/result/:guid" element={<FullMockReport />} />
             <Route path="/evaluation/:id" element={<EvaluationResult />} />
             <Route path="/history" element={<History />} />
             <Route path="/history/compare" element={<HistoryCompare />} />

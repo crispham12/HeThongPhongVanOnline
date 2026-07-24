@@ -70,6 +70,7 @@ builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
 // Quota Management services
 builder.Services.AddScoped<IInterviewQuotaService, InterviewQuotaService>();
+builder.Services.AddScoped<IFullMockService, FullMockService>();
 builder.Services.AddHostedService<InterviewPro.API.Workers.DailyQuotaResetWorker>();
 
 // Coding Problem Bank services

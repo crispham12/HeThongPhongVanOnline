@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/ui/StatCard';
 import { Trophy, Target, Zap, Star, BrainCircuit, ArrowRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
+import { quotaApi } from '../../services/quotaApi';
 
 const data = [
   { name: 'Phản biện', score: 85 },
@@ -36,6 +38,23 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const stats = mockStats; // In real app, fetch from API
 
+  const [quota, setQuota] = useState(null);
+  const [quotaLoading, setQuotaLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const { data } = await quotaApi.getQuotaStatus();
+        setQuota(data);
+      } catch (err) {
+        console.error('Không thể lấy thông tin quota:', err);
+      } finally {
+        setQuotaLoading(false);
+      }
+    };
+    fetchQuota();
+  }, []);
+
   return (
     <div className="animate-fade-in pb-16 bg-white min-h-screen text-neutral-800">
       {/* Header section with command feel */}
@@ -47,12 +66,58 @@ export default function Dashboard() {
         <button 
           id="btn-start-interview" 
           onClick={() => navigate('/setup')} 
-          className="inline-flex items-center justify-center gap-2 bg-[#333333] hover:bg-[#1a1a1a] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-all duration-150 shadow-sm active:scale-[0.98] w-full sm:w-auto"
+          disabled={!quota?.isUnlimited && quota?.remaining === 0}
+          className={`inline-flex items-center justify-center gap-2 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-all duration-150 shadow-sm active:scale-[0.98] w-full sm:w-auto
+            ${(!quota?.isUnlimited && quota?.remaining === 0)
+              ? 'bg-neutral-300 cursor-not-allowed opacity-60'
+              : 'bg-[#333333] hover:bg-[#1a1a1a] cursor-pointer'
+            }`}
         >
           <span>Bắt đầu phỏng vấn</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* Quota Banner */}
+      {quotaLoading ? (
+        <div className="h-10 bg-neutral-100 rounded-lg animate-pulse mb-6" />
+      ) : quota && (
+        <div className="mb-6">
+          {quota.isUnlimited ? (
+            // Premium badge
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs font-semibold text-emerald-700">Premium — Luyện tập không giới hạn</span>
+            </div>
+          ) : quota.remaining === 0 ? (
+            // Hết quota — cảnh báo
+            <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                <span className="text-xs font-semibold text-red-700">Đã dùng hết 3/3 buổi hôm nay</span>
+              </div>
+              <span className="text-[10px] text-red-500">Reset lúc 00:00</span>
+            </div>
+          ) : (
+            // Còn quota — progress bar
+            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-neutral-700">Buổi luyện tập hôm nay</span>
+                <span className="text-xs font-bold text-neutral-900">{quota.dailyUsed}/{quota.dailyLimit}</span>
+              </div>
+              <div className="w-full bg-neutral-200 rounded-full h-1.5">
+                <div
+                  className="bg-neutral-800 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(quota.dailyUsed / quota.dailyLimit) * 100}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-neutral-400 mt-1.5">
+                Còn <strong className="text-neutral-700">{quota.remaining} buổi</strong> — Reset lúc 00:00 mỗi ngày
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
