@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import api from '../../../lib/axios';
@@ -23,6 +23,10 @@ export default function FullMockInterview() {
   const [roundSessionGuids, setRoundSessionGuids] = useState({}); // { HR: guid, Technical: guid }
   const [abandoning, setAbandoning] = useState(false);
   const [questionProgress, setQuestionProgress] = useState({ current: 1, total: 10 });
+
+  const handleQuestionChange = useCallback((current, total) => {
+    setQuestionProgress({ current, total });
+  }, []);
 
   const currentRound = ROUNDS[currentRoundIndex]; // 'HR' | 'Technical' | 'Coding'
   const fullMockGuid = state?.fullMockSessionGuid;
@@ -64,6 +68,12 @@ export default function FullMockInterview() {
     } finally {
       navigate('/dashboard');
     }
+  };
+
+  const handleSkipHR = async () => {
+    const confirmed = window.confirm('Bạn có chắc muốn bỏ qua phần HR và đi tiếp đến Technical?');
+    if (!confirmed) return;
+    await handleRoundComplete('HR', 'skipped-hr-session');
   };
 
   if (!state?.fullMockSessionGuid) return null;
@@ -117,14 +127,25 @@ export default function FullMockInterview() {
           })}
         </div>
 
-        {/* Nút thoát */}
-        <button
-          onClick={handleAbandon}
-          disabled={abandoning}
-          className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold text-red-500 bg-[#fef2f2] hover:bg-[#fee2e2] border border-[#fee2e2] rounded-lg transition-all"
-        >
-          <span className="text-sm font-semibold">×</span> {abandoning ? 'Đang thoát...' : 'Thoát'}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          {currentRound === 'HR' && (
+            <button
+              onClick={handleSkipHR}
+              className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-all"
+            >
+              Bỏ qua vòng HR
+            </button>
+          )}
+
+          <button
+            onClick={handleAbandon}
+            disabled={abandoning}
+            className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold text-red-500 bg-[#fef2f2] hover:bg-[#fee2e2] border border-[#fee2e2] rounded-lg transition-all"
+          >
+            <span className="text-sm font-semibold">×</span> {abandoning ? 'Đang thoát...' : 'Thoát'}
+          </button>
+        </div>
       </div>
 
       {/* Render vòng hiện tại — truyền onComplete callback */}
@@ -135,7 +156,7 @@ export default function FullMockInterview() {
             role={state.role}
             difficulty={state.difficulty}
             onComplete={(sessionGuid) => handleRoundComplete('HR', sessionGuid)}
-            onQuestionChange={(current, total) => setQuestionProgress({ current, total })}
+            onQuestionChange={handleQuestionChange}
           />
         )}
         {currentRound === 'Technical' && (
@@ -145,7 +166,7 @@ export default function FullMockInterview() {
             difficulty={state.difficulty}
             stack={state.stack}
             onComplete={(sessionGuid) => handleRoundComplete('Technical', sessionGuid)}
-            onQuestionChange={(current, total) => setQuestionProgress({ current, total })}
+            onQuestionChange={handleQuestionChange}
           />
         )}
         {currentRound === 'Coding' && (
