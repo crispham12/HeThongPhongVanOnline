@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Video, Mic, Check, Loader2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Check, Loader2 } from 'lucide-react';
+import axios from 'axios';
 import api from '../../../lib/axios';
 
 // Giả lập Web Speech API cho Transcript
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-export default function HRInterview() {
+export default function HRInterview({ fullMockMode = false, role, difficulty, onComplete, onQuestionChange }) {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const sessionId = state?.sessionId;
+  const [sessionId, setSessionId] = useState(state?.sessionId || null);
+  const sessionIdRef = useRef(state?.sessionId || null);
+
+  const updateSessionId = (id) => {
+    setSessionId(id);
+    sessionIdRef.current = id;
+  };
 
   // ────────────────────────────────────────────────────────
   // STATES
@@ -26,7 +33,7 @@ export default function HRInterview() {
   // Timers
   const [prepTime, setPrepTime] = useState(30);
   const [answerTime, setAnswerTime] = useState(0);
-  
+
   // Audio / Video
   const videoRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -38,6 +45,8 @@ export default function HRInterview() {
   const [transcript, setTranscript] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [fillerWords, setFillerWords] = useState(0);
+  const [voiceAnalysis, setVoiceAnalysis] = useState(null); // null | VoiceAnalysisResponse
+  const [analyzingVoice, setAnalyzingVoice] = useState(false);
 
   // Auto-save debounce
   const draftTimerRef = useRef(null);
@@ -45,13 +54,56 @@ export default function HRInterview() {
   // ────────────────────────────────────────────────────────
   // INIT FETCH
   // ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!sessionId) {
-      navigate('/interview/setup');
-      return;
+  const analyzeVoice = async (transcriptText, durationSecs) => {
+    if (!transcriptText.trim() || durationSecs <= 0) return;
+    setAnalyzingVoice(true);
+    try {
+      const aiUrl = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+      const { data } = await axios.post(`${aiUrl}/ai/voice/analyze`, {
+        transcript: transcriptText,
+        duration_seconds: durationSecs,
+        language: 'vi'
+      });
+      setVoiceAnalysis(data);
+      // Cập nhật fillerWords state từ kết quả phân tích chính xác hơn
+      setFillerWords(data.filler_word_count);
+    } catch (error) {
+      console.error('Voice analysis failed:', error);
+      // Không block user nếu phân tích lỗi
+    } finally {
+      setAnalyzingVoice(false);
     }
-    fetchSession();
+  };
+
+  const createHrSession = async () => {
+    try {
+      const { data } = await api.post('/hr-interviews/start', {
+        role: role,
+        techStack: [],
+        difficulty: difficulty,
+      });
+      setSessionId(data.sessionId);
+      sessionIdRef.current = data.sessionId;
+    } catch (error) {
+      alert('Không thể tạo phiên HR. Vui lòng thử lại.');
+    }
+  };
+
+  useEffect(() => {
+    if (fullMockMode && !sessionId) {
+      createHrSession();
+    } else if (!fullMockMode && !state?.sessionId) {
+      navigate('/setup');
+    } else if (sessionId) {
+      fetchSession();
+    }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (onQuestionChange && session?.totalQuestions) {
+      onQuestionChange(currentQIndex + 1, session.totalQuestions);
+    }
+  }, [currentQIndex, session?.totalQuestions, onQuestionChange]);
 
   const fetchSession = async () => {
     setLoading(true);
@@ -101,7 +153,7 @@ export default function HRInterview() {
   const saveDraft = async (force = false) => {
     if (!currentQuestion) return;
     if (answerState === 'submitted' || answerState === 'idle' || answerState === 'preparing') return;
-    
+
     setDraftStatus('saving');
     try {
       const payload = {
@@ -112,10 +164,10 @@ export default function HRInterview() {
         wordCount: wordCount,
         fillerWords: fillerWords
       };
-      
+
       // Lưu local trước
       localStorage.setItem(`hr_draft_${sessionId}_${currentQuestion.questionId}`, JSON.stringify(payload));
-      
+
       // Gửi lên server
       await api.post(`/hr-interviews/${sessionId}/questions/${currentQuestion.questionId}/draft`, payload);
       setDraftStatus('saved');
@@ -143,9 +195,10 @@ export default function HRInterview() {
   const enableCamera = async () => {
     setCameraStatus('loading');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const constraints = fullMockMode ? { audio: true } : { video: true, audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       mediaStreamRef.current = stream;
-      if (videoRef.current) {
+      if (!fullMockMode && videoRef.current) {
         videoRef.current.srcObject = stream;
       }
       setCameraStatus('enabled');
@@ -180,8 +233,8 @@ export default function HRInterview() {
   const startAnswer = () => {
     if (prepTimerRef.current) clearInterval(prepTimerRef.current);
     if (cameraStatus !== 'enabled') {
-       alert("Vui lòng Enable Camera");
-       return;
+      alert("Vui lòng Enable Camera");
+      return;
     }
 
     setAnswerState('recording');
@@ -202,7 +255,7 @@ export default function HRInterview() {
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'vi-VN';
-      
+
       recognition.onresult = (event) => {
         let currentTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
@@ -237,6 +290,7 @@ export default function HRInterview() {
     }
     setAnswerState('stopped');
     saveDraft(true); // Save force khi stop
+    analyzeVoice(transcript, answerTime);
   };
 
   // ────────────────────────────────────────────────────────
@@ -251,20 +305,21 @@ export default function HRInterview() {
         transcript: transcript,
         durationSeconds: answerTime,
         wordCount: wordCount,
-        fillerWords: fillerWords
+        fillerWords: fillerWords,
+        voiceAnalysis: voiceAnalysis ? JSON.stringify(voiceAnalysis) : null
       });
-      
+
       setAnswerState('submitted');
       // Clear draft
-      await api.delete(`/hr-interviews/${sessionId}/questions/${currentQuestion.questionId}/draft`).catch(()=>console.log("Delete draft failed"));
+      await api.delete(`/hr-interviews/${sessionId}/questions/${currentQuestion.questionId}/draft`).catch(() => console.log("Delete draft failed"));
       localStorage.removeItem(`hr_draft_${sessionId}_${currentQuestion.questionId}`);
 
       // Chuyển câu or Finish
       if (currentQIndex < (session.totalQuestions - 1)) {
-         setCurrentQIndex(prev => prev + 1);
-         resetState();
+        setCurrentQIndex(prev => prev + 1);
+        resetState();
       } else {
-         finishInterview();
+        finishInterview();
       }
 
     } catch (error) {
@@ -273,8 +328,16 @@ export default function HRInterview() {
     }
   };
 
+  const handleInterviewComplete = (completedSessionGuid) => {
+    if (fullMockMode && onComplete) {
+      onComplete(completedSessionGuid);
+    } else {
+      navigate(`/interviews/hr/${completedSessionGuid}/result`);
+    }
+  };
+
   const finishInterview = () => {
-     navigate(`/interview/analysis/${sessionId}`);
+    handleInterviewComplete(sessionIdRef.current);
   };
 
   const resetState = () => {
@@ -284,6 +347,8 @@ export default function HRInterview() {
     setPrepTime(30);
     setWordCount(0);
     setFillerWords(0);
+    setVoiceAnalysis(null);
+    setAnalyzingVoice(false);
     setDraftStatus('idle');
   };
 
@@ -309,8 +374,84 @@ export default function HRInterview() {
     return `${m}:${s}`;
   };
 
+  // Auto-enable camera silently on load in fullMockMode
+  useEffect(() => {
+    if (fullMockMode && sessionId) {
+      enableCamera();
+    }
+  }, [sessionId, fullMockMode]);
+
   if (loading) {
-     return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-black" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-black" /></div>;
+  }
+
+  if (fullMockMode) {
+    return (
+      <div className="bg-white text-gray-800 font-sans px-12 py-4 h-[calc(100vh-100px)] flex flex-col justify-center items-center overflow-hidden">
+        <div className="w-full max-w-[1300px] flex flex-col gap-4">
+          {/* Main Question & Recording Card */}
+          <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm p-12 flex flex-col gap-6 justify-between h-[600px]">
+            {/* Question section */}
+            <div className="space-y-4">
+              <h2 className="text-5xl font-black text-black tracking-tight">
+                Câu {currentQIndex + 1}:
+              </h2>
+              <p className="text-2xl font-normal text-slate-800 leading-relaxed">
+                {currentQuestion?.questionText || "Đang tải câu hỏi..."}
+              </p>
+            </div>
+
+            {/* Transcript / Input Area */}
+            <div className="relative w-full">
+              <textarea
+                value={transcript}
+                readOnly
+                placeholder="Câu trả lời của bạn sẽ được ghi tại đây."
+                className="w-full h-[200px] bg-[#f8f9fa] border border-gray-200 rounded-lg p-4 pt-8 outline-none text-[15px] leading-relaxed text-gray-700 font-sans resize-y placeholder:text-gray-400 cursor-default"
+              />
+              <div className="absolute top-2 right-4 text-xs font-medium text-gray-400">
+                {wordCount} từ
+              </div>
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="flex justify-between items-center pt-4">
+              {/* Waveform visualizer & Time */}
+              <div className="flex items-center gap-4">
+                <div className="text-sm font-bold text-slate-800 tracking-wider">
+                  thời gian: {formatTime(answerTime)}
+                </div>
+              </div>
+
+              <button
+                onClick={answerState === 'recording' ? stopAnswer : startAnswer}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${answerState === 'recording'
+                  ? 'bg-red-500 text-white animate-pulse border border-red-500'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+                  }`}
+              >
+                {answerState === 'recording' ? (
+                  <Mic className="w-6 h-6 text-white" />
+                ) : (
+                  <Mic className="w-6 h-6 text-slate-600" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Action Complete Button */}
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={submitAnswer}
+              disabled={answerState !== 'stopped' && answerState !== 'submitted'}
+              className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm"
+            >
+              Hoàn thành
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -329,7 +470,7 @@ export default function HRInterview() {
             <span>Role: {session?.role}</span>
             <span>Level: {session?.difficulty}</span>
             <span>
-              Draft: 
+              Draft:
               {draftStatus === 'saving' && <span className="text-yellow-600 ml-1">Saving...</span>}
               {draftStatus === 'saved' && <span className="text-green-600 ml-1">Saved</span>}
               {draftStatus === 'failed' && <span className="text-red-600 ml-1">Failed</span>}
@@ -340,10 +481,10 @@ export default function HRInterview() {
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-2 flex flex-col gap-6">
-            
+
             {/* Video Section */}
             <div className="border border-gray-200 rounded-xl p-4 flex flex-col gap-4 shadow-sm bg-white">
               <div className="flex justify-between items-center">
@@ -374,23 +515,23 @@ export default function HRInterview() {
                 )}
                 {cameraStatus === 'loading' && <Loader2 className="w-8 h-8 animate-spin text-gray-500" />}
                 {cameraStatus === 'denied' && <p className="text-red-500 text-sm">Quyền truy cập Camera bị từ chối.</p>}
-                
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  muted 
-                  playsInline 
-                  className={`w-full h-full object-cover ${cameraStatus === 'enabled' ? 'block' : 'hidden'}`} 
+
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={`w-full h-full object-cover ${cameraStatus === 'enabled' ? 'block' : 'hidden'}`}
                 />
               </div>
 
               <div className="flex justify-between items-center pt-2">
                 <div className="flex items-end gap-1.5 h-6">
-                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState==='recording'?'animate-bounce bg-black h-4':'h-3'}`}></div>
-                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState==='recording'?'animate-bounce bg-black h-5 delay-75':'h-4'}`}></div>
-                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState==='recording'?'animate-bounce bg-black h-6 delay-150':'h-6'}`}></div>
-                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState==='recording'?'animate-bounce bg-black h-5 delay-75':'h-5'}`}></div>
-                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState==='recording'?'animate-bounce bg-black h-3':'h-7'}`}></div>
+                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState === 'recording' ? 'animate-bounce bg-black h-4' : 'h-3'}`}></div>
+                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState === 'recording' ? 'animate-bounce bg-black h-5 delay-75' : 'h-4'}`}></div>
+                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState === 'recording' ? 'animate-bounce bg-black h-6 delay-150' : 'h-6'}`}></div>
+                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState === 'recording' ? 'animate-bounce bg-black h-5 delay-75' : 'h-5'}`}></div>
+                  <div className={`w-1.5 bg-gray-300 rounded-sm ${answerState === 'recording' ? 'animate-bounce bg-black h-3' : 'h-7'}`}></div>
                 </div>
                 <div className="text-sm text-gray-600">
                   Recording duration: {formatTime(answerTime)}
@@ -418,25 +559,49 @@ export default function HRInterview() {
                 <span>Duration: {formatTime(answerTime)}</span>
                 <span>Filler words: {fillerWords}</span>
               </div>
+
+              {/* Voice Analysis — hiển thị sau khi submit nếu có */}
+              {analyzingVoice && (
+                <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                  <p className="text-[10px] text-slate-500 animate-pulse font-medium">Đang phân tích giọng nói...</p>
+                </div>
+              )}
+
+              {voiceAnalysis && (
+                <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">
+                    Phân tích giọng nói
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 bg-white border border-slate-200 rounded-full text-slate-600">
+                      Tốc độ: {voiceAnalysis.speaking_rate} ({voiceAnalysis.words_per_minute} từ/phút)
+                    </span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${voiceAnalysis.filler_word_count > 5
+                      ? 'bg-red-50 border border-red-200 text-red-600'
+                      : 'bg-white border border-slate-200 text-slate-600'
+                      }`}>
+                      Filler words: {voiceAnalysis.filler_word_count} lần
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 bg-white border border-slate-200 rounded-full text-slate-600">
+                      Độ rõ: {voiceAnalysis.clarity_score}/100
+                    </span>
+                  </div>
+                  {voiceAnalysis.feedback && (
+                    <p className="text-[10px] text-slate-500 leading-relaxed">{voiceAnalysis.feedback}</p>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
 
           {/* Right Column */}
           <div className="lg:col-span-1 flex flex-col gap-6">
-            
+
             {/* Question Card */}
-            <div className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white">
-              <p className="text-sm text-gray-500 mb-3">Question {currentQIndex + 1} of {session?.totalQuestions}</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="px-3 py-1 border border-gray-200 rounded-full text-[13px] text-gray-600">
-                  Category: {currentQuestion?.category}
-                </span>
-                <span className="px-3 py-1 border border-gray-200 rounded-full text-[13px] text-gray-600">
-                  Suggested Method STAR
-                </span>
-              </div>
-              <h2 className="text-[20px] leading-[1.4] font-semibold text-gray-900">
+            <div className="border border-gray-200 rounded-2xl p-6 shadow-sm bg-white">
+              <p className="text-[14px] text-gray-500 mb-3 font-medium">Question {currentQIndex + 1} of {session?.totalQuestions}</p>
+              <h2 className="text-[18px] leading-relaxed font-semibold text-gray-900">
                 {currentQuestion?.questionText}
               </h2>
             </div>
@@ -454,13 +619,13 @@ export default function HRInterview() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button 
-                  onClick={startPreparation} 
-                  disabled={cameraStatus !== 'enabled' || answerState !== 'idle'} 
+                <button
+                  onClick={startPreparation}
+                  disabled={cameraStatus !== 'enabled' || answerState !== 'idle'}
                   className="px-4 py-2 bg-black text-white text-[13.5px] font-medium rounded-full hover:bg-gray-800 disabled:opacity-50 flex-1">
                   Start Preparation
                 </button>
-                <button 
+                <button
                   onClick={startAnswer}
                   disabled={cameraStatus !== 'enabled' || answerState === 'recording' || answerState === 'stopped'}
                   className="px-4 py-2 bg-white border border-gray-300 text-gray-800 text-[13.5px] font-medium rounded-full hover:bg-gray-50 disabled:opacity-50 flex-1">
@@ -513,12 +678,12 @@ export default function HRInterview() {
 
         {/* Footer Action Bar */}
         <div className="mt-6 border border-gray-200 rounded-xl p-4 bg-white shadow-sm flex justify-end gap-3">
-          <button onClick={()=>saveDraft(true)} disabled={answerState==='idle' || answerState==='preparing'} className="px-6 py-2 border border-gray-300 rounded-full text-[14px] font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50">
+          <button onClick={() => saveDraft(true)} disabled={answerState === 'idle' || answerState === 'preparing'} className="px-6 py-2 border border-gray-300 rounded-full text-[14px] font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50">
             Save Draft
           </button>
-          <button 
-            onClick={submitAnswer} 
-            disabled={answerState !== 'stopped'} 
+          <button
+            onClick={submitAnswer}
+            disabled={answerState !== 'stopped'}
             className="px-6 py-2 bg-black text-white rounded-full text-[14px] font-medium hover:bg-gray-800 disabled:opacity-50">
             Submit Answer & Next
           </button>

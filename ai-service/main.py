@@ -11,6 +11,7 @@ from prompts.prompts import QUESTION_PROMPTS, EVALUATION_PROMPTS, ROADMAP_PROMPT
 from routes.hr import router as hr_router
 from routes.coding import router as coding_router
 from routes.coding_practice import router as coding_practice_router
+from routes.voice import router as voice_router
 
 app = FastAPI(title="InterviewPro AI Service")
 
@@ -31,6 +32,9 @@ app.include_router(coding_router)
 
 # Register Coding Practice router
 app.include_router(coding_practice_router)
+
+# Register Voice Analysis router
+app.include_router(voice_router)
 
 class InterviewSetup(BaseModel):
     role: str
@@ -272,4 +276,4 @@ async def analyze_cv(request: CVAnalysisRequest):
         }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
