@@ -49,5 +49,13 @@ namespace InterviewPro.API.Services
                 IsUnlimited = isPremium
             };
         }
+
+        public async Task<bool> HasEnoughQuotaAsync(int userId, int required)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+            if (user.Plan == "Premium") return true;
+            return (user.DailyInterviewUsed + required) <= FREE_DAILY_LIMIT;
+        }
     }
 }
