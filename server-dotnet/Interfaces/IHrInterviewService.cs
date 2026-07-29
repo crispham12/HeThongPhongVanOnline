@@ -15,11 +15,6 @@ namespace InterviewPro.API.Interfaces
         Task<AiGeneratedQuestionsResult> GenerateHrQuestionsAsync(
             string role, string difficulty, List<string> techStack);
 
-        /// <summary>
-        /// Gọi AI sinh 1 câu hỏi HR duy nhất (Fallback).
-        /// </summary>
-        Task<SingleGeneratedQuestion> GenerateSingleHrQuestionAsync(
-            string role, string level, string category, string targetSkill, string suggestedMethod, int maxAnswerTime);
 
         /// <summary>
         /// Gọi AI đánh giá câu trả lời theo 5 tiêu chí với rubric chuẩn.
@@ -81,16 +76,6 @@ namespace InterviewPro.API.Interfaces
         public string ExpectedAnswerGuide { get; set; } = string.Empty;
     }
 
-    public class SingleGeneratedQuestion
-    {
-        public string QuestionText { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public string Difficulty { get; set; } = string.Empty;
-        public string TargetSkill { get; set; } = string.Empty;
-        public string SuggestedMethod { get; set; } = string.Empty;
-        public int MaxAnswerTime { get; set; } = 120;
-        public string ExpectedAnswerGuide { get; set; } = string.Empty;
-    }
 
     public class AiEvaluationResult
     {

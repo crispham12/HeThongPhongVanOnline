@@ -18,6 +18,7 @@ import json
 import time
 import shutil
 from typing import Optional
+import httpx
 
 # ─────────────────────────────────────────────
 # Optional: psutil for real memory measurement
@@ -160,6 +161,56 @@ def _run_subprocess(cmd: list[str], stdin_data: str, timeout: float) -> dict:
             'elapsed_ms': round(elapsed, 2),
             'memory_mb': 0.0,
             'timed_out': False,
+        }
+
+PISTON_URL = "https://emkc.org/api/v2/piston/execute"
+PISTON_LANGUAGE_MAP = {
+    "python": "python",
+    "javascript": "javascript",
+    "java": "java",
+}
+
+async def _run_piston(language: str, code: str, stdin_data: str, timeout: float) -> dict:
+    """
+    Chạy code qua Piston API thay vì subprocess local.
+    Trả về cùng format với _run_subprocess để không phải sửa code gọi.
+    """
+    piston_lang = PISTON_LANGUAGE_MAP.get(language.lower(), language.lower())
+    start = time.perf_counter()
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout + 5) as client:
+            response = await client.post(PISTON_URL, json={
+                "language": piston_lang,
+                "version": "*",
+                "files": [{"content": code}],
+                "stdin": stdin_data,
+            })
+            response.raise_for_status()
+            data = response.json()
+
+        run_data = data.get("run", {})
+        elapsed = (time.perf_counter() - start) * 1000
+
+        return {
+            "stdout": run_data.get("stdout", ""),
+            "stderr": run_data.get("stderr", ""),
+            "returncode": run_data.get("code", 0) or 0,
+            "elapsed_ms": round(elapsed, 2),
+            "memory_mb": 0.0,  # Piston không trả memory usage
+            "timed_out": False,
+        }
+    except httpx.TimeoutException:
+        elapsed = (time.perf_counter() - start) * 1000
+        return {
+            "stdout": "", "stderr": "Time Limit Exceeded", "returncode": -1,
+            "elapsed_ms": round(elapsed, 2), "memory_mb": 0.0, "timed_out": True,
+        }
+    except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        return {
+            "stdout": "", "stderr": f"ExecutionError: {str(e)}", "returncode": -2,
+            "elapsed_ms": round(elapsed, 2), "memory_mb": 0.0, "timed_out": False,
         }
 
 
@@ -522,7 +573,7 @@ def _build_python_runner(code: str, tc_input: str, func_name: str, method_signat
     return wrapper
 
 
-def execute_python(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
+async def execute_python(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
     results = []
     for idx, tc in enumerate(test_cases):
         tc_input = tc.get('input', '').strip()
@@ -533,13 +584,9 @@ def execute_python(code: str, test_cases: list, func_name: Optional[str] = None,
         else:
             runner_code = code
 
-        with tempfile.NamedTemporaryFile(suffix='.py', delete=False, mode='w', encoding='utf-8') as f:
-            f.write(runner_code)
-            temp_path = f.name
-
         try:
-            run_result = _run_subprocess(
-                ['python', temp_path],
+            run_result = await _run_piston(
+                'python', runner_code,
                 stdin_data='' if func_name else tc_input,
                 timeout=TIMEOUT_SECONDS,
             )
@@ -560,11 +607,6 @@ def execute_python(code: str, test_cases: list, func_name: Optional[str] = None,
                 'executionTimeMs': 0.0,
                 'memoryMb': 0.0,
             })
-        finally:
-            try:
-                os.remove(temp_path)
-            except OSError:
-                pass
 
     return results
 
@@ -610,10 +652,7 @@ def _build_js_runner(code: str, tc_input: str, func_name: str, method_signature:
     return wrapper
 
 
-def execute_javascript(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
-    if not shutil.which('node'):
-        return _unsupported_language_results('JavaScript (node not installed)', test_cases)
-
+async def execute_javascript(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
     results = []
     for idx, tc in enumerate(test_cases):
         tc_input = tc.get('input', '').strip()
@@ -624,13 +663,9 @@ def execute_javascript(code: str, test_cases: list, func_name: Optional[str] = N
         else:
             runner_code = code
 
-        with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w', encoding='utf-8') as f:
-            f.write(runner_code)
-            temp_path = f.name
-
         try:
-            run_result = _run_subprocess(
-                ['node', temp_path],
+            run_result = await _run_piston(
+                'javascript', runner_code,
                 stdin_data='' if func_name else tc_input,
                 timeout=TIMEOUT_SECONDS,
             )
@@ -650,11 +685,6 @@ def execute_javascript(code: str, test_cases: list, func_name: Optional[str] = N
                 'executionTimeMs': 0.0,
                 'memoryMb': 0.0,
             })
-        finally:
-            try:
-                os.remove(temp_path)
-            except OSError:
-                pass
 
     return results
 
@@ -845,95 +875,26 @@ class Main {{
 """
     return code + "\n\n" + main_class
 
-def execute_java(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
-    if not shutil.which('javac') or not shutil.which('java'):
-        return _unsupported_language_results('Java (javac/java not installed)', test_cases)
-
+async def execute_java(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
     results = []
     clean_code = _ensure_java_imports(code.replace("public class Solution", "class Solution"))
     func_name, method_signature = _resolve_java_metadata(clean_code, func_name, method_signature)
-    tmp_dir = tempfile.mkdtemp()
 
-    try:
+    for idx, tc in enumerate(test_cases):
+        tc_input = tc.get('input', '').strip()
+        tc_expected = tc.get('expectedOutput', '').strip()
+
         if not (func_name and method_signature and 'public static void main' not in clean_code):
-            # Stdin mode: compile Solution class as-is
-            class_match = re.search(r'class\s+(\w+)', clean_code)
-            class_name = class_match.group(1) if class_match else 'Solution'
-            src_path = os.path.join(tmp_dir, f'{class_name}.java')
-            with open(src_path, 'w', encoding='utf-8') as f:
-                f.write(clean_code)
-
-            # Compile step
-            compile_result = subprocess.run(
-                ['javac', src_path],
-                capture_output=True, text=True, timeout=15.0
-            )
-
-            if compile_result.returncode != 0:
-                compile_err = (compile_result.stderr or compile_result.stdout or 'Compilation failed').strip()[:800]
-                for idx, tc in enumerate(test_cases):
-                    results.append({
-                        'testCaseIndex': idx + 1,
-                        'input': tc.get('input', '').strip(),
-                        'expectedOutput': tc.get('expectedOutput', '').strip(),
-                        'actualOutput': compile_err,
-                        'status': 'CompileError',
-                        'passed': False,
-                        'executionTimeMs': 0.0,
-                        'memoryMb': 0.0,
-                    })
-                return results
-
-            for idx, tc in enumerate(test_cases):
-                tc_input = tc.get('input', '').strip()
-                tc_expected = tc.get('expectedOutput', '').strip()
-                run_result = _run_subprocess(
-                    ['java', '-cp', tmp_dir, class_name],
-                    stdin_data=tc_input + '\n',
-                    timeout=TIMEOUT_SECONDS,
-                )
-                passed = _outputs_match_json(run_result['stdout'], tc_expected)
-                res = _build_result(idx, tc_input, tc_expected, run_result)
-                res['passed'] = passed
-                res['status'] = 'Passed' if passed else ('WrongAnswer' if res['status'] == 'WrongAnswer' else res['status'])
-                results.append(res)
-            return results
-
-        # Function style execution: compile and run Main for each test case
-        for idx, tc in enumerate(test_cases):
-            tc_input = tc.get('input', '').strip()
-            tc_expected = tc.get('expectedOutput', '').strip()
-
-            tc_dir = tempfile.mkdtemp(dir=tmp_dir)
-            tc_src_path = os.path.join(tc_dir, 'Main.java')
-
+            runner_code = clean_code
+            stdin_data = tc_input + '\n'
+        else:
             runner_code = _build_java_runner(clean_code, 'Solution', tc_input, func_name, method_signature)
-            with open(tc_src_path, 'w', encoding='utf-8') as f:
-                f.write(runner_code)
+            stdin_data = ''
 
-            # Compile Main.java
-            compile_result = subprocess.run(
-                ['javac', tc_src_path],
-                capture_output=True, text=True, timeout=15.0
-            )
-
-            if compile_result.returncode != 0:
-                compile_err = (compile_result.stderr or compile_result.stdout or 'Compilation failed').strip()[:800]
-                results.append({
-                    'testCaseIndex': idx + 1,
-                    'input': tc_input,
-                    'expectedOutput': tc_expected,
-                    'actualOutput': compile_err,
-                    'status': 'CompileError',
-                    'passed': False,
-                    'executionTimeMs': 0.0,
-                    'memoryMb': 0.0,
-                })
-                continue
-
-            run_result = _run_subprocess(
-                ['java', '-cp', tc_dir, 'Main'],
-                stdin_data='',
+        try:
+            run_result = await _run_piston(
+                'java', runner_code,
+                stdin_data=stdin_data,
                 timeout=TIMEOUT_SECONDS,
             )
             passed = _outputs_match_json(run_result['stdout'], tc_expected)
@@ -941,33 +902,17 @@ def execute_java(code: str, test_cases: list, func_name: Optional[str] = None, m
             res['passed'] = passed
             res['status'] = 'Passed' if passed else ('WrongAnswer' if res['status'] == 'WrongAnswer' else res['status'])
             results.append(res)
-
-    except subprocess.TimeoutExpired:
-        for idx, tc in enumerate(test_cases):
+        except Exception as e:
             results.append({
                 'testCaseIndex': idx + 1,
-                'input': tc.get('input', '').strip(),
-                'expectedOutput': tc.get('expectedOutput', '').strip(),
-                'actualOutput': '',
-                'status': 'CompileError',
-                'passed': False,
-                'executionTimeMs': 15000.0,
-                'memoryMb': 0.0,
-            })
-    except Exception as e:
-        for idx, tc in enumerate(test_cases):
-            results.append({
-                'testCaseIndex': idx + 1,
-                'input': tc.get('input', '').strip(),
-                'expectedOutput': tc.get('expectedOutput', '').strip(),
+                'input': tc_input,
+                'expectedOutput': tc_expected,
                 'actualOutput': '',
                 'status': 'RuntimeError',
                 'passed': False,
                 'executionTimeMs': 0.0,
                 'memoryMb': 0.0,
             })
-    finally:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return results
 
@@ -996,7 +941,7 @@ def _unsupported_language_results(language: str, test_cases: list) -> list:
 # Main entry point
 # ═══════════════════════════════════════════════
 
-def execute_code(language: str, code: str, test_cases: list, function_name: Optional[str] = None, method_signature: Optional[str] = None, return_type: Optional[str] = None) -> list:
+async def execute_code(language: str, code: str, test_cases: list, function_name: Optional[str] = None, method_signature: Optional[str] = None, return_type: Optional[str] = None) -> list:
     lang = language.lower().strip()
 
     if 'java' in lang and 'script' not in lang:
@@ -1030,13 +975,13 @@ def execute_code(language: str, code: str, test_cases: list, function_name: Opti
 
     # 2. Delegate execution
     if 'python' in lang:
-        return execute_python(code, test_cases, function_name, method_signature)
+        return await execute_python(code, test_cases, function_name, method_signature)
 
     elif 'javascript' in lang or lang == 'js':
-        return execute_javascript(code, test_cases, function_name, method_signature)
+        return await execute_javascript(code, test_cases, function_name, method_signature)
 
     elif 'java' in lang and 'script' not in lang:
-        return execute_java(code, test_cases, function_name, method_signature)
+        return await execute_java(code, test_cases, function_name, method_signature)
 
     else:
         return _unsupported_language_results(language, test_cases)

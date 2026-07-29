@@ -44,6 +44,7 @@ builder.Services.AddScoped<IInterviewRepository, InterviewRepository>();
 
 // HR Interview services
 builder.Services.AddScoped<IHrAiClient, HrAiClient>();
+builder.Services.AddScoped<ITechnicalAiClient, TechnicalAiClient>();
 builder.Services.AddScoped<IHrInterviewService, HrInterviewService>();
 
 // Admin AI Monitor service

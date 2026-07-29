@@ -19,11 +19,15 @@ namespace InterviewPro.API.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IHrAiClient _aiClient;
+        private readonly ITechnicalAiClient _technicalAiClient;
+        private readonly IInterviewQuotaService _quotaService;
 
-        public PracticeQuestionsController(AppDbContext db, IHrAiClient aiClient)
+        public PracticeQuestionsController(AppDbContext db, IHrAiClient aiClient, ITechnicalAiClient technicalAiClient, IInterviewQuotaService quotaService)
         {
             _db = db;
             _aiClient = aiClient;
+            _technicalAiClient = technicalAiClient;
+            _quotaService = quotaService;
         }
 
         private int GetUserId() =>
@@ -158,6 +162,15 @@ namespace InterviewPro.API.Controllers
         {
             var userId = GetUserId();
 
+            try
+            {
+                await _quotaService.ConsumeQuotaAsync(userId);
+            }
+            catch (QuotaExceededException ex)
+            {
+                return StatusCode(429, new { message = ex.Message });
+            }
+
             var q = await _db.Questions
                 .Where(x => x.Id == id && x.Status == "Published" && x.IsClientVisible)
                 .FirstOrDefaultAsync();
@@ -177,53 +190,110 @@ namespace InterviewPro.API.Controllers
                 catch {}
             }
 
-            var aiResult = await _aiClient.EvaluateHrAnswerAsync(
-                q.Role ?? "Developer",
-                q.Difficulty ?? "Fresher",
-                techStack,
-                q.Content,
-                req.Answer
-            );
-
-            // Tính điểm cục bộ dựa trên trọng số STAR
-            float sScore = (float)(aiResult.StarAnalysis?.Situation?.Score ?? 0);
-            float tScore = (float)(aiResult.StarAnalysis?.Task?.Score ?? 0);
-            float aScore = (float)(aiResult.StarAnalysis?.Action?.Score ?? 0);
-            float rScore = (float)(aiResult.StarAnalysis?.Result?.Score ?? 0);
-            float calculatedScore = (float)Math.Round(sScore * 0.20f + tScore * 0.20f + aScore * 0.30f + rScore * 0.30f, 1);
-
-            // Save practice history
-            var history = new Entities.UserQuestionPracticeHistory
+            if (q.Category == "Technical")
             {
-                UserId = userId,
-                QuestionId = id,
-                UserAnswer = req.Answer,
-                PracticeStatus = "Practiced",
-                AiScore = calculatedScore,
-                AiFeedback = aiResult.Summary ?? "",
-                StrengthsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Strengths),
-                WeaknessesJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Weaknesses),
-                ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.ImprovementSuggestions),
-                CreatedAt = DateTime.UtcNow
-            };
+                var techEvalReq = new AiEvaluateAnswerRequest
+                {
+                    role = q.Role ?? "Developer",
+                    difficulty = q.Difficulty ?? "Fresher",
+                    tech_stack = string.Join(",", techStack),
+                    stage = "Practice",
+                    question = q.Content,
+                    answer = req.Answer
+                };
 
-            _db.UserQuestionPracticeHistories.Add(history);
-            await _db.SaveChangesAsync();
+                var techAiResult = await _technicalAiClient.EvaluateAnswerAsync(techEvalReq);
+                if (techAiResult == null) return StatusCode(500, new { message = "Lỗi khi gọi AI chấm điểm kỹ thuật." });
 
-            return Ok(new SubmitQuestionAnswerResult
+                float calculatedScore = (float)Math.Round((
+                    techAiResult.scores.technicalKnowledge +
+                    techAiResult.scores.problemSolving +
+                    techAiResult.scores.practicalExperience +
+                    techAiResult.scores.systemDesign +
+                    techAiResult.scores.communication +
+                    techAiResult.scores.bestPractices
+                ) / 6.0f, 1);
+
+                var history = new Entities.UserQuestionPracticeHistory
+                {
+                    UserId = userId,
+                    QuestionId = id,
+                    UserAnswer = req.Answer,
+                    PracticeStatus = "Practiced",
+                    AiScore = calculatedScore,
+                    AiFeedback = techAiResult.feedback ?? "",
+                    StrengthsJson = System.Text.Json.JsonSerializer.Serialize(techAiResult.strengths ?? new List<string>()),
+                    WeaknessesJson = System.Text.Json.JsonSerializer.Serialize(techAiResult.weaknesses ?? new List<string>()),
+                    ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(new List<string> { "Tham khảo câu trả lời mẫu để cải thiện", "Luyện tập thêm qua các bài thực hành" }),
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _db.UserQuestionPracticeHistories.Add(history);
+                await _db.SaveChangesAsync();
+
+                return Ok(new SubmitQuestionAnswerResult
+                {
+                    PracticeId = history.Id,
+                    Score = history.AiScore,
+                    Feedback = history.AiFeedback,
+                    StrengthsJson = history.StrengthsJson,
+                    WeaknessesJson = history.WeaknessesJson,
+                    ImprovementSuggestionsJson = history.ImprovementSuggestionsJson,
+                    ImprovedAnswer = new InterviewPro.API.Interfaces.ImprovedAnswerResult 
+                    {
+                        Action = techAiResult.improvedAnswer
+                    },
+                    TechnicalScores = techAiResult.scores
+                });
+            }
+            else
             {
-                PracticeId = history.Id,
-                Score = history.AiScore,
-                Feedback = history.AiFeedback,
-                StrengthsJson = history.StrengthsJson,
-                WeaknessesJson = history.WeaknessesJson,
-                ImprovementSuggestionsJson = history.ImprovementSuggestionsJson,
-                StarCompletion = aiResult.StarCompletion,
-                StarChecklist = aiResult.StarChecklist,
-                StarAnalysis = aiResult.StarAnalysis,
-                ImprovedAnswer = aiResult.ImprovedAnswer,
-                NextRecommendation = aiResult.NextRecommendation
-            });
+                var aiResult = await _aiClient.EvaluateHrAnswerAsync(
+                    q.Role ?? "Developer",
+                    q.Difficulty ?? "Fresher",
+                    techStack,
+                    q.Content,
+                    req.Answer
+                );
+
+                float sScore = (float)(aiResult.StarAnalysis?.Situation?.Score ?? 0);
+                float tScore = (float)(aiResult.StarAnalysis?.Task?.Score ?? 0);
+                float aScore = (float)(aiResult.StarAnalysis?.Action?.Score ?? 0);
+                float rScore = (float)(aiResult.StarAnalysis?.Result?.Score ?? 0);
+                float calculatedScore = (float)Math.Round(sScore * 0.20f + tScore * 0.20f + aScore * 0.30f + rScore * 0.30f, 1);
+
+                var history = new Entities.UserQuestionPracticeHistory
+                {
+                    UserId = userId,
+                    QuestionId = id,
+                    UserAnswer = req.Answer,
+                    PracticeStatus = "Practiced",
+                    AiScore = calculatedScore,
+                    AiFeedback = aiResult.Summary ?? "",
+                    StrengthsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Strengths),
+                    WeaknessesJson = System.Text.Json.JsonSerializer.Serialize(aiResult.Weaknesses),
+                    ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(aiResult.ImprovementSuggestions),
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _db.UserQuestionPracticeHistories.Add(history);
+                await _db.SaveChangesAsync();
+
+                return Ok(new SubmitQuestionAnswerResult
+                {
+                    PracticeId = history.Id,
+                    Score = history.AiScore,
+                    Feedback = history.AiFeedback,
+                    StrengthsJson = history.StrengthsJson,
+                    WeaknessesJson = history.WeaknessesJson,
+                    ImprovementSuggestionsJson = history.ImprovementSuggestionsJson,
+                    StarCompletion = aiResult.StarCompletion,
+                    StarChecklist = aiResult.StarChecklist,
+                    StarAnalysis = aiResult.StarAnalysis,
+                    ImprovedAnswer = aiResult.ImprovedAnswer,
+                    NextRecommendation = aiResult.NextRecommendation
+                });
+            }
         }
     }
 }

@@ -14,10 +14,12 @@ namespace InterviewPro.API.Controllers
     public class PracticeCodingProblemsController : ControllerBase
     {
         private readonly IPracticeCodingProblemService _service;
+        private readonly IInterviewQuotaService _quotaService;
 
-        public PracticeCodingProblemsController(IPracticeCodingProblemService service)
+        public PracticeCodingProblemsController(IPracticeCodingProblemService service, IInterviewQuotaService quotaService)
         {
             _service = service;
+            _quotaService = quotaService;
         }
 
         private int GetUserId() =>
@@ -79,6 +81,15 @@ namespace InterviewPro.API.Controllers
         public async Task<IActionResult> Submit(Guid id, [FromBody] SubmitCodeRequest req)
         {
             var userId = GetUserId();
+            try
+            {
+                await _quotaService.ConsumeQuotaAsync(userId);
+            }
+            catch (QuotaExceededException ex)
+            {
+                return StatusCode(429, new { message = ex.Message });
+            }
+            
             try
             {
                 var result = await _service.SubmitAnswerAsync(id, userId, req);

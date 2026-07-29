@@ -6,7 +6,7 @@ namespace InterviewPro.API.Interfaces
 {
     public interface IHrQuestionBankService
     {
-        Task<List<HrInterviewQuestion>> GenerateSessionQuestionsAsync(int sessionId, string role, string level, string questionMode);
+        Task<List<HrInterviewQuestion>> GenerateSessionQuestionsAsync(int sessionId, string role, string level, string questionMode, List<string> techStack);
         Task SeedDefaultQuestionsAsync();
     }
 }

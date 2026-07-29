@@ -5,6 +5,7 @@ class GenerateQuestionRequest(BaseModel):
     role: str        # backend, frontend, fullstack, ai-engineer
     level: str       # intern, fresher, junior
     type: str        # hr, technical, coding
+    tech_stack: List[str] = []
 
 class GenerateQuestionResponse(BaseModel):
     question: str
