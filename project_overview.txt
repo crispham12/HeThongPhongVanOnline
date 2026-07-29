@@ -1,0 +1,47 @@
+HỆ THỐNG PHỎNG VẤN TRỰC TUYẾN ỨNG DỤNG AI (AI INTERVIEW PRO)
+---
+Tài liệu Tổng quan Dự án (Dành cho Thực tập sinh / Thành viên mới)
+
+Chào mừng các bạn đến với dự án AI Interview Pro! Dưới đây là bức tranh toàn cảnh về hệ thống, bao gồm các chức năng cốt lõi và luồng nghiệp vụ chính, được thiết kế để giúp các bạn nhanh chóng nắm bắt và tham gia vào quá trình phát triển.
+
+1. MỤC TIÊU DỰ ÁN
+Xây dựng nền tảng đánh giá năng lực ứng viên tự động thông qua AI, giúp quá trình tuyển dụng trở nên khách quan, tiết kiệm thời gian và chi phí. Hệ thống hỗ trợ đa dạng các loại hình phỏng vấn: từ hỏi đáp nhân sự (HR), kỹ thuật (Technical) đến thực hành code trực tiếp (Coding Assessment).
+
+2. CÁC CHỨC NĂNG CHÍNH VÀ NGHIỆP VỤ
+
+2.1. Quản lý Tài khoản & Xác thực (Authentication)
+- Chức năng: Đăng ký, Đăng nhập, Quên mật khẩu.
+- Mục đích: Đảm bảo bảo mật thông tin và cá nhân hóa trải nghiệm. Người dùng mới cần tạo tài khoản để sử dụng hệ thống. Phân quyền rõ ràng giữa Người dùng (User) và Quản trị viên (Admin).
+
+2.2. Phỏng vấn Nhân sự (HR Interview)
+- Chức năng: Tham gia trả lời các câu hỏi tình huống, kỹ năng mềm (Soft skills) được AI tự động phân tích và đưa ra phản hồi.
+- Mục đích: Giúp ứng viên tự tin trả lời lưu loát trước nhà tuyển dụng thực tế, hiểu rõ điểm mạnh và điểm yếu trong giao tiếp.
+
+2.3. Đánh giá Kỹ thuật & Coding (Technical & Coding Interview)
+- Chức năng: Trả lời các câu hỏi chuyên môn (Frontend, Backend, DevOps,...) hoặc giải quyết các bài toán lập trình trực tiếp trên môi trường IDE tích hợp sẵn.
+- Mục đích: Đo lường kiến thức chuyên môn sâu và khả năng tư duy logic, viết code thực tế của ứng viên.
+
+2.4. Phỏng vấn Toàn diện (Full Mock Interview)
+- Chức năng: Một bài kiểm tra mô phỏng toàn bộ quy trình thực tế từ HR đến Technical.
+- Mục đích: Tạo áp lực phòng thi thật, cung cấp bản đánh giá (Report) tổng quan sau khi hoàn thành.
+
+2.5. Lịch sử & So sánh Phỏng vấn (History & Comparison)
+- Chức năng: Lưu lại toàn bộ các phiên phỏng vấn đã thực hiện, kết quả phân tích của AI. Cho phép so sánh sự tiến bộ qua các lần phỏng vấn khác nhau.
+- Mục đích: Giúp ứng viên tự theo dõi lộ trình phát triển của bản thân.
+
+2.6. Quản lý Quota (Giới hạn lượt dùng) & Thanh toán (Payment)
+- Chức năng: Cấp số lượt phỏng vấn miễn phí mỗi ngày (Reset vào mỗi đêm). Khi người dùng muốn sử dụng thêm, có thể mua gói trả phí. Thanh toán tự động qua cổng SePay.
+- Mục đích: Cân bằng tài nguyên máy chủ và kinh doanh hóa sản phẩm.
+
+2.7. Quản trị hệ thống (Admin Dashboard)
+- Chức năng:
+  + Quản lý Người dùng: Xem danh sách, trạng thái.
+  + Quản lý Ngân hàng câu hỏi (Question Bank / Coding Bank): Thêm, sửa, xóa các câu hỏi.
+  + Giám sát AI (AI Monitor): Theo dõi trạng thái của service AI.
+  + Lịch sử giao dịch: Theo dõi doanh thu.
+- Mục đích: Giúp ban quản trị kiểm soát chất lượng nội dung và vận hành hệ thống trơn tru.
+
+3. TỔNG KẾT SỐ LƯỢNG CHỨC NĂNG
+Hiện tại, dự án có tổng cộng khoảng 7 phân hệ lớn với hơn 15 chức năng chi tiết trải dài từ Client (ReactJS) đến Server (ASP.NET Core).
+
+Hy vọng tài liệu này sẽ giúp các bạn có cái nhìn rõ nét nhất về AI Interview Pro. Chúc các bạn có một kỳ thực tập và làm việc thật hiệu quả!
