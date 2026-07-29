@@ -40,12 +40,7 @@ export default function Login() {
         
         {/* Left Side: Value Prop (Minimal) */}
         <div className="hidden lg:flex flex-col gap-8 pr-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
-              <BrainCircuit className="w-5 h-5 text-[#333333]" />
-            </div>
-            <span className="font-extrabold text-[#333333] text-xl tracking-tight">AI Interview</span>
-          </div>
+
           
           <div>
             <h1 className="text-4xl lg:text-5xl font-black text-[#151515] leading-[1.1] tracking-tight mb-4">
@@ -77,24 +72,13 @@ export default function Login() {
             <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/30 rounded-[24px] pointer-events-none" />
             
             <div className="relative z-10">
-              <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-100">
-                  <BrainCircuit className="w-4 h-4 text-[#333333]" />
-                </div>
-                <span className="font-extrabold text-[#333333]">AI Interview</span>
-              </div>
+
 
               <div className="mb-8">
                 <h2 className="text-[24px] font-black text-[#151515]">Đăng nhập</h2>
                 <p className="text-[14px] font-medium text-[#66767b] mt-1.5">Vui lòng nhập thông tin để truy cập hệ thống.</p>
               </div>
 
-              {error && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-5 p-3 rounded-xl bg-[#f1e5ed] border border-[#7d7280]/20 text-[#c20f16] text-xs font-bold flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#c20f16] shrink-0" />
-                  {error}
-                </motion.div>
-              )}
 
               <form id="form-login" onSubmit={handleSubmit} className="space-y-5">
                 <div>
@@ -104,13 +88,13 @@ export default function Login() {
                     placeholder="alex@company.com"
                     value={form.email}
                     onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                    className="w-full h-[46px] px-4 bg-white/50 border border-white rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:border-[#e8e8e8] focus:ring-4 focus:ring-[#333333]/5 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm"
+                    className={`w-full h-[46px] px-4 bg-white/50 border ${error ? 'border-[#c20f16] focus:border-[#c20f16] focus:ring-[#c20f16]/10' : 'border-white focus:border-[#e8e8e8] focus:ring-[#333333]/5'} rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:ring-4 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm`}
                   />
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]" htmlFor="password">Mật khẩu</label>
-                    <a href="#" className="text-[11px] font-extrabold text-[#333333] hover:text-[#151515] hover:underline transition-colors">Quên mật khẩu?</a>
+                    <Link to="/forgot-password" className="text-[11px] font-extrabold text-[#333333] hover:text-[#151515] hover:underline transition-colors">Quên mật khẩu?</Link>
                   </div>
                   <div className="relative">
                     <input
@@ -118,7 +102,7 @@ export default function Login() {
                       placeholder="••••••••"
                       value={form.password}
                       onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                      className="w-full h-[46px] pl-4 pr-11 bg-white/50 border border-white rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:border-[#e8e8e8] focus:ring-4 focus:ring-[#333333]/5 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm"
+                      className={`w-full h-[46px] pl-4 pr-11 bg-white/50 border ${error ? 'border-[#c20f16] focus:border-[#c20f16] focus:ring-[#c20f16]/10' : 'border-white focus:border-[#e8e8e8] focus:ring-[#333333]/5'} rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:ring-4 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm`}
                     />
                     <button type="button" onClick={() => setShowPw(v => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[#b6b3b8] hover:text-[#333333] transition-colors w-6 h-6 flex items-center justify-center rounded-md">
@@ -126,6 +110,12 @@ export default function Login() {
                     </button>
                   </div>
                 </div>
+
+                {error && (
+                  <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-[#c20f16] text-[12px] font-bold mt-1.5">
+                    {error}
+                  </motion.p>
+                )}
                 
                 <button id="btn-login-submit" type="submit" disabled={loading} 
                   className="w-full h-[46px] bg-[#2f2f2f] hover:bg-[#151515] text-white text-sm font-extrabold rounded-xl shadow-sm transition-all active:translate-y-px disabled:opacity-50 disabled:active:translate-y-0 flex items-center justify-center gap-2 mt-3">

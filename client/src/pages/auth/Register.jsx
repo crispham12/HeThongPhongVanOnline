@@ -10,12 +10,24 @@ export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [generalError, setGeneralError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    if (form.password !== form.confirm) { setError('Mật khẩu xác nhận không khớp.'); return; }
+    setGeneralError('');
+    setFieldErrors({});
+    
+    if (form.password.length < 8) {
+      setFieldErrors({ password: 'Mật khẩu phải dài tối thiểu 8 ký tự' });
+      return;
+    }
+    
+    if (form.password !== form.confirm) { 
+      setFieldErrors({ confirm: 'Mật khẩu xác nhận không khớp' }); 
+      return; 
+    }
+    
     setLoading(true);
     try {
       const data = await register(form.name, form.email, form.password);
@@ -25,7 +37,12 @@ export default function Register() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      const errorMsg = err.response?.data?.message?.replace(/\.$/, '') || 'Đăng ký thất bại. Vui lòng thử lại';
+      if (errorMsg.includes('Email')) {
+        setFieldErrors({ email: errorMsg });
+      } else {
+        setGeneralError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -43,12 +60,7 @@ export default function Register() {
         
         {/* Left Side: Value Prop (Minimal) */}
         <div className="hidden lg:flex flex-col gap-8 pr-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
-              <BrainCircuit className="w-5 h-5 text-[#333333]" />
-            </div>
-            <span className="font-extrabold text-[#333333] text-xl tracking-tight">AI Interview</span>
-          </div>
+
           
           <div>
             <h1 className="text-4xl lg:text-5xl font-black text-[#151515] leading-[1.1] tracking-tight mb-4">
@@ -80,22 +92,16 @@ export default function Register() {
             <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/30 rounded-[24px] pointer-events-none" />
             
             <div className="relative z-10">
-              <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-100">
-                  <BrainCircuit className="w-4 h-4 text-[#333333]" />
-                </div>
-                <span className="font-extrabold text-[#333333]">AI Interview</span>
-              </div>
+
 
               <div className="mb-8">
                 <h2 className="text-[24px] font-black text-[#151515]">Đăng ký tài khoản</h2>
                 <p className="text-[14px] font-medium text-[#66767b] mt-1.5">Tạo tài khoản miễn phí để trải nghiệm ngay.</p>
               </div>
 
-              {error && (
+              {generalError && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-5 p-3 rounded-xl bg-[#f1e5ed] border border-[#7d7280]/20 text-[#c20f16] text-xs font-bold flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#c20f16] shrink-0" />
-                  {error}
+                  {generalError}
                 </motion.div>
               )}
 
@@ -117,8 +123,13 @@ export default function Register() {
                     placeholder="alex@company.com"
                     value={form.email}
                     onChange={set('email')}
-                    className="w-full h-[46px] px-4 bg-white/50 border border-white rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:border-[#e8e8e8] focus:ring-4 focus:ring-[#333333]/5 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm"
+                    className={`w-full h-[46px] px-4 bg-white/50 border ${fieldErrors.email ? 'border-[#c20f16] focus:border-[#c20f16] focus:ring-[#c20f16]/10' : 'border-white focus:border-[#e8e8e8] focus:ring-[#333333]/5'} rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:ring-4 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm`}
                   />
+                  {fieldErrors.email && (
+                    <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-[#c20f16] text-[12px] font-bold mt-1.5">
+                      {fieldErrors.email}
+                    </motion.p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] mb-2" htmlFor="reg-password">Mật khẩu</label>
@@ -128,13 +139,18 @@ export default function Register() {
                       placeholder="Tối thiểu 8 ký tự"
                       value={form.password}
                       onChange={set('password')}
-                      className="w-full h-[46px] pl-4 pr-11 bg-white/50 border border-white rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:border-[#e8e8e8] focus:ring-4 focus:ring-[#333333]/5 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm"
+                      className={`w-full h-[46px] pl-4 pr-11 bg-white/50 border ${fieldErrors.password ? 'border-[#c20f16] focus:border-[#c20f16] focus:ring-[#c20f16]/10' : 'border-white focus:border-[#e8e8e8] focus:ring-[#333333]/5'} rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:ring-4 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm`}
                     />
                     <button type="button" onClick={() => setShowPw(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#b6b3b8] hover:text-[#333333] transition-colors w-6 h-6 flex items-center justify-center rounded-md">
+                      className="absolute right-3 top-[11px] text-[#b6b3b8] hover:text-[#333333] transition-colors w-6 h-6 flex items-center justify-center rounded-md">
                       {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {fieldErrors.password && (
+                    <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-[#c20f16] text-[12px] font-bold mt-1.5">
+                      {fieldErrors.password}
+                    </motion.p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] mb-2" htmlFor="reg-confirm">Xác nhận mật khẩu</label>
@@ -143,8 +159,13 @@ export default function Register() {
                     placeholder="Nhập lại mật khẩu"
                     value={form.confirm}
                     onChange={set('confirm')}
-                    className="w-full h-[46px] px-4 bg-white/50 border border-white rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:border-[#e8e8e8] focus:ring-4 focus:ring-[#333333]/5 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm"
+                    className={`w-full h-[46px] px-4 bg-white/50 border ${fieldErrors.confirm ? 'border-[#c20f16] focus:border-[#c20f16] focus:ring-[#c20f16]/10' : 'border-white focus:border-[#e8e8e8] focus:ring-[#333333]/5'} rounded-xl text-sm font-bold text-[#333333] outline-none transition-all focus:bg-white focus:ring-4 placeholder:text-[#b6b3b8] placeholder:font-semibold shadow-sm`}
                   />
+                  {fieldErrors.confirm && (
+                    <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-[#c20f16] text-[12px] font-bold mt-1.5">
+                      {fieldErrors.confirm}
+                    </motion.p>
+                  )}
                 </div>
                 
                 <button id="btn-register-submit" type="submit" disabled={loading} 
