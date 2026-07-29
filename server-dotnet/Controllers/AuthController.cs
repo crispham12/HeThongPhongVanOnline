@@ -5,6 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using InterviewPro.API.Data;
+using Microsoft.EntityFrameworkCore;
+using InterviewPro.API.Services;
 
 namespace InterviewPro.API.Controllers
 {
@@ -14,18 +17,22 @@ namespace InterviewPro.API.Controllers
     {
         private readonly IAuthRepository _repo;
         private readonly IConfiguration _config;
+        private readonly AppDbContext _db;
+        private readonly IEmailService _emailService;
 
-        public AuthController(IAuthRepository repo, IConfiguration config)
+        public AuthController(IAuthRepository repo, IConfiguration config, AppDbContext db, IEmailService emailService)
         {
             _repo = repo;
             _config = config;
+            _db = db;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             if (await _repo.UserExists(request.Email))
-                return BadRequest("Email đã được sử dụng.");
+                return BadRequest(new { message = "Email đã được sử dụng" });
 
             var user = new User
             {
@@ -49,7 +56,7 @@ namespace InterviewPro.API.Controllers
             var user = await _repo.Login(request.Email, request.Password);
 
             if (user == null)
-                return Unauthorized("Email hoặc mật khẩu không chính xác.");
+                return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác" });
 
             var token = CreateToken(user);
 
@@ -58,6 +65,65 @@ namespace InterviewPro.API.Controllers
                 token = token,
                 user = new { user.Id, user.Name, user.Email, user.Role }
             });
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+            if (user == null)
+            {
+                return BadRequest(new { message = "Email không tồn tại trong hệ thống" });
+            }
+
+            // Generate token
+            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+            user.ResetToken = token;
+            user.ResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+            await _db.SaveChangesAsync();
+
+            // Send email
+            var resetLink = $"{_config["AllowedOrigins"]}/reset-password?email={user.Email}&token={token}";
+            var htmlMessage = $@"
+                <h3>Khôi phục mật khẩu AI Interview</h3>
+                <p>Xin chào {user.Name},</p>
+                <p>Bạn đã yêu cầu khôi phục mật khẩu. Vui lòng click vào đường link bên dưới để tạo mật khẩu mới:</p>
+                <p><a href='{resetLink}'>{resetLink}</a></p>
+                <p>Link này sẽ hết hạn sau 15 phút.</p>
+                <p>Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>";
+
+            try
+            {
+                await _emailService.SendEmailAsync(user.Email, "Khôi phục mật khẩu", htmlMessage);
+            }
+            catch (Exception ex)
+            {
+                // Log exception in production
+                return StatusCode(500, new { message = "Không thể gửi email. Vui lòng kiểm tra lại cấu hình SMTP." });
+            }
+
+            return Ok(new { message = "Đã gửi hướng dẫn khôi phục mật khẩu." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+            if (user == null || user.ResetToken != request.Token || user.ResetTokenExpiresAt < DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Link khôi phục không hợp lệ hoặc đã hết hạn." });
+            }
+
+            // Update password
+            user.PasswordHash = request.NewPassword;
+            
+            // Invalidate token
+            user.ResetToken = null;
+            user.ResetTokenExpiresAt = null;
+            
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại." });
         }
 
         private string CreateToken(User user)
@@ -91,4 +157,6 @@ namespace InterviewPro.API.Controllers
 
     public record RegisterRequest(string Name, string Email, string Password);
     public record LoginRequest(string Email, string Password);
+    public record ForgotPasswordRequest(string Email);
+    public record ResetPasswordRequest(string Email, string Token, string NewPassword);
 }

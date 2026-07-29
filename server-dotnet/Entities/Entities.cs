@@ -39,6 +39,13 @@ namespace InterviewPro.API.Entities
         [MaxLength(50)]
         public string Plan { get; set; } = "Free"; // Free, Premium
 
+        public DateTime? PremiumExpiresAt { get; set; } = null;
+
+        [MaxLength(256)]
+        public string? ResetToken { get; set; }
+
+        public DateTime? ResetTokenExpiresAt { get; set; }
+
         [MaxLength(50)]
         public string Status { get; set; } = "Active"; // Active, Locked, Inactive
 
