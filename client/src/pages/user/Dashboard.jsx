@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/ui/StatCard';
-import { Trophy, Target, Zap, Star, BrainCircuit, ArrowRight } from 'lucide-react';
+import { Trophy, Target, Zap, Star, BrainCircuit, ArrowRight, Crown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
 import { quotaApi } from '../../services/quotaApi';
 
@@ -86,34 +86,57 @@ export default function Dashboard() {
           {quota.isUnlimited ? (
             // Premium badge
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-xs font-semibold text-emerald-700">Premium — Luyện tập không giới hạn</span>
+              <Crown className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs font-semibold text-emerald-700">
+                Premium
+                {quota.premiumExpiresAt && (
+                  <span className="font-normal ml-1 text-emerald-600">
+                    — hết hạn {new Date(quota.premiumExpiresAt).toLocaleDateString('vi-VN')}
+                  </span>
+                )}
+              </span>
             </div>
           ) : quota.remaining === 0 ? (
             // Hết quota — cảnh báo
             <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                <span className="text-xs font-semibold text-red-700">Đã dùng hết 3/3 buổi hôm nay</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  <span className="text-xs font-semibold text-red-700">Đã dùng hết 3/3 buổi hôm nay</span>
+                </div>
+                <span className="text-[10px] text-red-500 block mt-1">Reset lúc 00:00</span>
               </div>
-              <span className="text-[10px] text-red-500">Reset lúc 00:00</span>
+              <button
+                onClick={() => navigate('/upgrade')}
+                className="ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shrink-0"
+              >
+                Nâng cấp
+              </button>
             </div>
           ) : (
             // Còn quota — progress bar
-            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-neutral-700">Buổi luyện tập hôm nay</span>
-                <span className="text-xs font-bold text-neutral-900">{quota.dailyUsed}/{quota.dailyLimit}</span>
+            <div className="flex items-center justify-between p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-neutral-700">Buổi luyện tập hôm nay</span>
+                  <span className="text-xs font-bold text-neutral-900">{quota.dailyUsed}/{quota.dailyLimit}</span>
+                </div>
+                <div className="w-full bg-neutral-200 rounded-full h-1.5">
+                  <div
+                    className="bg-neutral-800 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${(quota.dailyUsed / quota.dailyLimit) * 100}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-neutral-400 mt-1.5">
+                  Còn <strong className="text-neutral-700">{quota.remaining} buổi</strong> — Reset lúc 00:00 mỗi ngày
+                </p>
               </div>
-              <div className="w-full bg-neutral-200 rounded-full h-1.5">
-                <div
-                  className="bg-neutral-800 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(quota.dailyUsed / quota.dailyLimit) * 100}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-neutral-400 mt-1.5">
-                Còn <strong className="text-neutral-700">{quota.remaining} buổi</strong> — Reset lúc 00:00 mỗi ngày
-              </p>
+              <button
+                onClick={() => navigate('/upgrade')}
+                className="ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shrink-0"
+              >
+                Nâng cấp
+              </button>
             </div>
           )}
         </div>

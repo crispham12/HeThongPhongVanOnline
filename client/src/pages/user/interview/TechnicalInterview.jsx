@@ -4,6 +4,62 @@ import { BrainCircuit, Timer, ChevronRight, Loader2, CheckCircle, Mic } from 'lu
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../../lib/axios';
 
+const renderFormattedQuestion = (text) => {
+  if (!text) return 'Đang tải câu hỏi...';
+
+  // Format các tag `code` nằm trong backticks
+  const formatCodeTags = (str) => {
+    const parts = str.split(/(`[^`]+`)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={index} className="px-1.5 py-0.5 mx-0.5 bg-slate-100 border border-slate-200 text-sm font-semibold font-mono rounded text-slate-800">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      return part;
+    });
+  };
+
+  // Tách intro và các câu hỏi phụ 1., 2., 3.
+  const parts = text.split(/(\d+\.\s+)/g);
+
+  if (parts.length <= 1) {
+    return <p className="text-lg font-normal text-slate-800 leading-relaxed">{formatCodeTags(text)}</p>;
+  }
+
+  const intro = parts[0];
+  const items = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const num = parts[i];
+    const itemText = parts[i + 1] || '';
+    items.push({ num, text: itemText });
+  }
+
+  return (
+    <div className="space-y-4">
+      {intro.trim() && (
+        <p className="text-[15px] font-medium text-slate-600 bg-slate-50 border-l-4 border-slate-300 p-3 rounded-r-xl leading-relaxed">
+          {formatCodeTags(intro)}
+        </p>
+      )}
+      <div className="space-y-2.5 pl-1">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex items-start gap-2.5">
+            <span className="flex-shrink-0 w-5 h-5 bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 rounded-full flex items-center justify-center mt-1">
+              {item.num.replace('.', '').trim()}
+            </span>
+            <p className="text-[14px] text-slate-700 leading-relaxed flex-1 pt-0.5">
+              {formatCodeTags(item.text)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function TechnicalInterview({ fullMockMode = false, role, difficulty, stack, onComplete, onQuestionChange }) {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -18,6 +74,37 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const [answerTime, setAnswerTime] = useState(0);
+  const answerTimerRef = useRef(null);
+
+  const startAnswerTimer = () => {
+    if (answerTimerRef.current) clearInterval(answerTimerRef.current);
+    setAnswerTime(0);
+    answerTimerRef.current = setInterval(() => {
+      setAnswerTime(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopAnswerTimer = () => {
+    if (answerTimerRef.current) {
+      clearInterval(answerTimerRef.current);
+      answerTimerRef.current = null;
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  useEffect(() => {
+    if (question) {
+      startAnswerTimer();
+    }
+    return () => stopAnswerTimer();
+  }, [question]);
 
   const toggleVoiceInput = () => {
     if (!SpeechRecognition) {
@@ -49,14 +136,18 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
 
   const createTechnicalSession = async () => {
     try {
-      const { data } = await api.post('/interview/start', {
+      const stackStr = Array.isArray(stack) ? stack.join(', ') : (stack || '');
+      const { data } = await api.post('/technical-interviews/start', {
         role: role,
-        stack: stack,
-        difficulty: difficulty,
-        type: 'technical',
+        techStack: stackStr,
+        level: difficulty
       });
       setSessionId(data.sessionId);
-      if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
+      setTotalQuestions(10);
+      if (data.currentQuestion) {
+        setQuestion(data.currentQuestion.content);
+        setQCount(data.currentQuestion.questionIndex);
+      }
     } catch (error) {
       alert('Không thể tạo phiên Technical. Vui lòng thử lại.');
     }
@@ -86,13 +177,14 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
     if (!activeSid) return;
     setLoading(true);
     try {
-      const response = await api.get(`/interview/next-question/${activeSid}`);
-      setQuestion(response.data.question);
-      setAnswer('');
-      if (response.data.totalQuestions) {
-        setTotalQuestions(response.data.totalQuestions);
-      } else if (response.data.session?.totalQuestions) {
-        setTotalQuestions(response.data.session.totalQuestions);
+      const { data } = await api.get(`/technical-interviews/${activeSid}`);
+      setTotalQuestions(10);
+      if (data.status === 'Completed' || !data.currentQuestion) {
+        handleInterviewComplete(activeSid);
+      } else {
+        setQuestion(data.currentQuestion.content);
+        setQCount(data.currentQuestion.questionIndex);
+        setAnswer('');
       }
     } catch (error) {
       console.error("Lỗi lấy câu hỏi:", error);
@@ -105,24 +197,24 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
     if (fullMockMode && onComplete) {
       onComplete(String(completedSessionId));
     } else {
-      navigate(`/interview/analysis/${completedSessionId}`);
+      navigate(`/interview/technical/${completedSessionId}/result`);
     }
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await api.post('/interview/submit-answer', {
-        sessionId: sessionId,
-        questionContent: question,
-        answer: answer
+      const { data } = await api.post(`/technical-interviews/${sessionId}/answers`, {
+        answer: answer,
+        durationSeconds: answerTime
       });
 
-      if (qCount >= totalQuestions) {
+      if (data.questionIndex > 10 || data.stage === 'Completed') {
         handleInterviewComplete(sessionId);
       } else {
-        setQCount(p => p + 1);
-        fetchNextQuestion(sessionId);
+        setQCount(data.questionIndex);
+        setQuestion(data.content);
+        setAnswer('');
       }
     } catch (error) {
       alert("Lỗi nộp bài.");
@@ -132,84 +224,65 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
   };
 
   if (loading) return (
-    <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-      <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
-      <p className="text-gray-500 font-bold animate-pulse">AI đang phân tích cấu hình & soạn câu hỏi...</p>
-    </div>
+    <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="w-8 h-8 animate-spin text-black" /></div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BrainCircuit className="w-6 h-6 text-primary-600" /> Phỏng vấn chuyên sâu
-          </h1>
-          <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest font-bold">
-            Giai đoạn: {role || state?.role} • {difficulty || state?.level}
-          </p>
-        </div>
-        <div className="text-right">
-          <span className="text-xs font-bold text-gray-400 block mb-1">CÂU HỎI {qCount}/{totalQuestions}</span>
-          <div className="flex gap-1">
-            {Array.from({ length: totalQuestions }).map((_, idx) => {
-              const i = idx + 1;
-              return (
-                <div key={i} className={`h-1.5 w-8 rounded-full ${i <= qCount ? 'bg-primary-600' : 'bg-gray-100'}`} />
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={qCount}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-gray-100 p-10 shadow-xl shadow-gray-50 min-h-[450px] flex flex-col"
-        >
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 leading-relaxed">
-              {question}
+    <div className="bg-white text-gray-800 font-sans px-4 md:px-12 py-4 w-full flex flex-col items-center">
+      <div className="w-full max-w-[1300px] flex flex-col gap-4">
+        {/* Main Question Card */}
+        <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm p-6 md:p-12 flex flex-col gap-6">
+          {/* Question section */}
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-5xl font-black text-black tracking-tight">
+              Câu {qCount}:
             </h2>
+            <div className="pt-2">
+              {renderFormattedQuestion(question)}
+            </div>
           </div>
 
-          <div className="flex-1 relative">
+          {/* Textarea */}
+          <div className="relative w-full">
             <textarea
               value={answer}
               onChange={e => setAnswer(e.target.value)}
               placeholder="Nhập câu trả lời chi tiết của bạn tại đây..."
-              className="w-full h-48 p-6 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-primary-100 text-gray-700 resize-none transition-all pr-12"
+              className="w-full h-48 p-6 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-primary-100 text-gray-700 resize-none transition-all pr-12 text-sm md:text-base"
             />
-            {SpeechRecognition && (
-              <button
-                type="button"
-                onClick={toggleVoiceInput}
-                className={`absolute bottom-3 right-3 p-1.5 rounded-lg transition-all ${
-                  isRecording
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'bg-slate-100 text-slate-400 hover:text-slate-600'
-                }`}
-                title={isRecording ? 'Dừng ghi âm' : 'Nói để nhập câu trả lời'}
-              >
-                <Mic className="w-4 h-4" />
-              </button>
-            )}
           </div>
 
-          <div className="mt-8 flex justify-end">
+          {/* Bottom Controls */}
+          <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+            <div className="text-sm font-bold text-slate-800 tracking-wider">
+              thời gian: {formatTime(answerTime)}
+            </div>
             <button
-              onClick={handleSubmit}
-              disabled={!answer.trim() || submitting}
-              className={`btn-primary px-10 py-3.5 flex items-center gap-2 ${submitting ? 'opacity-70' : ''}`}
+              type="button"
+              onClick={toggleVoiceInput}
+              className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                isRecording
+                  ? 'bg-red-500 text-white animate-pulse border border-red-500'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+              }`}
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gửi câu trả lời'}
-              <ChevronRight className="w-4 h-4" />
+              <Mic className="w-5 h-5 md:w-6 md:h-6" />
             </button>
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex justify-end shrink-0">
+          <button
+            onClick={handleSubmit}
+            disabled={!answer.trim() || submitting}
+            className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm flex items-center gap-2"
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hoàn thành'}
+            {!submitting && qCount < totalQuestions && <ChevronRight className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

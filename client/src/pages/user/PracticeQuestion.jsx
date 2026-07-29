@@ -88,8 +88,10 @@ export default function PracticeQuestion() {
         starCompletion: res.starCompletion,
         starChecklist: res.starChecklist,
         starAnalysis: res.starAnalysis,
+        starAnalysis: res.starAnalysis,
         improvedAnswer: res.improvedAnswer,
-        nextRecommendation: res.nextRecommendation
+        nextRecommendation: res.nextRecommendation,
+        technicalScores: res.technicalScores
       });
     } catch (error) {
       console.error('Error submitting answer', error);
@@ -192,47 +194,83 @@ export default function PracticeQuestion() {
             </p>
           </div>
 
-          {/* STAR Method Card */}
-          <div className="bg-blue-50/40 rounded-2xl border border-blue-100 p-6 shadow-sm">
-            <h3 className="text-xs font-extrabold text-[#2563EB] uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Lightbulb className="w-4.5 h-4.5 text-[#2563EB]" />
-              PHƯƠNG PHÁP STAR (GỢI Ý)
-            </h3>
+          {/* Method Card */}
+          {question.category === 'Technical' ? (
+            <div className="bg-emerald-50/40 rounded-2xl border border-emerald-100 p-6 shadow-sm">
+              <h3 className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Lightbulb className="w-4.5 h-4.5 text-emerald-600" />
+                TIÊU CHÍ ĐÁNH GIÁ KỸ THUẬT
+              </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
-                <div>
-                  <span className="text-xl font-extrabold text-blue-600">S</span>
-                  <h4 className="text-[11px] font-bold text-gray-800 mt-1">Situation</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">1</div>
+                  <span className="text-xs font-bold text-gray-700">Technical Knowledge</span>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Mô tả bối cảnh cụ thể của tình huống.</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
-                <div>
-                  <span className="text-xl font-extrabold text-blue-600">T</span>
-                  <h4 className="text-[11px] font-bold text-gray-800 mt-1">Task</h4>
+                <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">2</div>
+                  <span className="text-xs font-bold text-gray-700">Problem Solving</span>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Nhiệm vụ chính bạn cần thực hiện là gì?</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
-                <div>
-                  <span className="text-xl font-extrabold text-blue-600">A</span>
-                  <h4 className="text-[11px] font-bold text-gray-800 mt-1">Action</h4>
+                <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">3</div>
+                  <span className="text-xs font-bold text-gray-700">Practical Experience</span>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Bạn đã làm những gì để xử lý deadline?</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
-                <div>
-                  <span className="text-xl font-extrabold text-blue-600">R</span>
-                  <h4 className="text-[11px] font-bold text-gray-800 mt-1">Result</h4>
+                <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">4</div>
+                  <span className="text-xs font-bold text-gray-700">System Design</span>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Kết quả cuối cùng và bài học rút ra.</p>
+                <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">5</div>
+                  <span className="text-xs font-bold text-gray-700">Communication</span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">6</div>
+                  <span className="text-xs font-bold text-gray-700">Best Practices</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-blue-50/40 rounded-2xl border border-blue-100 p-6 shadow-sm">
+              <h3 className="text-xs font-extrabold text-[#2563EB] uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Lightbulb className="w-4.5 h-4.5 text-[#2563EB]" />
+                PHƯƠNG PHÁP STAR (GỢI Ý)
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <span className="text-xl font-extrabold text-blue-600">S</span>
+                    <h4 className="text-[11px] font-bold text-gray-800 mt-1">Situation</h4>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Mô tả bối cảnh cụ thể của tình huống.</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <span className="text-xl font-extrabold text-blue-600">T</span>
+                    <h4 className="text-[11px] font-bold text-gray-800 mt-1">Task</h4>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Nhiệm vụ chính bạn cần thực hiện là gì?</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <span className="text-xl font-extrabold text-blue-600">A</span>
+                    <h4 className="text-[11px] font-bold text-gray-800 mt-1">Action</h4>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Bạn đã làm những gì để xử lý deadline?</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-blue-50 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <span className="text-xl font-extrabold text-blue-600">R</span>
+                    <h4 className="text-[11px] font-bold text-gray-800 mt-1">Result</h4>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-2 font-medium leading-relaxed">Kết quả cuối cùng và bài học rút ra.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Textarea Input Section */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -336,7 +374,7 @@ export default function PracticeQuestion() {
                 </ul>
               </div>
 
-              {result.improvedAnswer && (result.improvedAnswer.situation || result.improvedAnswer.task || result.improvedAnswer.action || result.improvedAnswer.result) && (
+              {result.improvedAnswer && (result.improvedAnswer.situation || result.improvedAnswer.task || result.improvedAnswer.action || result.improvedAnswer.result) && question.category !== 'Technical' && (
                 <div className="border-t border-gray-100 pt-4 space-y-3">
                   <h5 className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-blue-600" />
@@ -417,12 +455,12 @@ export default function PracticeQuestion() {
             </div>
           </div>
 
-          {/* STAR Progress Card */}
+          {/* Progress Card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest border-b border-gray-100 pb-2 flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              Star Progress
-              {result && typeof result.starCompletion === 'number' && (
+              <Star className={`w-3.5 h-3.5 ${question.category === 'Technical' ? 'text-emerald-400 fill-emerald-400' : 'text-amber-400 fill-amber-400'}`} />
+              {question.category === 'Technical' ? 'Technical Evaluation' : 'Star Progress'}
+              {result && typeof result.starCompletion === 'number' && question.category !== 'Technical' && (
                 <span className="ml-auto text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-extrabold">
                   Đạt {result.starCompletion}%
                 </span>
@@ -430,7 +468,50 @@ export default function PracticeQuestion() {
             </h3>
 
             <div className="space-y-3">
-              {[
+              {(question.category === 'Technical' ? [
+                {
+                  label: 'Technical Knowledge',
+                  value: result?.technicalScores?.technicalKnowledge ? Math.round(result.technicalScores.technicalKnowledge * 10) : 0,
+                  color: 'bg-emerald-500',
+                  trackColor: 'bg-emerald-100',
+                  textColor: 'text-emerald-600',
+                },
+                {
+                  label: 'Problem Solving',
+                  value: result?.technicalScores?.problemSolving ? Math.round(result.technicalScores.problemSolving * 10) : 0,
+                  color: 'bg-amber-400',
+                  trackColor: 'bg-amber-100',
+                  textColor: 'text-amber-600',
+                },
+                {
+                  label: 'Practical Experience',
+                  value: result?.technicalScores?.practicalExperience ? Math.round(result.technicalScores.practicalExperience * 10) : 0,
+                  color: 'bg-blue-500',
+                  trackColor: 'bg-blue-100',
+                  textColor: 'text-blue-600',
+                },
+                {
+                  label: 'System Design',
+                  value: result?.technicalScores?.systemDesign ? Math.round(result.technicalScores.systemDesign * 10) : 0,
+                  color: 'bg-indigo-500',
+                  trackColor: 'bg-indigo-100',
+                  textColor: 'text-indigo-600',
+                },
+                {
+                  label: 'Communication',
+                  value: result?.technicalScores?.communication ? Math.round(result.technicalScores.communication * 10) : 0,
+                  color: 'bg-purple-500',
+                  trackColor: 'bg-purple-100',
+                  textColor: 'text-purple-600',
+                },
+                {
+                  label: 'Best Practices',
+                  value: result?.technicalScores?.bestPractices ? Math.round(result.technicalScores.bestPractices * 10) : 0,
+                  color: 'bg-rose-500',
+                  trackColor: 'bg-rose-100',
+                  textColor: 'text-rose-600',
+                },
+              ] : [
                 {
                   label: 'Situation',
                   value: result?.starAnalysis?.situation?.score ? Math.round(result.starAnalysis.situation.score * 10) : 0,
@@ -467,11 +548,11 @@ export default function PracticeQuestion() {
                   trackColor: result?.score >= 6 ? 'bg-emerald-100' : 'bg-rose-100',
                   textColor: result?.score >= 6 ? 'text-emerald-600' : 'text-rose-600',
                 },
-              ].map(({ label, value, feedback, checked, color, trackColor, textColor }) => (
+              ]).map(({ label, value, feedback, checked, color, trackColor, textColor }) => (
                 <div key={label} className="space-y-1.5 border-b border-gray-50 pb-2 last:border-0 last:pb-0 animate-fade-in">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
-                      {result && (
+                      {result && question.category !== 'Technical' && (
                         checked ? (
                           <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3]" />
                         ) : (
@@ -488,7 +569,7 @@ export default function PracticeQuestion() {
                       style={{ width: `${value}%` }}
                     />
                   </div>
-                  {result && feedback && (
+                  {result && feedback && question.category !== 'Technical' && (
                     <p className="text-[10px] text-gray-400 font-medium italic pl-1 leading-normal">
                       {feedback}
                     </p>
@@ -499,7 +580,7 @@ export default function PracticeQuestion() {
 
             {!result && (
               <p className="text-[10px] font-semibold text-gray-400 text-center pt-1">
-                Gửi câu trả lời để xem kết quả STAR
+                Gửi câu trả lời để xem kết quả đánh giá
               </p>
             )}
           </div>

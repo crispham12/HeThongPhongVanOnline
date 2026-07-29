@@ -7,7 +7,7 @@ import api from '../../../lib/axios';
 // Giả lập Web Speech API cho Transcript
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-export default function HRInterview({ fullMockMode = false, role, difficulty, onComplete, onQuestionChange }) {
+export default function HRInterview({ fullMockMode = false, role, difficulty, stack = [], onComplete, onQuestionChange }) {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState(state?.sessionId || null);
@@ -84,14 +84,15 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
     try {
       const { data } = await api.post('/hr-interviews/start', {
         role: role,
-        techStack: [],
+        techStack: stack,
         difficulty: difficulty,
+        questionMode: "AI_ONLY"
       });
       setSessionId(data.sessionId);
       sessionIdRef.current = data.sessionId;
     } catch (error) {
       console.error('HR start error:', error.response?.data || error);
-      alert('Không thể tạo phiên HR: ' + (error.response?.data?.message || error.response?.data?.detail || 'Vui lòng thử lại.'));
+      alert('Hệ thống đang gặp sự cố, không thể phỏng vấn lúc này. Vui lòng thử lại sau 1 phút nữa.');
     }
   };
 
@@ -412,16 +413,16 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
 
   if (fullMockMode) {
     return (
-      <div className="bg-white text-gray-800 font-sans px-12 py-4 h-[calc(100vh-100px)] flex flex-col justify-center items-center overflow-hidden">
+      <div className="bg-white text-gray-800 font-sans px-4 md:px-12 py-4 w-full flex flex-col items-center">
         <div className="w-full max-w-[1300px] flex flex-col gap-4">
           {/* Main Question & Recording Card */}
-          <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm p-12 flex flex-col gap-6 justify-between h-[600px]">
+          <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm p-6 md:p-12 flex flex-col gap-6">
             {/* Question section */}
             <div className="space-y-4">
-              <h2 className="text-5xl font-black text-black tracking-tight">
+              <h2 className="text-3xl md:text-5xl font-black text-black tracking-tight">
                 Câu {currentQIndex + 1}:
               </h2>
-              <p className="text-2xl font-normal text-slate-800 leading-relaxed">
+              <p className="text-lg md:text-2xl font-normal text-slate-800 leading-relaxed">
                 {currentQuestion?.questionText || "Đang tải câu hỏi..."}
               </p>
             </div>
@@ -432,7 +433,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
                 value={transcript}
                 readOnly
                 placeholder="Câu trả lời của bạn sẽ được ghi tại đây."
-                className="w-full h-[200px] bg-[#f8f9fa] border border-gray-200 rounded-lg p-4 pt-8 outline-none text-[15px] leading-relaxed text-gray-700 font-sans resize-y placeholder:text-gray-400 cursor-default"
+                className="w-full h-48 p-6 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-primary-100 text-gray-700 resize-none transition-all pr-12 text-sm md:text-base"
               />
               <div className="absolute top-2 right-4 text-xs font-medium text-gray-400">
                 {wordCount} từ
@@ -440,36 +441,41 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
             </div>
 
             {/* Bottom Controls */}
-            <div className="flex justify-between items-center pt-4">
+            <div className="flex justify-between items-center pt-4 border-t border-slate-100 shrink-0">
               {/* Waveform visualizer & Time */}
               <div className="flex items-center gap-4">
                 <div className="text-sm font-bold text-slate-800 tracking-wider">
                   thời gian: {formatTime(answerTime)}
                 </div>
+                {answerState === 'submitted' && (
+                  <div className="flex items-center gap-1.5 text-green-600 font-bold text-xs bg-green-50 border border-green-200 px-3 py-1 rounded-full">
+                    <Check className="w-3.5 h-3.5" /> Đã ghi nhận câu trả lời
+                  </div>
+                )}
               </div>
 
               <button
                 onClick={answerState === 'recording' ? stopAnswer : startAnswer}
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${answerState === 'recording'
+                className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${answerState === 'recording'
                   ? 'bg-red-500 text-white animate-pulse border border-red-500'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
                   }`}
               >
                 {answerState === 'recording' ? (
-                  <Mic className="w-6 h-6 text-white" />
+                  <Mic className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 ) : (
-                  <Mic className="w-6 h-6 text-slate-600" />
+                  <Mic className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
                 )}
               </button>
             </div>
           </div>
 
-          {/* Action Complete Button */}
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end shrink-0">
             <button
               onClick={submitAnswer}
-              disabled={answerState !== 'stopped' && answerState !== 'submitted'}
+              disabled={answerState !== 'stopped' && answerState !== 'submitted' || transcript.trim().length < 20}
               className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm"
+              title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
             >
               Hoàn thành
             </button>
@@ -592,7 +598,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
                 </div>
               )}
 
-              {voiceAnalysis && (
+              {voiceAnalysis && !fullMockMode && (
                 <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">
                     Phân tích giọng nói
@@ -708,8 +714,10 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, on
           </button>
           <button
             onClick={submitAnswer}
-            disabled={answerState !== 'stopped'}
-            className="px-6 py-2 bg-black text-white rounded-full text-[14px] font-medium hover:bg-gray-800 disabled:opacity-50">
+            disabled={answerState !== 'stopped' || transcript.trim().length < 20}
+            className="px-6 py-2 bg-black text-white rounded-full text-[14px] font-medium hover:bg-gray-800 disabled:opacity-50"
+            title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
+          >
             Submit Answer & Next
           </button>
         </div>
