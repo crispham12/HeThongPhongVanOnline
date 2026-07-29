@@ -4,6 +4,8 @@ import AppLayout from './components/layout/AppLayout';
 import Landing from './pages/user/Landing';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Dashboard from './pages/user/Dashboard';
 import InterviewSetup from './pages/user/interview/InterviewSetup';
 import HRInterview from './pages/user/interview/HRInterview';
@@ -20,6 +22,7 @@ import HistoryCompare from './pages/user/HistoryCompare';
 import UserQuestionBank from './pages/user/UserQuestionBank';
 import PracticeQuestion from './pages/user/PracticeQuestion';
 import CodingPracticeWorkspace from './pages/user/CodingPracticeWorkspace';
+import UpgradePage from './pages/user/UpgradePage';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -38,11 +41,10 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
-function RootRedirect() {
-  const { isAuthenticated, user, loading } = useAuth();
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
   if (loading) return <div className="flex h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" /></div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return user?.role === 1 ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/dashboard" replace />;
+  return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
 }
 
 function AdminRoute({ children }) {
@@ -59,7 +61,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
           {/* Protected routes in Sidebar layout */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -78,6 +82,7 @@ export default function App() {
             <Route path="/history/:id" element={<HistoryDetail />} />
             <Route path="/question-bank" element={<UserQuestionBank />} />
             <Route path="/question-bank/practice/:id" element={<PracticeQuestion />} />
+            <Route path="/upgrade" element={<UpgradePage />} />
 
             {/* Admin template management inside standard layout */}
           </Route>
