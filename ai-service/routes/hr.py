@@ -16,7 +16,7 @@ Kiến trúc:
 import json
 import os
 import traceback
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
@@ -204,7 +204,7 @@ async def generate_hr_questions(req: GenerateHrQuestionsRequest):
     """
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or api_key.startswith("AIza"):
-        return GenerateHrQuestionsResponse(questions=_build_fallback_questions(req.role, req.difficulty))
+        raise HTTPException(status_code=500, detail="OpenAI API Key is missing or invalid.")
 
     try:
         tech_str = ", ".join(req.tech_stack) if req.tech_stack else "General IT"
@@ -220,19 +220,84 @@ async def generate_hr_questions(req: GenerateHrQuestionsRequest):
 
         # Validate minimum count
         if len(questions) < req.total_questions:
-            # Bổ sung câu hỏi fallback nếu AI trả thiếu
-            fallback = _build_fallback_questions(req.role, req.difficulty)
-            for i in range(len(questions), req.total_questions):
-                questions.append(fallback[i].__dict__ if hasattr(fallback[i], '__dict__') else fallback[i])
+            raise HTTPException(status_code=500, detail="AI did not generate enough questions.")
 
         return GenerateHrQuestionsResponse(
             questions=[GeneratedQuestion(**q) for q in questions[:req.total_questions]],
             usage=TokenUsageInfo(**usage_data)
         )
     except Exception as e:
-        print(f"[HR] Error generating questions: {e}")
+        print(f"[HR] Error generating questions: {e}. Using fallback questions.")
         traceback.print_exc()
-        return GenerateHrQuestionsResponse(questions=_build_fallback_questions(req.role, req.difficulty))
+        tech_str = ", ".join(req.tech_stack) if req.tech_stack else "General IT"
+        
+        fallback_qs = [
+            {
+                "questionIndex": 1,
+                "category": "Giới thiệu bản thân",
+                "questionText": f"Chào bạn, hãy giới thiệu bản thân và cơ duyên đưa bạn đến với vai trò {req.role}.",
+                "expectedAnswerGuide": "Đánh giá khả năng giao tiếp cơ bản và phong thái trình bày."
+            },
+            {
+                "questionIndex": 2,
+                "category": "Định hướng nghề nghiệp",
+                "questionText": f"Tại sao bạn lại lựa chọn theo đuổi công nghệ {tech_str} thay vì các hướng đi khác?",
+                "expectedAnswerGuide": "Đánh giá đam mê và sự hiểu biết của ứng viên về tech stack."
+            },
+            {
+                "questionIndex": 3,
+                "category": "Làm việc nhóm",
+                "questionText": "Kể về một lần bạn xảy ra bất đồng ý kiến với đồng nghiệp hoặc thành viên trong nhóm. Bạn đã giải quyết thế nào?",
+                "expectedAnswerGuide": "Đánh giá kỹ năng xử lý xung đột và cộng tác."
+            },
+            {
+                "questionIndex": 4,
+                "category": "Giải quyết vấn đề",
+                "questionText": f"Hãy chia sẻ về một thử thách kỹ thuật khó khăn nhất mà bạn từng gặp khi code hoặc thiết kế với {tech_str}.",
+                "expectedAnswerGuide": "Đánh giá tư duy giải quyết vấn đề kỹ thuật."
+            },
+            {
+                "questionIndex": 5,
+                "category": "Tự học & Thích ứng",
+                "questionText": "Khi có một công nghệ mới hoặc framework mới cần học gấp cho dự án, bạn thường tự học theo phương pháp nào?",
+                "expectedAnswerGuide": "Đánh giá khả năng tự học và tinh thần chủ động."
+            },
+            {
+                "questionIndex": 6,
+                "category": "Khả năng chịu áp lực",
+                "questionText": "Mô tả một tình huống khi bạn phải hoàn thành công việc dưới áp lực deadline rất gấp. Bạn đã quản lý thời gian ra sao?",
+                "expectedAnswerGuide": "Đánh giá kỹ năng làm việc dưới áp lực."
+            },
+            {
+                "questionIndex": 7,
+                "category": "Khuyết điểm kỹ năng",
+                "questionText": "Nếu được tự đánh giá, đâu là điểm yếu lớn nhất của bạn trong giao tiếp và làm việc nhóm mà bạn đang cố gắng cải thiện?",
+                "expectedAnswerGuide": "Đánh giá mức độ tự nhận thức và mong muốn hoàn thiện."
+            },
+            {
+                "questionIndex": 8,
+                "category": "Thích nghi môi trường",
+                "questionText": "Nếu được nhận vào một dự án có quy trình làm việc khá lộn xộn, không có tài liệu rõ ràng, bạn sẽ làm gì?",
+                "expectedAnswerGuide": "Đánh giá tính chủ động và khả năng thích nghi môi trường."
+            },
+            {
+                "questionIndex": 9,
+                "category": "Động lực cống hiến",
+                "questionText": "Điều gì ở văn hóa doanh nghiệp hoặc cách quản lý làm bạn cảm thấy có nhiều động lực làm việc và cống hiến nhất?",
+                "expectedAnswerGuide": "Đánh giá độ tương thích văn hóa của ứng viên."
+            },
+            {
+                "questionIndex": 10,
+                "category": "Tầm nhìn tương lai",
+                "questionText": "Mục tiêu nghề nghiệp ngắn hạn và dài hạn trong vòng 3 năm tới của bạn là gì?",
+                "expectedAnswerGuide": "Đánh giá tính định hướng và cam kết phát triển sự nghiệp."
+            }
+        ]
+        
+        return GenerateHrQuestionsResponse(
+            questions=[GeneratedQuestion(**q) for q in fallback_qs[:req.total_questions]],
+            usage=TokenUsageInfo(inputTokens=0, outputTokens=0, totalTokens=0, model="fallback-mode")
+        )
 
 
 # ═══════════════════════════════════════════════
@@ -461,38 +526,6 @@ def _clamp_score(score) -> float:
         return max(0.0, min(10.0, value))
     except:
         return 0.0
-
-
-def _build_fallback_questions(role: str, difficulty: str) -> list:
-    """Trả 10 câu hỏi mẫu khi AI Service lỗi."""
-    categories = [
-        "Giới thiệu bản thân", "Mục tiêu nghề nghiệp", "Điểm mạnh / điểm yếu",
-        "Làm việc nhóm", "Xử lý mâu thuẫn", "Áp lực deadline",
-        "Học công nghệ mới", "Tư duy giải quyết vấn đề",
-        "Trách nhiệm trong dự án", "Lý do phù hợp vị trí"
-    ]
-    questions = [
-        "Hãy giới thiệu ngắn gọn về bản thân bạn.",
-        f"Mục tiêu nghề nghiệp 3 năm tới của bạn trong ngành IT là gì?",
-        "Điểm mạnh lớn nhất của bạn là gì? Hãy kể ví dụ cụ thể.",
-        "Hãy kể về một lần bạn làm việc nhóm trong dự án lập trình.",
-        "Bạn xử lý thế nào khi không đồng ý với ý kiến của thành viên khác trong team?",
-        "Bạn làm gì khi gặp deadline gấp mà còn nhiều task chưa hoàn thành?",
-        "Kể về một công nghệ mới bạn đã tự học gần đây và cách bạn tiếp cận.",
-        "Khi gặp một bug khó, quy trình debug của bạn như thế nào?",
-        "Hãy mô tả một dự án bạn chịu trách nhiệm chính và vai trò của bạn.",
-        f"Vì sao bạn nghĩ mình phù hợp với vị trí {role} ở cấp độ {difficulty}?"
-    ]
-    
-    return [
-        GeneratedQuestion(
-            questionIndex=i + 1,
-            category=categories[i],
-            questionText=questions[i],
-            expectedAnswerGuide="Ứng viên nên trả lời có cấu trúc STAR với ví dụ cụ thể."
-        )
-        for i in range(10)
-    ]
 
 
 def _sanitize_strengths(strengths: list, overall: float, star_completion: int, word_count: int, checklist: StarChecklist) -> list:

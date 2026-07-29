@@ -51,21 +51,37 @@ namespace InterviewPro.API.Workers
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var now = DateTime.UtcNow;
 
             try
             {
-                // Sử dụng ExecuteUpdateAsync nếu hỗ trợ (EF Core 7+), ngược lại có thể thay bằng vòng lặp.
-                // Ở đây dùng ExecuteUpdateAsync vì project dùng .NET 8 / EF Core 8.
-                var affected = await context.Users
+                // 1. Downgrade user Premium hết hạn về Free
+                var expiredPremiumCount = await context.Users
+                    .Where(u => u.Plan == "Premium"
+                             && u.PremiumExpiresAt.HasValue
+                             && u.PremiumExpiresAt.Value <= now)
+                    .ExecuteUpdateAsync(u => u
+                        .SetProperty(x => x.Plan, "Free")
+                        .SetProperty(x => x.PremiumExpiresAt, (DateTime?)null)
+                        .SetProperty(x => x.DailyInterviewUsed, 0));
+
+                // 2. Reset quota cho Free user
+                var resetCount = await context.Users
                     .Where(u => u.Plan == "Free" && u.DailyInterviewUsed > 0)
                     .ExecuteUpdateAsync(u => u.SetProperty(x => x.DailyInterviewUsed, 0));
 
-                _logger.LogInformation("[QuotaReset] Reset thành công lúc {Time}. Số user được reset: {Count}", 
-                    DateTime.UtcNow, affected);
+                // 3. Expire đơn hàng Pending quá 24h
+                await context.PaymentOrders
+                    .Where(o => o.Status == "Pending" && o.ExpiresAt <= now)
+                    .ExecuteUpdateAsync(o => o.SetProperty(x => x.Status, "Expired"));
+
+                _logger.LogInformation(
+                    "[QuotaReset] {Time} | Expired Premium: {Exp} | Reset quota: {Reset}",
+                    now, expiredPremiumCount, resetCount);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[QuotaReset] Lỗi khi reset quota.");
+                _logger.LogError(ex, "[QuotaReset] Lỗi khi reset.");
             }
         }
 

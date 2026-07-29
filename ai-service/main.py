@@ -12,6 +12,8 @@ from routes.hr import router as hr_router
 from routes.coding import router as coding_router
 from routes.coding_practice import router as coding_practice_router
 from routes.voice import router as voice_router
+from routes.technical import router as technical_router
+from routes.coding_interview import router as coding_interview_router
 
 app = FastAPI(title="InterviewPro AI Service")
 
@@ -35,6 +37,12 @@ app.include_router(coding_practice_router)
 
 # Register Voice Analysis router
 app.include_router(voice_router)
+
+# Register Technical Interview router
+app.include_router(technical_router)
+
+# Register Coding Interview router
+app.include_router(coding_interview_router)
 
 class InterviewSetup(BaseModel):
     role: str

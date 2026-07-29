@@ -82,7 +82,7 @@ namespace InterviewPro.API.Services
 
                 // Gọi Selection Service tạo 10 câu hỏi theo Blueprint
                 var questions = await _questionBankService.GenerateSessionQuestionsAsync(
-                    session.Id, request.Role, request.Difficulty, request.QuestionMode);
+                    session.Id, request.Role, request.Difficulty, request.QuestionMode, request.TechStack);
 
                 _db.HrInterviewQuestions.AddRange(questions);
                 await _db.SaveChangesAsync();

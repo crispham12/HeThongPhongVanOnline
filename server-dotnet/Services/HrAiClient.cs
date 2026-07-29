@@ -75,8 +75,8 @@ namespace InterviewPro.API.Services
                 errorMessage = ex.Message;
                 _logger.LogError(ex, "Error calling GenerateHrQuestions");
 
-                // Fallback: trả danh sách câu hỏi mẫu để hệ thống không bị sập hoàn toàn
-                return BuildFallbackQuestions(role, difficulty);
+                // Ném exception để hệ thống biết AI Service đang lỗi
+                throw new Exception("Hệ thống AI đang quá tải, không thể tạo câu hỏi phỏng vấn. Vui lòng thử lại sau 1 phút.", ex);
             }
             finally
             {
@@ -95,86 +95,6 @@ namespace InterviewPro.API.Services
             }
         }
 
-        // ─────────────────────────────────────────────
-        // 1.5. Sinh 1 câu hỏi HR (Fallback)
-        // ─────────────────────────────────────────────
-        public async Task<SingleGeneratedQuestion> GenerateSingleHrQuestionAsync(
-            string role, string level, string category, string targetSkill, string suggestedMethod, int maxAnswerTime)
-        {
-            var sw = Stopwatch.StartNew();
-            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
-            string model = "gpt-4o-mini";
-            string status = "Success";
-            string? errorMessage = null;
-
-            try
-            {
-                var client = _httpClientFactory.CreateClient("AIService");
-                var payload = new
-                {
-                    role,
-                    level,
-                    category,
-                    target_skill = targetSkill,
-                    suggested_method = suggestedMethod,
-                    max_answer_time = maxAnswerTime
-                };
-
-                var response = await client.PostAsJsonAsync("/ai/hr/generate-single-question", payload);
-                response.EnsureSuccessStatusCode();
-
-                var json = await response.Content.ReadAsStringAsync();
-                
-                // Parse tokens usage dynamically
-                ParseTokenUsage(json, out model, out inputTokens, out outputTokens, out totalTokens);
-
-                using var doc = JsonDocument.Parse(json);
-                var questionElement = doc.RootElement.GetProperty("question");
-                var result = JsonSerializer.Deserialize<SingleGeneratedQuestion>(questionElement.GetRawText(),
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                sw.Stop();
-                return result ?? BuildFallbackSingleQuestion(category, targetSkill, level, suggestedMethod, maxAnswerTime);
-            }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                status = "Failed";
-                errorMessage = ex.Message;
-                _logger.LogError(ex, "Error calling GenerateSingleHrQuestionAsync");
-
-                return BuildFallbackSingleQuestion(category, targetSkill, level, suggestedMethod, maxAnswerTime);
-            }
-            finally
-            {
-                await _aiRequestLogService.LogAsync(new AiRequestLogCreateDto
-                {
-                    Feature = "InterviewQuestionGeneration",
-                    RequestType = "GenerateSingleQuestion",
-                    Model = model,
-                    Status = status,
-                    InputTokens = inputTokens,
-                    OutputTokens = outputTokens,
-                    TotalTokens = totalTokens,
-                    ResponseTimeMs = sw.ElapsedMilliseconds,
-                    ErrorMessage = errorMessage
-                });
-            }
-        }
-
-        private SingleGeneratedQuestion BuildFallbackSingleQuestion(string category, string targetSkill, string level, string suggestedMethod, int maxAnswerTime)
-        {
-            return new SingleGeneratedQuestion
-            {
-                QuestionText = $"Hãy kể về một lần bạn thể hiện kỹ năng {targetSkill} trong công việc.",
-                Category = category,
-                Difficulty = level,
-                TargetSkill = targetSkill,
-                SuggestedMethod = suggestedMethod,
-                MaxAnswerTime = maxAnswerTime,
-                ExpectedAnswerGuide = $"Ứng viên cần sử dụng cấu trúc {suggestedMethod}."
-            };
-        }
 
         // ─────────────────────────────────────────────
         // 2. Đánh giá 1 câu trả lời theo 5 tiêu chí
@@ -328,42 +248,7 @@ namespace InterviewPro.API.Services
         // ─────────────────────────────────────────────
         // Fallback helpers (khi AI Service lỗi)
         // ─────────────────────────────────────────────
-        private static AiGeneratedQuestionsResult BuildFallbackQuestions(string role, string difficulty)
-        {
-            var categories = new[]
-            {
-                "Giới thiệu bản thân", "Mục tiêu nghề nghiệp", "Điểm mạnh / điểm yếu",
-                "Làm việc nhóm", "Xử lý mâu thuẫn", "Áp lực deadline",
-                "Học công nghệ mới", "Tư duy giải quyết vấn đề",
-                "Trách nhiệm trong dự án", "Lý do phù hợp vị trí"
-            };
-            var questions = new[]
-            {
-                "Hãy giới thiệu ngắn gọn về bản thân bạn.",
-                $"Mục tiêu nghề nghiệp 3 năm tới của bạn trong ngành IT là gì?",
-                "Điểm mạnh lớn nhất của bạn là gì? Hãy kể ví dụ cụ thể.",
-                $"Hãy kể về một lần bạn làm việc nhóm trong dự án lập trình.",
-                "Bạn xử lý thế nào khi không đồng ý với ý kiến của thành viên khác?",
-                "Bạn làm gì khi gặp deadline gấp mà còn nhiều task chưa hoàn thành?",
-                "Kể về một công nghệ mới bạn đã tự học gần đây và cách bạn tiếp cận.",
-                "Khi gặp một bug khó, quy trình debug của bạn như thế nào?",
-                "Hãy mô tả một dự án bạn chịu trách nhiệm chính và bạn đã làm gì.",
-                $"Vì sao bạn nghĩ mình phù hợp với vị trí {role} ở cấp độ {difficulty}?"
-            };
 
-            var result = new AiGeneratedQuestionsResult();
-            for (int i = 0; i < 10; i++)
-            {
-                result.Questions.Add(new AiGeneratedQuestion
-                {
-                    QuestionIndex = i + 1,
-                    Category = categories[i],
-                    QuestionText = questions[i],
-                    ExpectedAnswerGuide = "Ứng viên nên trả lời theo cấu trúc STAR với ví dụ cụ thể."
-                });
-            }
-            return result;
-        }
 
         private static AiEvaluationResult BuildFallbackEvaluation() => new()
         {

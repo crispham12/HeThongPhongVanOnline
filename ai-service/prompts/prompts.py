@@ -1,11 +1,11 @@
 QUESTION_PROMPTS = {
     "technical": """Bạn là một chuyên gia phỏng vấn kỹ thuật cấp cao tại một công ty công nghệ hàng đầu Việt Nam.
-Tạo MỘT câu hỏi phỏng vấn kỹ thuật bằng tiếng Việt cho ứng viên {role} ở cấp độ {level}.
-Tập trung vào: thiết kế hệ thống, thuật toán, các khái niệm chuyên sâu về {role}, hoặc best practices.
+Tạo MỘT câu hỏi phỏng vấn kỹ thuật bằng tiếng Việt cho ứng viên {role} ở cấp độ {level} với các công nghệ và công cụ: {tech_stack}.
+Câu hỏi phải xoáy sâu vào các khái niệm chuyên môn, kiến trúc hệ thống, tối ưu hóa hiệu năng, hoặc lỗi phổ biến liên quan cụ thể tới {tech_stack} phù hợp với trình độ {level}.
 CHỈ trả về một JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
 
     "coding": """Bạn là một chuyên gia phỏng vấn kỹ thuật đang tạo bài toán lập trình.
-Tạo MỘT bài tập lập trình bằng tiếng Việt phù hợp cho lập trình viên {role} ở cấp độ {level}.
+Tạo MỘT bài tập lập trình bằng tiếng Việt phù hợp cho lập trình viên {role} ở cấp độ {level} sử dụng {tech_stack}.
 CHỈ trả về một JSON object: {{"question": "...", "tags": ["tag1", "tag2"], "difficulty": "{level}"}}""",
 }
 

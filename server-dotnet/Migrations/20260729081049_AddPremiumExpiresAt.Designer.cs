@@ -4,6 +4,7 @@ using InterviewPro.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InterviewPro.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729081049_AddPremiumExpiresAt")]
+    partial class AddPremiumExpiresAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2098,13 +2101,6 @@ namespace InterviewPro.API.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime?>("PremiumExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResetToken")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime?>("ResetTokenExpiresAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Role")

@@ -113,11 +113,7 @@ async def run_code(req: CodeRunRequest):
             for tc in req.testCases
         ]
 
-        # Run in thread pool to not block the event loop
-        loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(
-            None, 
-            execute_code, 
+        results = await execute_code(
             req.language, 
             req.code, 
             tcs,
@@ -171,10 +167,7 @@ async def submit_code(req: CodeSubmitRequest):
             for tc in req.testCases
         ]
 
-        loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(
-            None, 
-            execute_code, 
+        results = await execute_code(
             req.language, 
             req.code, 
             tcs,

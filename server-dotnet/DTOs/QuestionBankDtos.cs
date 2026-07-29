@@ -219,6 +219,9 @@ public class SubmitQuestionAnswerResult
     public InterviewPro.API.Interfaces.StarAnalysisResult StarAnalysis { get; set; } = new();
     public InterviewPro.API.Interfaces.ImprovedAnswerResult ImprovedAnswer { get; set; } = new();
     public string NextRecommendation { get; set; } = string.Empty;
+    
+    // Technical scores
+    public InterviewPro.API.DTOs.AiScores? TechnicalScores { get; set; }
 }
 
 // ══════════════════════════════════════════════════

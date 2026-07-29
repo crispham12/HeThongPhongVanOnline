@@ -308,3 +308,243 @@ async def generate_coding_problem(request: GenerateCodingProblemRequest):
         )
 
 
+# ═══════════════════════════════════════════════
+# New Full Mock Endpoints
+# ═══════════════════════════════════════════════
+
+class FullMockCodingProblem(BaseModel):
+    title: str
+    description: str          # Mô tả bài toán đầy đủ
+    difficulty: str           # "Easy" | "Medium" | "Hard"
+    examples: List[Dict]      # [{"input": "...", "output": "...", "explanation": "..."}]
+    constraints: List[str]    # ["1 <= n <= 1000", ...]
+    test_cases: List[Dict]    # [{"input": "...", "expected_output": "..."}]
+    starter_code: Dict[str, str]  # {"python": "def solution(...):", "javascript": "function solution(...) {", "java": "class Solution {"}
+
+class GenerateFullMockCodingRequest(BaseModel):
+    role: str = Field(..., description="backend | frontend | fullstack | data")
+    difficulty_level: str = Field(..., description="intern | fresher | junior")
+    stack: List[str] = Field(default=[], description="Tech stack user đã chọn")
+
+class GenerateFullMockCodingResponse(BaseModel):
+    problems: List[FullMockCodingProblem]  # Luôn 3 bài: Easy, Medium, Hard
+
+@router.post("/full-mock/generate", response_model=GenerateFullMockCodingResponse)
+async def generate_full_mock_coding(req: GenerateFullMockCodingRequest):
+    """Sinh 3 bài coding tăng dần độ khó cho Full Mock Interview"""
+    
+    prompt = f"""Bạn là người ra đề phỏng vấn kỹ thuật tại công ty công nghệ hàng đầu.
+
+Hãy tạo CHÍNH XÁC 3 bài coding cho ứng viên vị trí {req.role} cấp độ {req.difficulty_level}.
+Tech stack: {', '.join(req.stack) if req.stack else 'General'}
+
+YÊU CẦU:
+- Bài 1: Easy — cấu trúc dữ liệu cơ bản, array/string manipulation
+- Bài 2: Medium — thuật toán trung bình, có thể dùng HashMap/Stack/Queue
+- Bài 3: Hard — thuật toán phức tạp, Dynamic Programming hoặc Graph
+
+Mỗi bài phải có:
+- title: tên bài ngắn gọn
+- description: mô tả bài toán rõ ràng bằng tiếng Việt
+- difficulty: "Easy" | "Medium" | "Hard"
+- examples: 2-3 ví dụ với input, output, explanation
+- constraints: 3-5 ràng buộc
+- test_cases: CHÍNH XÁC 5 test cases (input và expected_output là các chuỗi string thô đại diện cho stdin và expected stdout. Chú ý: input và expected_output phải khớp định dạng và không được chứa code hay định dạng phức tạp)
+- starter_code: code khởi đầu cho python, javascript, java
+
+QUAN TRỌNG: Trả về JSON hợp lệ theo format sau, không có markdown:
+{{
+  "problems": [
+    {{
+      "title": "...",
+      "description": "...",
+      "difficulty": "Easy",
+      "examples": [{{"input": "...", "output": "...", "explanation": "..."}}],
+      "constraints": ["..."],
+      "test_cases": [{{"input": "...", "expected_output": "..."}}],
+      "starter_code": {{"python": "...", "javascript": "...", "java": "..."}}
+    }},
+    // bài 2 Medium
+    // bài 3 Hard
+  ]
+}}"""
+
+    try:
+        response = await call_openai(prompt)
+        # response is already a dict returned by call_openai because call_openai uses json.loads
+        return GenerateFullMockCodingResponse(**response)
+    except Exception as e:
+        print(f"[Coding] Error generating full mock coding problems: {e}. Using fallback problems.")
+        
+        fallback_problems = [
+            {
+                "title": "Đảo ngược chuỗi (Reverse String)",
+                "description": "Viết một hàm nhận đầu vào là một chuỗi và trả về chuỗi đảo ngược của nó. Ví dụ: 'hello' -> 'olleh'.",
+                "difficulty": "Easy",
+                "examples": [
+                    {"input": "hello", "output": "olleh", "explanation": "Chuỗi đảo ngược của hello là olleh."}
+                ],
+                "constraints": [
+                    "Độ dài chuỗi từ 1 đến 1000 ký tự."
+                ],
+                "test_cases": [
+                    {"input": "hello", "expected_output": "olleh"},
+                    {"input": "a", "expected_output": "a"},
+                    {"input": "world", "expected_output": "dlrow"},
+                    {"input": "mock", "expected_output": "kcom"},
+                    {"input": "test", "expected_output": "tset"}
+                ],
+                "starter_code": {
+                    "python": "def solution(s: str) -> str:\n    # Viết code ở đây\n    return s[::-1]",
+                    "javascript": "function solution(s) {\n    // Viết code ở đây\n    return s.split('').reverse().join('');\n}",
+                    "java": "class Solution {\n    public String solution(String s) {\n        // Viết code ở đây\n        return new StringBuilder(s).reverse().toString();\n    }\n}"
+                }
+            },
+            {
+                "title": "Kiểm tra chuỗi ngoặc hợp lệ (Valid Parentheses)",
+                "description": "Cho một chuỗi chỉ chứa các ký tự '(', ')', '{', '}', '[' và ']'. Xác định xem chuỗi đầu vào có hợp lệ hay không. Một chuỗi đầu vào hợp lệ khi: Các ngoặc mở phải được đóng bằng cùng một loại ngoặc, và theo đúng thứ tự.",
+                "difficulty": "Medium",
+                "examples": [
+                    {"input": "()[]{}", "output": "true", "explanation": "Các cặp ngoặc mở đều có ngoặc đóng tương ứng."}
+                ],
+                "constraints": [
+                    "Độ dài chuỗi từ 1 đến 10^4."
+                ],
+                "test_cases": [
+                    {"input": "()", "expected_output": "true"},
+                    {"input": "()[]{}", "expected_output": "true"},
+                    {"input": "(]", "expected_output": "false"},
+                    {"input": "([)]", "expected_output": "false"},
+                    {"input": "{[]}", "expected_output": "true"}
+                ],
+                "starter_code": {
+                    "python": "def solution(s: str) -> str:\n    # Viết code ở đây, trả về 'true' hoặc 'false'\n    stack = []\n    mapping = {')': '(', '}': '{', ']': '['}\n    for char in s:\n        if char in mapping:\n            top = stack.pop() if stack else '#'\n            if mapping[char] != top: return 'false'\n        else:\n            stack.append(char)\n    return 'true' if not stack else 'false'",
+                    "javascript": "function solution(s) {\n    // Viết code ở đây, trả về 'true' hoặc 'false'\n    const stack = [];\n    const mapping = {')': '(', '}': '{', ']': '['};\n    for (let char of s) {\n        if (char in mapping) {\n            let top = stack.length ? stack.pop() : '#';\n            if (mapping[char] !== top) return 'false';\n        } else {\n            stack.push(char);\n        }\n    }\n    return stack.length === 0 ? 'true' : 'false';\n}",
+                    "java": "import java.util.Stack;\nclass Solution {\n    public String solution(String s) {\n        // Viết code ở đây, trả về \"true\" hoặc \"false\"\n        Stack<Character> stack = new Stack<>();\n        for (char c : s.toCharArray()) {\n            if (c == '(' || c == '{' || c == '[') {\n                stack.push(c);\n            } else {\n                if (stack.isEmpty()) return \"false\";\n                char top = stack.pop();\n                if (c == ')' && top != '(') return \"false\";\n                if (c == '}' && top != '{') return \"false\";\n                if (c == ']' && top != '[') return \"false\";\n            }\n        }\n        return stack.isEmpty() ? \"true\" : \"false\";\n    }\n}"
+                }
+            },
+            {
+                "title": "Tổng lớn nhất của mảng con (Maximum Subarray)",
+                "description": "Tìm mảng con liên tiếp (chứa ít nhất một số) có tổng lớn nhất trong một mảng số nguyên. Ví dụ: [-2,1,-3,4,-1,2,1,-5,4] -> 6 (mảng con [4,-1,2,1]). Input nhận vào là chuỗi các số cách nhau bởi dấu phẩy.",
+                "difficulty": "Hard",
+                "examples": [
+                    {"input": "-2,1,-3,4,-1,2,1,-5,4", "output": "6", "explanation": "Mảng con [4,-1,2,1] có tổng lớn nhất bằng 6."}
+                ],
+                "constraints": [
+                    "Số lượng phần tử từ 1 đến 10^5."
+                ],
+                "test_cases": [
+                    {"input": "-2,1,-3,4,-1,2,1,-5,4", "expected_output": "6"},
+                    {"input": "1", "expected_output": "1"},
+                    {"input": "5,4,-1,7,8", "expected_output": "23"},
+                    {"input": "-1", "expected_output": "-1"},
+                    {"input": "-2,-1,-3", "expected_output": "-1"}
+                ],
+                "starter_code": {
+                    "python": "def solution(s: str) -> str:\n    # Viết code ở đây, s là chuỗi số cách nhau bởi dấu phẩy\n    nums = [int(x) for x in s.split(',')]\n    max_so_far = nums[0]\n    curr_max = nums[0]\n    for x in nums[1:]:\n        curr_max = max(x, curr_max + x)\n        max_so_far = max(max_so_far, curr_max)\n    return str(max_so_far)",
+                    "javascript": "function solution(s) {\n    // Viết code ở đây, s là chuỗi số cách nhau bởi dấu phẩy\n    const nums = s.split(',').map(Number);\n    let maxSoFar = nums[0];\n    let currMax = nums[0];\n    for (let i = 1; i < nums.length; i++) {\n        currMax = Math.max(nums[i], currMax + nums[i]);\n        maxSoFar = Math.max(maxSoFar, currMax);\n    }\n    return String(maxSoFar);\n}",
+                    "java": "class Solution {\n    public String solution(String s) {\n        // Viết code ở đây, s là chuỗi số cách nhau bởi dấu phẩy\n        String[] parts = s.split(\",\");\n        int[] nums = new int[parts.length];\n        for (int i = 0; i < parts.length; i++) {\n            nums[i] = Integer.parseInt(parts[i].trim());\n        }\n        int maxSoFar = nums[0];\n        int currMax = nums[0];\n        for (int i = 1; i < nums.length; i++) {\n            currMax = Math.max(nums[i], currMax + nums[i]);\n            maxSoFar = Math.max(maxSoFar, currMax);\n        }\n        return String.valueOf(maxSoFar);\n    }\n}"
+                }
+            }
+        ]
+        
+        return GenerateFullMockCodingResponse(problems=[FullMockCodingProblem(**p) for p in fallback_problems])
+
+
+class EvaluateFullMockCodingRequest(BaseModel):
+    problem_title: str
+    problem_description: str
+    user_code: str
+    language: str                    # "python" | "javascript" | "java"
+    test_results: List[Dict]         # [{"input": "...", "expected": "...", "actual": "...", "passed": bool}]
+    passed_count: int
+    total_count: int
+
+class EvaluateFullMockCodingResponse(BaseModel):
+    score: int                        # 0-100
+    test_score: int                   # 0-50 (từ test cases)
+    quality_score: int                # 0-30 (code quality)
+    complexity_score: int             # 0-20 (time/space complexity)
+    feedback: str                     # Nhận xét tổng quan tiếng Việt
+    code_quality_notes: str           # Nhận xét code quality
+    complexity_notes: str             # Nhận xét độ phức tạp
+    improvement_suggestions: List[str] # 2-3 gợi ý cải thiện
+
+@router.post("/full-mock/evaluate", response_model=EvaluateFullMockCodingResponse)
+async def evaluate_full_mock_coding(req: EvaluateFullMockCodingRequest):
+    """AI chấm bài coding sau khi đã chạy qua Piston"""
+    
+    test_score = round((req.passed_count / req.total_count) * 50) if req.total_count > 0 else 0
+    
+    test_summary = "\n".join([
+        f"- Test {i+1}: {'✓ PASS' if r.get('passed') else '✗ FAIL'} | Input: {r.get('input')} | Expected: {r.get('expected')} | Actual: {r.get('actual')}"
+        for i, r in enumerate(req.test_results)
+    ])
+    
+    prompt = f"""Bạn là technical interviewer chấm bài coding phỏng vấn.
+
+BÀI TOÁN: {req.problem_title}
+{req.problem_description}
+
+CODE ỨNG VIÊN ({req.language}):
+```{req.language}
+{req.user_code}
+```
+
+KẾT QUẢ CHẠY TEST ({req.passed_count}/{req.total_count} tests passed):
+{test_summary}
+
+ĐIỂM TEST CASES ĐÃ TÍNH: {test_score}/50
+
+Hãy chấm thêm 2 tiêu chí sau và trả về JSON:
+
+1. CODE QUALITY (0-30 điểm):
+   - Đặt tên biến/hàm rõ ràng: 0-10
+   - Cấu trúc code sạch, dễ đọc: 0-10  
+   - Xử lý edge cases: 0-10
+
+2. COMPLEXITY (0-20 điểm):
+   - Time complexity phù hợp: 0-10
+   - Space complexity phù hợp: 0-10
+
+Trả về JSON (không có markdown):
+{{
+  "quality_score": <0-30>,
+  "complexity_score": <0-20>,
+  "feedback": "<nhận xét tổng quan 2-3 câu tiếng Việt>",
+  "code_quality_notes": "<nhận xét code quality 1-2 câu>",
+  "complexity_notes": "<nhận xét độ phức tạp 1-2 câu, ước tính Big O>",
+  "improvement_suggestions": ["<gợi ý 1>", "<gợi ý 2>", "<gợi ý 3>"]
+}}"""
+
+    try:
+        response = await call_openai(prompt)
+        # response is already a dict
+        quality_score = min(30, max(0, response.get("quality_score", 0)))
+        complexity_score = min(20, max(0, response.get("complexity_score", 0)))
+        total_score = test_score + quality_score + complexity_score
+        
+        return EvaluateFullMockCodingResponse(
+            score=total_score,
+            test_score=test_score,
+            quality_score=quality_score,
+            complexity_score=complexity_score,
+            feedback=response.get("feedback", ""),
+            code_quality_notes=response.get("code_quality_notes", ""),
+            complexity_notes=response.get("complexity_notes", ""),
+            improvement_suggestions=response.get("improvement_suggestions", [])
+        )
+    except Exception as e:
+        # Fallback: chỉ tính điểm test cases nếu AI lỗi
+        return EvaluateFullMockCodingResponse(
+            score=test_score,
+            test_score=test_score,
+            quality_score=0,
+            complexity_score=0,
+            feedback=f"Không thể phân tích chi tiết do lỗi AI: {str(e)}. Điểm dựa trên test cases.",
+            code_quality_notes="",
+            complexity_notes="",
+            improvement_suggestions=[]
+        )
+
+

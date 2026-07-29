@@ -9,6 +9,7 @@ namespace InterviewPro.API.Data
 
         // ── Existing Tables ──
         public DbSet<User> Users { get; set; }
+        public DbSet<PaymentOrder> PaymentOrders { get; set; }
         public DbSet<InterviewSession> InterviewSessions { get; set; }
         public DbSet<InterviewQuestion> InterviewQuestions { get; set; }
 
@@ -26,6 +27,21 @@ namespace InterviewPro.API.Data
         
         public DbSet<InterviewAnalysisJob> InterviewAnalysisJobs { get; set; }
         public DbSet<InterviewAnalysisResult> InterviewAnalysisResults { get; set; }
+        
+        // ── Technical Interviews ──
+        public DbSet<TechnicalInterviewSession> TechnicalInterviewSessions { get; set; }
+        public DbSet<TechnicalInterviewQuestion> TechnicalInterviewQuestions { get; set; }
+
+        // ── Coding Interviews ──
+        public DbSet<CodingInterviewSession> CodingInterviewSessions { get; set; }
+        public DbSet<CodingInterviewProblem> CodingInterviewProblems { get; set; }
+        public DbSet<CodingInterviewStageLog> CodingInterviewStageLogs { get; set; }
+
+        // ── Candidate Reports ──
+        public DbSet<CandidateReport> CandidateReports { get; set; }
+        public DbSet<HRReport> HRReports { get; set; }
+        public DbSet<TechnicalReport> TechnicalReports { get; set; }
+        public DbSet<CodingReport> CodingReports { get; set; }
 
         // ── Practice Sessions (Interview Data Management) ──
         public DbSet<PracticeSession> PracticeSessions { get; set; }
@@ -101,6 +117,42 @@ namespace InterviewPro.API.Data
                 .HasOne(s => s.FinalResult)
                 .WithOne()
                 .HasForeignKey<HrInterviewEvaluation>(r => r.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            modelBuilder.Entity<TechnicalInterviewSession>()
+                .HasMany(s => s.Questions)
+                .WithOne(q => q.Session)
+                .HasForeignKey(q => q.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CodingInterviewSession>()
+                .HasMany(s => s.Problems)
+                .WithOne(p => p.Session)
+                .HasForeignKey(p => p.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CodingInterviewProblem>()
+                .HasMany(p => p.StageLogs)
+                .WithOne(l => l.Problem)
+                .HasForeignKey(l => l.ProblemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CandidateReport>()
+                .HasOne(r => r.HrReport)
+                .WithOne(h => h.CandidateReport)
+                .HasForeignKey<HRReport>(h => h.CandidateReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CandidateReport>()
+                .HasOne(r => r.TechnicalReport)
+                .WithOne(t => t.CandidateReport)
+                .HasForeignKey<TechnicalReport>(t => t.CandidateReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CandidateReport>()
+                .HasOne(r => r.CodingReport)
+                .WithOne(c => c.CandidateReport)
+                .HasForeignKey<CodingReport>(c => c.CandidateReportId)
                 .OnDelete(DeleteBehavior.Cascade);
                 
             modelBuilder.Entity<HrInterviewAnswer>()

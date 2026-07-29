@@ -4,6 +4,7 @@ using InterviewPro.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InterviewPro.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726173637_AddCandidateReport")]
+    partial class AddCandidateReport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1622,54 +1625,6 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("InterviewStrengths");
                 });
 
-            modelBuilder.Entity("InterviewPro.API.Entities.PaymentOrder", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<long?>("ActualAmount")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("Amount")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OrderCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PlanType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SePayTransactionId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PaymentOrders");
-                });
-
             modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>
                 {
                     b.Property<int>("Id")
@@ -2097,16 +2052,6 @@ namespace InterviewPro.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime?>("PremiumExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResetToken")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime?>("ResetTokenExpiresAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
@@ -2419,17 +2364,6 @@ namespace InterviewPro.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Result");
-                });
-
-            modelBuilder.Entity("InterviewPro.API.Entities.PaymentOrder", b =>
-                {
-                    b.HasOne("InterviewPro.API.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.PracticeAttempt", b =>

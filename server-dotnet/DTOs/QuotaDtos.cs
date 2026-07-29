@@ -7,5 +7,6 @@ namespace InterviewPro.API.DTOs
         public int DailyLimit { get; set; } // 3 với Free, -1 với Premium (không giới hạn)
         public int Remaining { get; set; }  // DailyLimit - DailyUsed, -1 nếu Premium
         public bool IsUnlimited { get; set; }
+        public DateTime? PremiumExpiresAt { get; set; }
     }
 }

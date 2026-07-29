@@ -9,30 +9,51 @@ This file contains prompts for generating HR interview questions and evaluating 
 # ─────────────────────────────────────────────
 HR_GENERATE_QUESTIONS_PROMPT = """Bạn là chuyên gia phỏng vấn HR cho ngành IT tại Việt Nam.
 
-Nhiệm vụ: Tạo đúng {total_questions} câu hỏi phỏng vấn HR cho ứng viên IT.
+Nhiệm vụ: Tạo đúng {total_questions} câu hỏi phỏng vấn hành vi/HR cho ứng viên IT, nhưng bắt buộc phải lồng ghép khéo léo ngữ cảnh công nghệ của ứng viên để câu hỏi thực tế và liên quan nhất.
 
 Thông tin ứng viên:
 - Vai trò ứng tuyển: {role}
 - Mức độ: {difficulty}
-- Tech Stack: {tech_stack}
+- Tech Stack & Tools: {tech_stack}
 
-Yêu cầu câu hỏi:
-1. Nếu sinh nhiều câu hỏi, mỗi câu phải thuộc một nhóm khác nhau, không trùng nhóm.
-2. Tập trung vào các chủ đề hành vi: Giới thiệu bản thân, Mục tiêu nghề nghiệp, Điểm mạnh/Điểm yếu, Làm việc nhóm, Xử lý mâu thuẫn, Áp lực deadline, Khả năng học hỏi, Giải quyết vấn đề.
-3. KHÔNG hỏi kiến thức kỹ thuật/công nghệ thuần túy. Đây là phỏng vấn HR/hành vi.
-4. Câu hỏi phải bằng tiếng Việt, ngắn gọn và xúc tích.
-5. Câu hỏi phù hợp với level {difficulty} trong ngành IT và vai trò {role}.
-6. Đặt câu hỏi sao cho ứng viên có thể dùng phương pháp STAR để trả lời.
-7. Mỗi câu kèm hướng dẫn đánh giá ngắn gọn cho AI.
+Yêu cầu câu hỏi và Phân bổ cấu trúc (Bắt buộc đúng 10 câu theo flow sau):
+- Câu 1 & 2 (Ice Breaking - Khởi động): Giới thiệu bản thân, làm quen nhẹ nhàng gắn với vai trò {role}.
+- Câu 3 & 4 (Background & Motivation - Động lực): Lý do lựa chọn lập trình {role}, định hướng công nghệ và đam mê tự học với hệ sinh thái {tech_stack}.
+- Câu 5, 6 & 7 (Behavioral Questions - Tình huống quá khứ): Áp dụng cấu trúc STAR hỏi về kinh nghiệm làm việc nhóm, giải quyết mâu thuẫn khi code hoặc thiết kế DB, và tự học công cụ/IDE (như IntelliJ) trong quá khứ gắn với {tech_stack}.
+- Câu 8 & 9 (Situational Questions - Tình huống giả định): Đưa ra kịch bản giả định thực tế (Ví dụ: Dự án Java bị lỗi kết nối SQL Server sát giờ nộp bài, hoặc mentor yêu cầu đổi thiết kế bảng đột xuất) để đánh giá khả năng chịu áp lực và giải quyết vấn đề.
+- Câu 10 (Career & Closing - Định hướng & Kết thúc): Tầm nhìn sự nghiệp 3 năm tới, mong muốn cải thiện bản thân và câu hỏi mở kết thúc.
 
-Trả về JSON hợp lệ, KHÔNG có text ngoài JSON:
+Quy tắc sinh câu hỏi:
+1. Tránh tuyệt đối các câu hỏi chung chung giáo khoa (ví dụ: tránh các câu như "Hãy kể về một lần thể hiện kỹ năng Adaptability"). Phải lồng ghép ngữ cảnh thực tế của {tech_stack} vào tất cả câu hỏi.
+2. KHÔNG hỏi kiến thức kỹ thuật lý thuyết thuần túy (không hỏi định nghĩa interface, class). Tập trung vào cách ứng viên giải quyết vấn đề, tương tác và học hỏi.
+3. Câu hỏi phải bằng tiếng Việt, ngắn gọn, tự nhiên như người phỏng vấn thật đang nói chuyện.
+4. Mỗi câu phải đi kèm hướng dẫn đánh giá chi tiết cho AI dựa trên câu trả lời kỳ vọng.
+
+Ví dụ mẫu (Few-Shot):
+- Input: Role=Java Backend, Level=Fresher, Stack=Java, SQL Server, IntelliJ IDEA
+- Output: [
+    {{
+      "questionIndex": 1,
+      "category": "Học hỏi & Tự cải thiện",
+      "questionText": "Là một Fresher, khi bắt đầu sử dụng IntelliJ IDEA để code dự án Java đầu tiên, bạn đã gặp những khó khăn gì trong việc thiết lập môi trường và cấu hình kết nối SQL Server? Bạn đã làm cách nào để vượt qua khó khăn đó?",
+      "expectedAnswerGuide": "Đánh giá khả năng tự xử lý vấn đề (Troubleshooting) khi cấu hình IDE, JDBC driver hoặc SQL Server Connection. Ứng viên nên mô tả rõ cách tìm kiếm lỗi hoặc hỏi mentor."
+    }},
+    {{
+      "questionIndex": 2,
+      "category": "Kỹ năng cộng tác nhóm",
+      "questionText": "Kể về một dự án nhóm mà bạn tham gia thiết kế database SQL Server. Khi có sự bất đồng ý kiến về việc thiết kế bảng hoặc chuẩn hóa dữ liệu giữa các thành viên, bạn đã xử lý xung đột đó như thế nào?",
+      "expectedAnswerGuide": "Đánh giá kỹ năng lắng nghe, thuyết phục và giải quyết bất đồng văn minh dựa trên lập luận kỹ thuật."
+    }}
+  ]
+
+Hãy tạo đúng {total_questions} câu hỏi cho ứng viên trên dưới dạng JSON hợp lệ:
 {{
   "questions": [
     {{
       "questionIndex": 1,
-      "category": "Giới thiệu bản thân",
-      "questionText": "Hãy giới thiệu ngắn gọn về bản thân bạn.",
-      "expectedAnswerGuide": "Ứng viên nên trình bày ngắn gọn về học vấn, kỹ năng kỹ thuật, dự án và định hướng nghề nghiệp."
+      "category": "Tên danh mục",
+      "questionText": "Nội dung câu hỏi...",
+      "expectedAnswerGuide": "Hướng dẫn đánh giá..."
     }}
   ]
 }}"""
