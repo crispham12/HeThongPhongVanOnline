@@ -1,0 +1,47 @@
+Chào các bạn Intern và các thành viên mới của team,
+
+Chào mừng các bạn đến với dự án **InterviewPro - Hệ Thống Phỏng Vấn Online**. 
+
+Để các bạn dễ dàng làm quen với dự án mà không bị "ngợp" trước hàng đống file code, tôi sẽ giới thiệu chi tiết từng chức năng cụ thể và **mục đích tồn tại** của nó. Các bạn cứ bám sát tài liệu này để hiểu hệ thống đang làm gì nhé!
+
+---
+
+### 🌟 1. Chức năng Đăng nhập & Đăng ký (Authentication)
+- **Nó là gì?** Hệ thống cho phép tạo tài khoản và đăng nhập bằng Email/Password (sử dụng Token JWT để bảo mật).
+- **Mục đích chính:** Để phân biệt người dùng với nhau, bảo vệ dữ liệu cá nhân và tách biệt rõ ràng 2 nhóm: Người dùng bình thường (User) và Quản trị viên (Admin).
+
+### 🌟 2. Ngân hàng câu hỏi (Question Bank)
+- **Nó là gì?** Nơi hiển thị danh sách hàng trăm câu hỏi phỏng vấn từ dễ đến khó (thuật toán, tình huống xử lý, kiến thức framework).
+- **Mục đích chính:** Giống như một thư viện để người dùng có thể dạo quanh, tìm kiếm và lựa chọn câu hỏi mà họ cảm thấy yếu để bấm vào luyện tập.
+
+### 🌟 3. Không gian Luyện tập (Practice Workspace)
+- **Nó là gì?** Đây là "linh hồn" của ứng dụng. Một màn hình chia làm 2 nửa: Một bên hiển thị đề bài, một bên là khung soạn thảo code (giống hệt VS Code) để người dùng gõ câu trả lời.
+- **Mục đích chính:** Tạo môi trường thực tế nhất để người dùng mô phỏng lại một buổi phỏng vấn kỹ thuật. Sau khi submit, hệ thống sẽ chạy thử và đưa ra đánh giá đúng/sai.
+
+### 🌟 4. Hệ thống Giới hạn lượt chơi (Quota System & Background Worker)
+- **Nó là gì?** Một bộ đếm ngầm trong Backend. Tài khoản Free chỉ được phép luyện tập 3 lần/ngày.
+- **Mục đích chính:** Đây là bài toán kinh doanh. Việc giới hạn 3 lần/ngày nhằm tạo ra sự thiếu thốn, từ đó thúc đẩy người dùng phải bỏ tiền ra mua gói Premium. 
+- **Điểm thú vị cho Intern:** Chúng ta có code một con `Worker` chạy ngầm. Cứ đúng 00:00 đêm mỗi ngày, con Worker này sẽ tự động thức dậy và reset lại 3 lượt mới cho toàn bộ người dùng Free.
+
+### 🌟 5. Tích hợp Thanh toán Tự động (SePay Webhook Integration)
+- **Nó là gì?** Chức năng cho phép người dùng dùng app ngân hàng quét mã QR để mua gói Premium (theo tháng/năm).
+- **Mục đích chính:** Tự động hóa quá trình bán hàng. Thay vì Admin phải ngồi trực tin nhắn để mở khóa tài khoản, hệ thống sẽ tự làm.
+- **Điểm thú vị cho Intern:** Các bạn sẽ được học cách làm việc với Webhook. Cứ hễ có tiền đổ vào tài khoản thật của công ty, đối tác SePay sẽ "bắn pháo hiệu" (Webhook) về API của chúng ta. Code của chúng ta sẽ tự động đọc nội dung chuyển tiền, kiểm tra giá tiền và mở khóa Premium cho khách ngay trong chớp mắt (tầm 1-2 giây).
+
+### 🌟 6. Trang Quản trị (Admin Dashboard)
+- **Nó là gì?** Một khu vực riêng biệt với giao diện quản lý dạng bảng (bảng thống kê, biểu đồ).
+- **Mục đích chính:** Giúp Ban Quản Trị (Admin) kiểm soát toàn bộ "sức khỏe" ứng dụng: 
+  - Biết được hôm nay có bao nhiêu người mới đăng ký.
+  - Sửa nội dung các câu hỏi bị sai.
+  - Xem danh sách những người đã chuyển khoản mua gói Premium. Nếu ai đó chuyển sai số tiền, Admin có thể ấn nút duyệt tay.
+
+---
+
+### 💡 Lời nhắn nhủ
+Tất cả các tính năng trên đều được xây dựng bằng **ReactJS** (cho giao diện) và **.NET 8** (cho Backend API).
+
+Đối với các bạn Intern: Đừng vội đọc hết code ngay. Hãy chạy thử ứng dụng, bấm thử từng nút (đăng ký, trả lời câu hỏi, tạo mã QR thanh toán) để hiểu **Giao diện làm gì**. Sau đó mới mở Backend ra xem **API nào xử lý nút bấm đó**.
+
+Chúc các bạn có một kỳ thực tập và làm việc thật cháy tại dự án này! Có gì khó, cứ ping Leader nhé!
+
+Thân mến.

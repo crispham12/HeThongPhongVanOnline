@@ -91,11 +91,16 @@ Xem lại tất cả buổi đã làm, biểu đồ điểm theo thời gian, th
 
 ## 🚀 Hướng Dẫn Cài Đặt
 
-### Yêu Cầu
-- Node.js 18+
-- .NET SDK 8.0
-- Python 3.11+
-- SQL Server hoặc PostgreSQL
+### Yêu Cầu (Môi trường cần cài đặt)
+Để team có thể tải và cài đặt môi trường ngay, vui lòng tải theo các link dưới đây:
+- **Node.js 18+** (cho Frontend): [Tải về Node.js](https://nodejs.org/en/download/)
+- **.NET SDK 8.0** (cho Backend): [Tải về .NET 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+- **Python 3.11+** (cho AI Service): [Tải về Python](https://www.python.org/downloads/)
+- **Hệ quản trị CSDL**:
+  - [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) HOẶC [PostgreSQL](https://www.postgresql.org/download/)
+- **Công cụ hỗ trợ**:
+  - [Git](https://git-scm.com/downloads)
+  - [Visual Studio Code](https://code.visualstudio.com/Download) (khuyên dùng)
 
 ### 1. Backend (ASP.NET Core)
 

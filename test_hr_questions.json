@@ -1,0 +1,70 @@
+{
+  "questions": [
+    {
+      "questionIndex": 1,
+      "category": "Khởi động & Giới thiệu",
+      "questionText": "Chào bạn, trước hết, bạn có thể giới thiệu sơ lược về bản thân và điều gì đã khiến bạn hứng thú với vai trò lập trình Backend, đặc biệt là với ngôn ngữ Java và hệ quản trị cơ sở dữ liệu SQL Server không?",
+      "expectedAnswerGuide": "Đánh giá khả năng giới thiệu bản thân một cách mạch lạc, sự nhiệt tình và lý do ban đầu lựa chọn Backend, Java, SQL Server. Tìm kiếm sự liên kết cá nhân với công nghệ và niềm đam mê."
+    },
+    {
+      "questionIndex": 2,
+      "category": "Khởi động & Kinh nghiệm ban đầu",
+      "questionText": "Trong các dự án cá nhân hoặc đồ án môn học gần đây, bạn đã từng phát triển một module Backend nào sử dụng Java để tương tác với SQL Server chưa? Bạn có thể chia sẻ về một module mà bạn cảm thấy tâm đắc nhất và vai trò của bạn trong đó là gì không?",
+      "expectedAnswerGuide": "Đánh giá kinh nghiệm thực tế (dù là Fresher), khả năng mô tả dự án và vai trò cá nhân. Tìm kiếm dấu hiệu của niềm đam mê và sự chủ động trong việc áp dụng Java và SQL Server vào thực tế."
+    },
+    {
+      "questionIndex": 3,
+      "category": "Động lực & Định hướng",
+      "questionText": "Với rất nhiều ngôn ngữ và công nghệ Backend khác nhau, điều gì ở Java và SQL Server đã thu hút bạn và khiến bạn quyết định đi sâu vào hệ sinh thái này? Bạn có định hướng phát triển bản thân theo hướng chuyên sâu nào trong Java Backend không?",
+      "expectedAnswerGuide": "Đánh giá sự hiểu biết về lựa chọn công nghệ của bản thân, lý do cá nhân và định hướng phát triển rõ ràng. Mong đợi ứng viên nói về hiệu năng, cộng đồng, hệ sinh thái của Java hoặc tính ổn định của SQL Server."
+    },
+    {
+      "questionIndex": 4,
+      "category": "Động lực & Tinh thần tự học",
+      "questionText": "Là một Fresher, việc cập nhật kiến thức mới là rất quan trọng. Bạn thường làm gì để tự học và cập nhật những xu hướng mới, các framework (ví dụ: Spring Boot) hay các kỹ thuật tối ưu hóa truy vấn SQL Server hiệu quả hơn? Bạn có theo dõi blog, cộng đồng hay khóa học nào không?",
+      "expectedAnswerGuide": "Đánh giá tinh thần tự học, sự chủ động và các kênh học tập của ứng viên. Tìm kiếm câu trả lời cụ thể về việc học Spring Boot, JPA, tối ưu SQL, hoặc các cộng đồng Java/SQL Server."
+    },
+    {
+      "questionIndex": 5,
+      "category": "Kỹ năng làm việc nhóm & Giải quyết mâu thuẫn (STAR)",
+      "questionText": "Hãy kể về một lần bạn tham gia dự án nhóm và có sự bất đồng ý kiến về cách thiết kế cấu trúc bảng trong SQL Server, hoặc về cách viết một đoạn code Java Backend (ví dụ: cách xử lý transaction, phân tách logic) với đồng đội. Bạn đã làm gì để giải quyết mâu thuẫn đó và đi đến thống nhất?",
+      "expectedAnswerGuide": "Đánh giá kỹ năng làm việc nhóm, lắng nghe, thuyết phục và giải quyết xung đột dựa trên lập luận kỹ thuật. Ứng viên nên mô tả Situation, Task, Action, Result rõ ràng, tập trung vào việc đưa ra giải pháp kỹ thuật hợp lý."
+    },
+    {
+      "questionIndex": 6,
+      "category": "Kỹ năng giải quyết vấn đề (STAR)",
+      "questionText": "Trong quá trình học tập hoặc làm dự án, bạn có từng gặp phải một bug khó nhằn trong code Java Backend (ví dụ: lỗi NullPointerException không rõ nguyên nhân, lỗi đa luồng) hoặc một vấn đề về hiệu năng khi truy vấn SQL Server không? Hãy mô tả tình huống đó, cách bạn đã tiếp cận để tìm ra nguyên nhân và giải pháp.",
+      "expectedAnswerGuide": "Đánh giá khả năng debug, phân tích vấn đề (troubleshooting) và kiên trì tìm giải pháp. Ứng viên nên mô tả rõ các bước phân tích, sử dụng công cụ (debugger, SQL Profiler), và kết quả đạt được."
+    },
+    {
+      "questionIndex": 7,
+      "category": "Kỹ năng tự học & Thích nghi (STAR)",
+      "questionText": "Khi bắt đầu làm quen với một công cụ mới như IntelliJ IDEA, hoặc một framework Java như Spring Boot, hay một tính năng nâng cao của SQL Server (ví dụ: Stored Procedures, Triggers), bạn đã gặp những khó khăn gì? Bạn đã tự học và thích nghi với nó như thế nào để hoàn thành công việc?",
+      "expectedAnswerGuide": "Đánh giá khả năng tự học, thích nghi với công nghệ mới. Ứng viên nên kể về quá trình học, các nguồn tài liệu sử dụng, và cách vượt qua khó khăn để áp dụng thành công vào dự án."
+    },
+    {
+      "questionIndex": 8,
+      "category": "Tình huống giả định & Chịu áp lực",
+      "questionText": "Giả sử bạn đang hoàn thiện một module Backend Java quan trọng, sát giờ nộp bài/deploy, thì hệ thống đột ngột báo lỗi không thể kết nối đến SQL Server. Là một Fresher, bạn sẽ làm gì để nhanh chóng xác định nguyên nhân (ví dụ: lỗi cấu hình JDBC, firewall, database down) và tìm cách khắc phục trong tình huống khẩn cấp đó?",
+      "expectedAnswerGuide": "Đánh giá khả năng giữ bình tĩnh, tư duy logic và các bước xử lý vấn đề dưới áp lực. Ứng viên nên đề cập đến việc kiểm tra log, cấu hình, network, tình trạng server, hoặc tìm kiếm sự hỗ trợ."
+    },
+    {
+      "questionIndex": 9,
+      "category": "Tình huống giả định & Thích nghi với thay đổi",
+      "questionText": "Trong một dự án thực tế, mentor hoặc Product Owner đột ngột yêu cầu bạn thay đổi thiết kế một số bảng trong SQL Server, hoặc thay đổi logic xử lý dữ liệu trong Java Backend, điều này ảnh hưởng lớn đến phần code bạn đang phát triển. Bạn sẽ tiếp nhận thông tin này như thế nào, và làm gì để đảm bảo sự thay đổi được thực hiện hiệu quả mà không gây ảnh hưởng lớn đến tiến độ chung?",
+      "expectedAnswerGuide": "Đánh giá khả năng thích nghi với thay đổi, kỹ năng giao tiếp để làm rõ yêu cầu, đánh giá tác động và đưa ra kế hoạch thực hiện. Tìm kiếm sự chủ động trong việc trao đổi và quản lý thay đổi."
+    },
+    {
+      "questionIndex": 10,
+      "category": "Định hướng sự nghiệp & Kết thúc",
+      "questionText": "Nhìn về 3 năm tới, bạn hình dung mình sẽ phát triển như thế nào trong vai trò lập trình viên Backend chuyên về Java và SQL Server? Bạn có mong muốn học thêm công nghệ nào khác trong hệ sinh thái này không, và bạn có câu hỏi nào dành cho chúng tôi về vị trí này hoặc về công ty không?",
+      "expectedAnswerGuide": "Đánh giá tầm nhìn sự nghiệp, sự chủ động trong việc học hỏi và phát triển. Mong đợi câu trả lời cụ thể về việc trở thành Mid-level, học thêm Cloud (AWS/Azure), Docker, Kubernetes, microservices với Java, hoặc các công nghệ Database NoSQL. Đánh giá sự quan tâm của ứng viên đối với công ty."
+    }
+  ],
+  "usage": {
+    "inputTokens": 922,
+    "outputTokens": 1696,
+    "totalTokens": 5197,
+    "model": "gemini-2.5-flash"
+  }
+}

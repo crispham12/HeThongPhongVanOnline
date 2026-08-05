@@ -33,6 +33,17 @@ Xây dựng nền tảng web cho phép sinh viên IT năm 3-4 và fresher (dư�
 - Ngôn ngữ giao diện: Tiếng Việt
 - Ngôn ngữ AI phản hồi: Tiếng Việt
 
+### 1.5 Môi trường phát triển & Cài đặt (Dành cho Team)
+Để team có thể tải, cài đặt và bắt đầu làm việc ngay lập tức, vui lòng cài đặt các công cụ sau:
+- **Node.js 18+** (cần thiết cho Frontend Vite/React): [Tải về Node.js](https://nodejs.org/en/download/)
+- **.NET SDK 8.0** (cần thiết cho Backend ASP.NET Core): [Tải về .NET SDK 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+- **Python 3.11+** (cần thiết cho AI Service): [Tải về Python 3.11+](https://www.python.org/downloads/)
+- **Hệ quản trị Cơ sở dữ liệu**:
+  - [SQL Server Developer/Express](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) HOẶC [PostgreSQL](https://www.postgresql.org/download/)
+- **Công cụ hỗ trợ (Khuyên dùng)**:
+  - [Git](https://git-scm.com/downloads) (Quản lý source code)
+  - [Visual Studio Code](https://code.visualstudio.com/Download) (IDE nhẹ, hỗ trợ nhiều ngôn ngữ)
+
 ---
 
 ## 2. PHẠM VI TÍNH NĂNG
