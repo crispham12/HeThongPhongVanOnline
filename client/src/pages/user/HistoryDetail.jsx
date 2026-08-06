@@ -78,7 +78,7 @@ export default function HistoryDetail() {
             <p className="text-lg font-bold mb-2">{errorStatus === 410 ? 'Phiên đã bị lưu trữ' : 'Không thể tải dữ liệu'}</p>
             <p className="text-sm">{error}</p>
             {errorStatus === 410 && (
-              <button onClick={() => navigate('/history')} className="mt-4 px-5 py-2 bg-orange-600 text-white rounded-lg text-sm font-semibold hover:bg-orange-700 transition-colors">
+              <button onClick={() => navigate('/history')} className="mt-4 px-5 py-2 bg-[#B4F290] text-[#111827] rounded-lg text-sm font-semibold hover:bg-[#9de675] transition-colors">
                 Về lịch sử
               </button>
             )}

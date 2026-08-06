@@ -186,6 +186,11 @@ async def submit_code(req: CodeSubmitRequest):
     runtime_ms = _compute_runtime_ms(results)
     memory_mb = _compute_memory_mb(results)
 
+    # Calculate public-only metrics for client display
+    public_results = [res for i, res in enumerate(results) if not req.testCases[i].isHidden]
+    passed_public = sum(1 for r in public_results if r.get("passed"))
+    total_public = len(public_results)
+
     # ── Step 3: AI Code Review ────────────────────────────
     ai_feedback = None
     usage_info = {"inputTokens": 0, "outputTokens": 0, "totalTokens": 0, "model": "gpt-4o-mini"}
@@ -197,6 +202,16 @@ async def submit_code(req: CodeSubmitRequest):
 
     if has_valid_key:
         try:
+            # Thu thập thông tin test case bị sai để báo cho AI
+            failed_details = []
+            for i, res in enumerate(results):
+                if not res.get("passed"):
+                    tc = req.testCases[i]
+                    tc_type = "Hidden Testcase" if tc.isHidden else "Public Testcase"
+                    failed_details.append(f"- {tc_type}: Input = {tc.input} | Expected = {tc.expectedOutput} | Actual = {res.get('actualOutput')}")
+            
+            failed_tests_text = "\n".join(failed_details) if failed_details else "Không có test case nào sai."
+
             prompt = f"""Bạn là Senior Tech Lead và chuyên gia thuật toán. Hãy đánh giá bài nộp của ứng viên cho bài toán sau:
 
 **Tên bài:** {req.problemTitle}
@@ -216,11 +231,19 @@ async def submit_code(req: CodeSubmitRequest):
 - Trạng thái: {status}
 - Tổng thời gian thực thi: {runtime_ms}ms
 
+**Danh sách các test case chạy SAI (để AI phân tích):**
+{failed_tests_text}
+
+LƯU Ý RẤT QUAN TRỌNG:
+1. TUYỆT ĐỐI KHÔNG được in ra nội dung input/output của các "Hidden Testcase" trong phần phản hồi cho ứng viên.
+2. CHỈ phân tích và góp ý nguyên nhân sai logic dựa trên những test case thực sự bị sai ở trên.
+3. KHÔNG ĐƯỢC BỊA ĐẶT (hallucinate) lỗi. Phải dựa hoàn toàn vào sự thật của kết quả test.
+4. Trả lời ngắn gọn, đúng trọng tâm.
+
 Hãy đánh giá code theo các tiêu chí:
 1. Tính đúng đắn và logic thuật toán
 2. Độ sạch code, đặt tên biến, cấu trúc code
-3. Xử lý edge case
-4. Độ phức tạp thời gian và không gian (Big O)
+3. Độ phức tạp thời gian và không gian (Big O)
 
 Phản hồi bằng tiếng Việt. Trả về JSON với schema sau:
 {{
@@ -262,14 +285,18 @@ Phản hồi bằng tiếng Việt. Trả về JSON với schema sau:
         }
 
     # ── Step 4: Return combined result ────────────────────
+    
+    # Chỉ trả về cho client các test case public, giấu đi hidden test cases
+    visible_results = [res for i, res in enumerate(results) if not req.testCases[i].isHidden]
+
     return {
         "status": status,
-        "passedTestCases": passed,
-        "totalTestCases": total,
+        "passedTestCases": passed_public,
+        "totalTestCases": total_public,
         "score": score,
         "runtimeMs": runtime_ms,
         "memoryUsageMb": memory_mb,
-        "results": results,
+        "results": public_results,
         "aiFeedback": ai_feedback,
         "usage": usage_info,
     }

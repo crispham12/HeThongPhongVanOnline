@@ -156,7 +156,7 @@ export default function Landing() {
                       {/* Video Box */}
                       <div className="bg-white rounded-lg border border-dashed border-gray-200 p-3 flex flex-col items-center justify-center gap-1.5 min-h-[95px] relative">
                         <span className="font-bold text-[7px] text-center" style={{ color: '#595959' }}>Camera preview will appear here</span>
-                        <button className="bg-black text-white text-[7px] font-bold px-2.5 py-1 rounded">Enable Camera</button>
+                        <button className="bg-[#B4F290] text-[#111827] text-[7px] font-bold px-2.5 py-1 rounded">Enable Camera</button>
                       </div>
 
                       {/* Recording duration bar */}
@@ -170,7 +170,7 @@ export default function Landing() {
                           </div>
                           <span className="text-[7px] font-bold" style={{ color: '#7F7F7F' }}>Recording duration: 00:00</span>
                         </div>
-                        <button className="bg-[#7F7F7F] text-white text-[7px] font-bold px-2 py-1 rounded">Start Recording</button>
+                        <button className="bg-[#7F7F7F]  text-[7px] font-bold px-2 py-1 rounded">Start Recording</button>
                       </div>
 
                       {/* Transcript Panel */}
@@ -215,7 +215,7 @@ export default function Landing() {
 
                       {/* Start buttons */}
                       <div className="grid grid-cols-2 gap-1">
-                        <button className="bg-[#7F7F7F] text-white text-[7px] font-bold py-1 rounded">Start Preparation</button>
+                        <button className="bg-[#7F7F7F]  text-[7px] font-bold py-1 rounded">Start Preparation</button>
                         <button className="bg-gray-100 text-gray-400 text-[7px] font-bold py-1 rounded cursor-not-allowed">Start Answer</button>
                       </div>
 
@@ -234,7 +234,7 @@ export default function Landing() {
                       <div className="bg-white rounded-lg p-2 border border-gray-100 shadow-sm">
                         <h4 className="font-black text-[7px] mb-1" style={{ color: '#090A08' }}>Question Progress</h4>
                         <div className="grid grid-cols-5 gap-1 text-center font-bold text-[6px]">
-                          <span className="w-3 h-3 rounded-full bg-black text-white flex items-center justify-center">1</span>
+                          <span className="w-3 h-3 rounded-full bg-[#B4F290] text-[#111827] flex items-center justify-center">1</span>
                           <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">2</span>
                           <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">3</span>
                           <span className="w-3 h-3 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center">4</span>
@@ -252,7 +252,7 @@ export default function Landing() {
                   {/* Bottom Bar inside workspace */}
                   <div className="bg-white border-t border-gray-100 p-2.5 flex items-center justify-end gap-2 rounded-t-lg mt-2 shadow-sm">
                     <button className="border border-gray-200 text-gray-500 text-[7px] font-bold px-3 py-1 rounded">Save Draft</button>
-                    <button className="bg-[#7F7F7F] text-white text-[7px] font-bold px-3 py-1 rounded">Submit Answer & Next</button>
+                    <button className="bg-[#7F7F7F]  text-[7px] font-bold px-3 py-1 rounded">Submit Answer & Next</button>
                   </div>
                 </div>
               </div>

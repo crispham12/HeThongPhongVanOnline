@@ -195,7 +195,7 @@ export default function AdminCodingBank() {
         </div>
         <button
           onClick={() => navigate('/admin/coding-bank/add')}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           Thêm bài Coding
@@ -291,7 +291,7 @@ export default function AdminCodingBank() {
                   animate={{ opacity: 1 }}
                   className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]"
                 >
-                  <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">
+                  <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">
                     #{String(p.id).slice(0, 6)}
                   </td>
                   <td className="px-5 py-5">
@@ -306,7 +306,7 @@ export default function AdminCodingBank() {
                     )}
                   </td>
                   <td className="px-5 py-5">
-                    <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${DIFF_STYLES[p.difficulty] || 'bg-[#F8F9FA] text-[#6B7280] border border-[#E5E7EB]'}`}>
+                    <span className={`inline-flex rounded-full px-4 py-1.5 text-[12px] font-extrabold ${DIFF_STYLES[p.difficulty] || 'bg-[#F8F9FA] text-[#6B7280] border border-[#E5E7EB]'}`}>
                       {p.difficulty}
                     </span>
                   </td>
@@ -314,11 +314,8 @@ export default function AdminCodingBank() {
                     {Array.isArray(p.categories) ? p.categories.join(', ') : (p.category || p.categoriesJson)}
                   </td>
                   <td className="px-5 py-5">
-                    <button onClick={() => handleToggleStatus(p)} className="flex items-center gap-2 group/status">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${p.status === 'Published' ? 'bg-emerald-500' : 'bg-[#D1D5DB]'}`} />
-                      <span className={`text-[13px] font-bold transition-colors ${p.status === 'Published' ? 'text-emerald-700' : 'text-gray-500'}`}>
-                        {p.status}
-                      </span>
+                    <button onClick={() => handleToggleStatus(p)} className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-extrabold transition-colors hover:brightness-95 ${p.status === 'Published' ? 'bg-[#c9f0d2] text-[#4b7a55]' : 'bg-[#fff4e5] text-[#e65100]'}`}>
+                      {p.status}
                     </button>
                   </td>
                   <td className="px-5 py-5 text-right">

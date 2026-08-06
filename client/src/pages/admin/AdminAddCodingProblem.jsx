@@ -250,6 +250,11 @@ export default function AdminAddCodingProblem() {
   const [starterCode, setStarterCode] = useState({ Python: DEFAULT_STARTER.Python, Java: DEFAULT_STARTER.Java });
   const [starterLang, setStarterLang] = useState('Python');
 
+  // ── AI Wrapper Configuration
+  const [functionName, setFunctionName] = useState('');
+  const [methodSignature, setMethodSignature] = useState('');
+  const [returnType, setReturnType] = useState('');
+
   // ── Solution
   const [solutionIdea, setSolutionIdea] = useState('');
   const [timeComplexity, setTimeComplexity] = useState('');
@@ -307,6 +312,10 @@ export default function AdminAddCodingProblem() {
               setStarterLang(p.supportedLanguages[0]);
             }
           }
+          if (p.functionName) setFunctionName(p.functionName);
+          if (p.methodSignature) setMethodSignature(p.methodSignature);
+          if (p.returnType) setReturnType(p.returnType);
+          
           if (p.starterCode) {
             setStarterCode(p.starterCode);
           }
@@ -392,6 +401,9 @@ export default function AdminAddCodingProblem() {
         publicTestCases: publicTC.filter(t => t.input || t.expectedOutput).map(t => ({ ...t, isHidden: false })),
         hiddenTestCases: hiddenTC.filter(t => t.input || t.expectedOutput).map(t => ({ ...t, isHidden: true })),
         supportedLanguages: selectedLangs,
+        functionName: functionName || '',
+        methodSignature: methodSignature || '',
+        returnType: returnType || '',
         starterCode,
         solution: {
           idea: solutionIdea,
@@ -479,7 +491,7 @@ export default function AdminAddCodingProblem() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 bg-[#222] hover:bg-black active:bg-[#111111] text-white text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#9de675] active:bg-[#a0db82] text-sm font-extrabold rounded-lg shadow-sm transition-all disabled:opacity-50"
           >
             {saving ? 'Đang lưu...' : (problemId ? 'Cập nhật' : 'Tạo bài viết')}
           </button>
@@ -531,7 +543,7 @@ export default function AdminAddCodingProblem() {
                             value={problemCode}
                             onChange={e => setProblemCode(e.target.value)}
                             placeholder="Ví dụ: two-sum, valid-parentheses"
-                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
+                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
                           />
                         </div>
                         <div>
@@ -839,7 +851,7 @@ export default function AdminAddCodingProblem() {
                                 onChange={e => updateExample(i, 'input', e.target.value)}
                                 rows={3}
                                 placeholder="nums = [2,7,11,15], target = 9"
-                                className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
+                                className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
                               />
                             </div>
                             <div>
@@ -849,7 +861,7 @@ export default function AdminAddCodingProblem() {
                                 onChange={e => updateExample(i, 'output', e.target.value)}
                                 rows={3}
                                 placeholder="[0,1]"
-                                className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
+                                className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
                               />
                             </div>
                           </div>
@@ -927,7 +939,7 @@ export default function AdminAddCodingProblem() {
                             value={starterCode[starterLang] || ''}
                             onChange={e => setStarterCode(sc => ({ ...sc, [starterLang]: e.target.value }))}
                             rows={12}
-                            className="w-full bg-[#1e1e1e] text-emerald-400 text-xs font-mono p-5 focus:outline-none resize-none min-h-[250px]"
+                            className="w-full bg-[#1e1e1e] text-emerald-400 text-xs p-5 focus:outline-none resize-none min-h-[250px]"
                           />
                         </div>
                       )}
@@ -979,7 +991,7 @@ export default function AdminAddCodingProblem() {
                                 onChange={e => updateTC(tcTab, i, 'input', e.target.value)}
                                 rows={4}
                                 placeholder="Dữ liệu đầu vào cho trình biên dịch..."
-                                className="w-full px-4 py-3.5 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
+                                className="w-full px-4 py-3.5 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
                               />
                             </div>
                             <div>
@@ -989,7 +1001,7 @@ export default function AdminAddCodingProblem() {
                                 onChange={e => updateTC(tcTab, i, 'expectedOutput', e.target.value)}
                                 rows={4}
                                 placeholder="Dữ liệu đầu ra mong đợi..."
-                                className="w-full px-4 py-3.5 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
+                                className="w-full px-4 py-3.5 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all resize-none"
                               />
                             </div>
                           </div>
@@ -998,14 +1010,56 @@ export default function AdminAddCodingProblem() {
                       <button
                         type="button"
                         onClick={() => addTC(tcTab)}
-                        className="w-full py-3.5 border-2 border-dashed border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#333333] hover:border-[#333333] hover:bg-slate-50/50 transition-all flex items-center justify-center gap-2 bg-white"
+                        className="flex items-center justify-center gap-1.5 w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:border-[#333333] hover:text-[#333333] transition-colors bg-white hover:bg-gray-50/50"
                       >
-                        + Thêm Test Case mới
+                        + Thêm Test Case
                       </button>
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard icon={Code} title="Cấu hình Hàm (AI Wrapper)">
+                    <div className="space-y-4">
+                      <p className="text-xs text-gray-500 mb-2">
+                        Để AI Service có thể tự động bọc code (wrapper) và chấm điểm tự động theo phong cách LeetCode, bạn cần cấu hình các tham số bên dưới. 
+                        Nếu để trống, hệ thống sẽ chạy raw code của người dùng.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Tên hàm (Function Name)</label>
+                          <input
+                            type="text"
+                            value={functionName}
+                            onChange={e => setFunctionName(e.target.value)}
+                            placeholder="VD: solution, twoSum..."
+                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Chữ ký hàm (Method Signature)</label>
+                          <input
+                            type="text"
+                            value={methodSignature}
+                            onChange={e => setMethodSignature(e.target.value)}
+                            placeholder="VD: int[] solution(int[] nums, int target)"
+                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Kiểu trả về (Return Type)</label>
+                          <input
+                            type="text"
+                            value={returnType}
+                            onChange={e => setReturnType(e.target.value)}
+                            placeholder="VD: int[], boolean, String..."
+                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </SectionCard>
                 </div>
               )}
+
 
               {/* ZONE 4: SOLUTION & SETTINGS */}
               {activeTab === 'settings' && (
@@ -1030,7 +1084,7 @@ export default function AdminAddCodingProblem() {
                             value={timeComplexity}
                             onChange={e => setTimeComplexity(e.target.value)}
                             placeholder="O(N log N), O(N)..."
-                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
+                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
                           />
                         </div>
                         <div>
@@ -1040,7 +1094,7 @@ export default function AdminAddCodingProblem() {
                             value={spaceComplexity}
                             onChange={e => setSpaceComplexity(e.target.value)}
                             placeholder="O(1), O(N)..."
-                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm font-mono text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
+                            className="w-full px-4 py-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-450 focus:outline-none focus:bg-white focus:border-[#333333] transition-all"
                           />
                         </div>
                       </div>
@@ -1054,7 +1108,7 @@ export default function AdminAddCodingProblem() {
                             value={solutionCode}
                             onChange={e => setSolutionCode(e.target.value)}
                             rows={10}
-                            className="w-full bg-[#1e1e1e] text-emerald-400 text-xs font-mono p-5 focus:outline-none resize-none min-h-[200px]"
+                            className="w-full bg-[#1e1e1e] text-emerald-400 text-xs p-5 focus:outline-none resize-none min-h-[200px]"
                           />
                         </div>
                       </div>
@@ -1130,7 +1184,7 @@ export default function AdminAddCodingProblem() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#333333] hover:bg-black text-white text-xs font-extrabold rounded-lg shadow-sm transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-extrabold rounded-lg shadow-sm transition-all disabled:opacity-50"
                   >
                     {saving ? 'Đang lưu...' : 'Hoàn tất lưu'}
                   </button>
@@ -1235,7 +1289,7 @@ export default function AdminAddCodingProblem() {
                         <p className="text-[11px] font-bold text-[#6F7E64] uppercase tracking-wide mb-2">Giới hạn</p>
                         <ul className="space-y-1">
                           {constraints.filter(Boolean).map((c, i) => (
-                            <li key={i} className="text-xs font-mono text-slate-600 flex items-start gap-2">
+                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
                               <span>•</span>
                               <span>{c}</span>
                             </li>
@@ -1264,11 +1318,11 @@ export default function AdminAddCodingProblem() {
 
                     {selectedLangs.length > 0 && (
                       <div className="rounded-xl overflow-hidden border border-gray-100">
-                        <div className="px-4 py-2 bg-gray-100 text-gray-400 text-xs font-mono flex items-center justify-between">
+                        <div className="px-4 py-2 bg-gray-100 text-gray-400 text-xs flex items-center justify-between">
                           <span>starter_template</span>
                           <span className="text-[#333333] bg-white px-2 py-0.5 rounded text-[9px] font-bold">{starterLang}</span>
                         </div>
-                        <pre className="p-4 bg-[#1e1e1e] text-emerald-400 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap">
+                        <pre className="p-4 bg-[#1e1e1e] text-emerald-400 text-[11px] overflow-x-auto whitespace-pre-wrap">
                           {starterCode[starterLang] || '// Chưa thiết lập starter template'}
                         </pre>
                       </div>

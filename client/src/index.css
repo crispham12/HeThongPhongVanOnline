@@ -46,11 +46,11 @@
         color: var(--color-text);
         font-weight: 800;
         letter-spacing: -0.02em;
-        font-family: 'Nunito', sans-serif;
+        font-family: 'Inter', sans-serif;
     }
 
     nav {
-        font-family: 'Nunito', sans-serif;
+        font-family: 'Inter', sans-serif;
     }
 }
 
@@ -109,5 +109,43 @@
     @keyframes slideUp {
         from { opacity: 0; transform: translateY(16px) }
         to { opacity: 1; transform: translateY(0) }
+    }
+}
+
+@layer base {
+    button.bg-black, 
+    button.bg-\[\#333333\], 
+    button.bg-\[\#2f2f2f\], 
+    button.bg-\[\#6B705C\], 
+    button.bg-slate-900, 
+    button.bg-gray-900, 
+    button.bg-neutral-900,
+    a.bg-black,
+    a.bg-\[\#333333\],
+    a.bg-\[\#2f2f2f\],
+    a.bg-\[\#6B705C\],
+    a.bg-slate-900,
+    a.bg-gray-900,
+    a.bg-neutral-900 {
+        background-color: #B4F290 !important;
+        color: #111827 !important;
+        border-color: #B4F290 !important;
+    }
+    
+    button.bg-black:hover, 
+    button.bg-\[\#333333\]:hover, 
+    button.bg-\[\#2f2f2f\]:hover, 
+    button.bg-\[\#6B705C\]:hover, 
+    button.bg-slate-900:hover, 
+    button.bg-gray-900:hover, 
+    button.bg-neutral-900:hover,
+    a.bg-black:hover,
+    a.bg-\[\#333333\]:hover,
+    a.bg-\[\#2f2f2f\]:hover,
+    a.bg-\[\#6B705C\]:hover,
+    a.bg-slate-900:hover,
+    a.bg-gray-900:hover,
+    a.bg-neutral-900:hover {
+        background-color: #9de675 !important;
     }
 }

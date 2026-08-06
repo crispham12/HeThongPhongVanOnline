@@ -58,7 +58,7 @@ export default function AdminTest() {
             <button className="text-sm font-medium text-gray-600 hover:text-black transition-colors px-3 py-1.5">
               Log in
             </button>
-            <button className="text-sm font-bold bg-black text-white hover:bg-neutral-800 transition-colors px-4 py-2 rounded-full shadow-sm">
+            <button className="text-sm font-bold bg-[#B4F290] text-[#111827] hover:bg-[#9de675] transition-colors px-4 py-2 rounded-full shadow-sm">
               Sign up
             </button>
           </div>
@@ -87,7 +87,7 @@ export default function AdminTest() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-10">
-          <button className="w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-sm bg-black hover:bg-neutral-800 transition-all text-white shadow-lg shadow-black/10">
+          <button className="w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-sm bg-[#B4F290] text-[#111827] hover:bg-[#9de675] transition-all  shadow-lg shadow-black/10">
             Start for free
           </button>
           <button className="w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 shadow-sm transition-all">
@@ -232,7 +232,7 @@ export default function AdminTest() {
                 {activeTab === 'analytics' && 'Conversion Analytics'}
                 {activeTab === 'affiliate' && 'Affiliate Program Dashboard'}
               </h2>
-              <button className="bg-black text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-neutral-800 transition-colors">
+              <button className="bg-[#B4F290] text-[#111827] text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-[#9de675] transition-colors">
                 <Plus className="w-3.5 h-3.5" /> Create Link
               </button>
             </div>
@@ -301,7 +301,7 @@ export default function AdminTest() {
                         </button>
                         <span className="text-[11px] font-bold text-gray-400">dub.sh/{shortKey}</span>
                       </div>
-                      <button className="bg-black text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors">
+                      <button className="bg-[#B4F290] text-[#111827] text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#9de675] transition-colors">
                         Generate Link
                       </button>
                     </div>

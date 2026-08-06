@@ -249,7 +249,7 @@ export default function InterviewSetup() {
         {currentStep === 1 && (
           <section className="animate-fade-in">
             <div className="flex items-center gap-3 mb-6">
-              <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">01</span>
+              <span className="w-6 h-6 rounded-md bg-[#B4F290] text-[#111827] flex items-center justify-center font-bold text-[10px]">01</span>
               <h2 className="font-extrabold text-[12px] text-slate-800 uppercase tracking-widest">CHỌN VAI TRÒ</h2>
             </div>
 
@@ -294,7 +294,7 @@ export default function InterviewSetup() {
         {currentStep === 2 && (
           <section className="animate-fade-in">
             <div className="flex items-center gap-3 mb-10">
-              <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">02</span>
+              <span className="w-6 h-6 rounded-md bg-[#B4F290] text-[#111827] flex items-center justify-center font-bold text-[10px]">02</span>
               <h2 className="font-extrabold text-[12px] text-slate-800 uppercase tracking-widest">NGÔN NGỮ & CÔNG NGHỆ</h2>
             </div>
 
@@ -350,7 +350,7 @@ export default function InterviewSetup() {
         {currentStep === 3 && (
           <section className="animate-fade-in">
             <div className="flex items-center gap-3 mb-8">
-              <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-[10px]">03</span>
+              <span className="w-6 h-6 rounded-md bg-[#B4F290] text-[#111827] flex items-center justify-center font-bold text-[10px]">03</span>
               <h2 className="font-extrabold text-[12px] text-slate-800 uppercase tracking-widest">MỨC ĐỘ</h2>
             </div>
 

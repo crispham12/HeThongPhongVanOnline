@@ -26,6 +26,23 @@ namespace InterviewPro.API.Controllers
         private int GetUserId() =>
             int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
+        // GET /api/payments/packages
+        [HttpGet("packages")]
+        public IActionResult GetPackages()
+        {
+            var plans = InterviewPro.API.Services.PricingManager.GetPlans();
+            var result = new List<object>();
+            if (plans.TryGetValue("Monthly", out var monthly))
+            {
+                result.Add(new { id = "Monthly", name = "Gói tháng", price = monthly.Amount });
+            }
+            if (plans.TryGetValue("Yearly", out var yearly))
+            {
+                result.Add(new { id = "Yearly", name = "Gói năm", price = yearly.Amount });
+            }
+            return Ok(result);
+        }
+
         // POST /api/payments/create-order
         [HttpPost("create-order")]
         [Authorize]

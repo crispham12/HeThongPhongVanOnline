@@ -121,7 +121,7 @@ export default function EvaluationResult() {
             </button>
             <button 
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-md shadow-primary-200 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#B4F290] hover:bg-[#9de675] text-[#111827] text-xs font-bold rounded-xl shadow-md shadow-primary-200 transition-all"
             >
               <LayoutDashboard className="w-4 h-4" /> Về Dashboard
             </button>

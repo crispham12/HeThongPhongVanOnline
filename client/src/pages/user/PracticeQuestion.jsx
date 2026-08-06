@@ -134,7 +134,7 @@ export default function PracticeQuestion() {
       <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy câu hỏi</h2>
-        <button onClick={() => navigate('/question-bank')} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+        <button onClick={() => navigate('/question-bank')} className="px-4 py-2 bg-[#B4F290] text-[#111827] rounded-lg hover:bg-[#9de675] transition-colors">
           Quay lại Ngân hàng câu hỏi
         </button>
       </div>
@@ -293,7 +293,7 @@ export default function PracticeQuestion() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !answer.trim()}
-                className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-750 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md shadow-primary-100 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-750 disabled:opacity-50  font-bold text-sm rounded-xl shadow-md shadow-primary-100 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
                 {submitting ? (
                   <>

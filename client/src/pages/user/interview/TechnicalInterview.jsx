@@ -262,7 +262,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
               onClick={toggleVoiceInput}
               className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${
                 isRecording
-                  ? 'bg-red-500 text-white animate-pulse border border-red-500'
+                  ? 'bg-red-500  animate-pulse border border-red-500'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
               }`}
             >

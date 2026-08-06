@@ -295,19 +295,19 @@ export default function AdminAIMonitor() {
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex bg-white border border-[#dfe4e7] rounded-xl p-1 shadow-sm mr-2">
             <button
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '24h' ? 'bg-[#333333] text-white' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '24h' ? 'bg-[#B4F290] text-[#111827] ' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
               onClick={() => setTimeFilter('24h')}
             >
               24 Giờ
             </button>
             <button
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '7d' ? 'bg-[#333333] text-white' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '7d' ? 'bg-[#B4F290] text-[#111827] ' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
               onClick={() => setTimeFilter('7d')}
             >
               7 Ngày
             </button>
             <button
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '30d' ? 'bg-[#333333] text-white' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${timeFilter === '30d' ? 'bg-[#B4F290] text-[#111827] ' : 'text-[#151515] hover:bg-[#f8f8f8]'}`}
               onClick={() => setTimeFilter('30d')}
             >
               30 Ngày
@@ -325,7 +325,7 @@ export default function AdminAIMonitor() {
           <button
             onClick={handleExportReport}
             disabled={isExporting}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
           >
             <Download className="w-3.5 h-3.5" />
             {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
@@ -439,43 +439,43 @@ export default function AdminAIMonitor() {
         {/* Right Column: Status & Top Features */}
         <div className="flex flex-col gap-6">
           {/* Status Box */}
-          <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-sm shadow-blue-200">
-            <h3 className="text-lg font-bold mb-6 text-white">Tình trạng hệ thống</h3>
+          <div className="bg-white rounded-2xl p-6 text-[#111827] shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold mb-6 text-[#111827]">Tình trạng hệ thống</h3>
 
             {loading ? (
               <div className="space-y-4 animate-pulse">
-                <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
-                <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
-                <div className="w-full h-8 bg-blue-500/50 rounded-lg" />
+                <div className="w-full h-8 bg-gray-100 rounded-lg" />
+                <div className="w-full h-8 bg-gray-100 rounded-lg" />
+                <div className="w-full h-8 bg-gray-100 rounded-lg" />
               </div>
             ) : (
               <>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
-                    <span className="text-blue-100 text-sm font-semibold">API Gateway</span>
-                    <span className="px-2.5 py-1 bg-green-500 text-white text-[10px] font-bold rounded-md tracking-wider">HOẠT ĐỘNG</span>
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                    <span className="text-gray-600 text-sm font-semibold">API Gateway</span>
+                    <span className="px-2.5 py-1 bg-[#B0D4B8] text-gray-900 text-[10px] font-bold rounded-md tracking-wider">HOẠT ĐỘNG</span>
                   </div>
-                  <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
-                    <span className="text-blue-100 text-sm font-semibold">FastAPI AI Service</span>
-                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md tracking-wider ${systemStatus?.aiServiceStatus === 'Hoạt động' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                    <span className="text-gray-600 text-sm font-semibold">FastAPI AI Service</span>
+                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md tracking-wider ${systemStatus?.aiServiceStatus === 'Hoạt động' ? 'bg-[#B0D4B8] text-gray-900' : 'bg-red-500 text-white'}`}>
                       {systemStatus?.aiServiceStatus === 'Hoạt động' ? 'HOẠT ĐỘNG' : 'NGOẠI TUYẾN'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center border-b border-blue-500/50 pb-4">
-                    <span className="text-blue-100 text-sm font-semibold">GPT-4 Limit</span>
-                    <span className="text-white text-sm font-bold tracking-wide">{systemStatus?.gptLimitUsedPercent ?? 0}% Used</span>
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                    <span className="text-gray-600 text-sm font-semibold">GPT-4 Limit</span>
+                    <span className="text-gray-900 text-sm font-bold tracking-wide">{systemStatus?.gptLimitUsedPercent ?? 0}% Used</span>
                   </div>
                   <div className="flex justify-between items-center pb-4">
-                    <span className="text-blue-100 text-sm font-semibold">AI Latency (Avg)</span>
-                    <span className="text-white text-sm font-bold tracking-wide">{systemStatus?.systemLatencyMs ?? 0}ms</span>
+                    <span className="text-gray-600 text-sm font-semibold">AI Latency (Avg)</span>
+                    <span className="text-gray-900 text-sm font-bold tracking-wide">{systemStatus?.systemLatencyMs ?? 0}ms</span>
                   </div>
                 </div>
 
                 <div className="mt-2">
-                  <div className="w-full h-2 bg-blue-500 rounded-full overflow-hidden mb-3">
-                    <div className="h-full bg-white rounded-full shadow-sm" style={{ width: `${systemStatus?.gptLimitUsedPercent ?? 0}%` }}></div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+                    <div className="h-full bg-[#B0D4B8] rounded-full shadow-sm" style={{ width: `${systemStatus?.gptLimitUsedPercent ?? 0}%` }}></div>
                   </div>
-                  <p className="text-[11px] text-blue-100 italic text-center font-medium">
+                  <p className="text-[11px] text-gray-500 italic text-center font-medium">
                     {systemStatus?.message || 'Hệ thống đang hoạt động trong ngưỡng an toàn.'}
                   </p>
                 </div>
@@ -571,7 +571,7 @@ export default function AdminAIMonitor() {
                     <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333]">{log.userName}</td>
                     <td className="px-5 py-5 text-[14px] font-semibold leading-tight text-[#333333]">{log.featureDisplayName}</td>
                     <td className="px-5 py-5">
-                      <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${log.status === 'Success'
+                      <span className={`inline-flex rounded-full px-4 py-1.5 text-[12px] font-extrabold ${log.status === 'Success'
                         ? 'bg-[#c9f0d2] text-[#4b7a55]'
                         : log.status === 'Timeout'
                           ? 'bg-[#fff4e5] text-[#b37400]'
@@ -580,8 +580,8 @@ export default function AdminAIMonitor() {
                         {log.statusText}
                       </span>
                     </td>
-                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{log.totalTokens?.toLocaleString()}</td>
-                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{log.responseTimeText}</td>
+                    <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">{log.totalTokens?.toLocaleString()}</td>
+                    <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">{log.responseTimeText}</td>
                     <td className="px-5 py-5 text-[14px] font-semibold text-[#8d8a91] text-right">{log.createdAtText}</td>
                   </tr>
                 ))

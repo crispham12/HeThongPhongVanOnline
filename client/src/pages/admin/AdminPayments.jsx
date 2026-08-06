@@ -45,7 +45,10 @@ export default function AdminPayments() {
     totalCreditsSold: 0
   });
   const [transactions, setTransactions] = useState([]);
-  const [packages, setPackages] = useState([]);
+  const [packages, setPackages] = useState([
+    { id: "Monthly", name: "Gói 1 Tháng", price: 99000, credits: -1, isActive: true },
+    { id: "Yearly", name: "Gói 1 Năm", price: 1000000, credits: -1, isActive: true }
+  ]);
   const [loading, setLoading] = useState(true);
   const [txFilter, setTxFilter] = useState('');
   const [searchUserId, setSearchUserId] = useState('');
@@ -67,11 +70,15 @@ export default function AdminPayments() {
     try {
       const stats = await adminPaymentsApi.getOverview();
       setOverview(stats);
+    } catch (err) {
+      console.error("Lỗi khi tải dữ liệu tổng quan:", err);
+    }
 
+    try {
       const pkgs = await adminPaymentsApi.getPackages();
       setPackages(pkgs);
     } catch (err) {
-      console.error("Lỗi khi tải dữ liệu tổng quan:", err);
+      console.error("Lỗi khi tải danh sách gói cước:", err);
     }
   };
 
@@ -120,28 +127,15 @@ export default function AdminPayments() {
     setShowPackageModal(true);
   };
 
-  const handleOpenCreate = () => {
-    setEditingPackage(null);
-    setPackageName('');
-    setPackagePrice('');
-    setPackageCredits('');
-    setShowPackageModal(true);
-  };
-
   const handleSavePackage = async (e) => {
     e.preventDefault();
     const pkgData = {
-      name: packageName,
-      price: parseFloat(packagePrice),
-      credits: parseInt(packageCredits),
-      isActive: editingPackage ? editingPackage.isActive : true
+      price: parseFloat(packagePrice)
     };
 
     try {
       if (editingPackage) {
         await adminPaymentsApi.updatePackage(editingPackage.id, pkgData);
-      } else {
-        await adminPaymentsApi.createPackage(pkgData);
       }
       setShowPackageModal(false);
       fetchOverviewAndPackages();
@@ -164,14 +158,7 @@ export default function AdminPayments() {
           <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Quản lý doanh thu chuyển khoản SePay, lịch sử giao dịch và cấu hình gói lượt phỏng vấn.</p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <button 
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-all shadow-sm cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Thêm gói mới
-          </button>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm">
+          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm">
             <Download className="w-3.5 h-3.5" />
             Xuất báo cáo
           </button>
@@ -189,7 +176,7 @@ export default function AdminPayments() {
       {/* Pricing Plans */}
       <div className="mb-8">
         <h2 className="text-lg font-bold text-gray-900 mb-5">Cấu hình Gói lượt phỏng vấn</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 max-w-4xl gap-6">
           {packages.map((p, idx) => {
             // Style mappings matching original color theme: Grey, Blue, Green
             const isFeatured = idx === 1; // 2nd tier is featured (blue border)
@@ -197,25 +184,16 @@ export default function AdminPayments() {
             return (
               <div 
                 key={p.id} 
-                className={`bg-white rounded-2xl p-6 border flex flex-col relative ${
-                  isFeatured 
-                    ? 'border-2 border-blue-500 shadow-lg shadow-blue-100' 
-                    : 'border-gray-200 shadow-sm'
-                }`}
+                className="bg-white rounded-2xl p-6 border flex flex-col relative border-gray-200 shadow-sm"
               >
-                {isFeatured && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1 bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-md shadow-blue-200">Phổ biến nhất</span>
-                  </div>
-                )}
-                <div className="mb-6">
+                <div className="mb-6 text-center">
                   <span className={`text-[10px] font-black uppercase tracking-widest ${
                     isFeatured ? 'text-blue-600' : isYearlyStyle ? 'text-green-600' : 'text-gray-500'
                   }`}>
                     {isYearlyStyle ? 'Tiết kiệm 30%' : isFeatured ? 'Nâng cao' : 'Cơ bản'}
                   </span>
                   <h3 className="text-xl font-bold text-gray-900 mt-2">{p.name}</h3>
-                  <div className="flex items-baseline gap-1 mt-3">
+                  <div className="flex items-baseline justify-center gap-1 mt-3">
                     <span className="text-4xl font-black text-gray-900">
                       {p.price.toLocaleString('vi-VN')}đ
                     </span>
@@ -224,7 +202,7 @@ export default function AdminPayments() {
                 
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-6 flex-1 flex flex-col justify-center text-center">
                   <span className="text-xs text-gray-500 font-medium">Số lượt phỏng vấn nhận được:</span>
-                  <span className="text-2xl font-black text-gray-900 mt-1">{p.credits} Lượt</span>
+                  <span className="text-2xl font-black text-gray-900 mt-1">Không giới hạn</span>
                 </div>
 
                 <div className="flex gap-2">
@@ -318,11 +296,11 @@ export default function AdminPayments() {
               ) : (
                 transactions.map((tx) => (
                   <tr key={tx.id} className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
-                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">
+                    <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">
                       {tx.sePayTransactionId || "N/A"}
                     </td>
                     <td className="px-5 py-5 text-[13px] font-medium text-gray-700">
-                      <span className="font-mono text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 mr-1">{tx.paymentCode}</span>
+                      <span className="text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 mr-1">{tx.paymentCode}</span>
                       {tx.transferContent || "Chưa chuyển khoản"}
                     </td>
                     <td className="px-5 py-5">
@@ -425,40 +403,15 @@ export default function AdminPayments() {
             
             <form onSubmit={handleSavePackage} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Tên Gói</label>
+                <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Giá Tiền (đ)</label>
                 <input 
-                  type="text" 
-                  value={packageName}
-                  onChange={(e) => setPackageName(e.target.value)}
-                  placeholder="Gói 10 lượt..."
+                  type="number" 
+                  value={packagePrice}
+                  onChange={(e) => setPackagePrice(e.target.value)}
+                  placeholder="99000"
                   required
                   className="w-full bg-gray-55 border border-gray-300 rounded-xl py-2.5 px-4 text-sm text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Giá Tiền (đ)</label>
-                  <input 
-                    type="number" 
-                    value={packagePrice}
-                    onChange={(e) => setPackagePrice(e.target.value)}
-                    placeholder="35000"
-                    required
-                    className="w-full bg-gray-55 border border-gray-300 rounded-xl py-2.5 px-4 text-sm text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Số Lượt</label>
-                  <input 
-                    type="number" 
-                    value={packageCredits}
-                    onChange={(e) => setPackageCredits(e.target.value)}
-                    placeholder="10"
-                    required
-                    className="w-full bg-gray-55 border border-gray-300 rounded-xl py-2.5 px-4 text-sm text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
-                  />
-                </div>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-gray-100 mt-6">
@@ -471,7 +424,7 @@ export default function AdminPayments() {
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
+                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700  text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
                 >
                   Lưu
                 </button>
@@ -523,7 +476,7 @@ export default function AdminPayments() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-gray-500">Số tiền:</span>
-                <span className="font-mono font-bold text-gray-800">{selectedTx.amount.toLocaleString('vi-VN')} đ</span>
+                <span className="font-bold text-gray-800">{selectedTx.amount.toLocaleString('vi-VN')} đ</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-gray-500">Cổng thanh toán:</span>
@@ -535,7 +488,7 @@ export default function AdminPayments() {
                 <div className="border-t border-gray-200 pt-3.5 mt-2 space-y-3.5">
                   <div className="flex justify-between text-xs">
                     <span className="font-semibold text-gray-500">Mã GD ngân hàng:</span>
-                    <span className="font-mono font-bold text-emerald-600">{selectedTx.sePayTransactionId}</span>
+                    <span className="font-bold text-emerald-600">{selectedTx.sePayTransactionId}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="font-semibold text-gray-500">Mã ngân hàng:</span>
@@ -543,7 +496,7 @@ export default function AdminPayments() {
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="font-semibold text-gray-500">Số tài khoản chuyển:</span>
-                    <span className="font-mono font-bold text-gray-800">{selectedTx.bankAccountNumber}</span>
+                    <span className="font-bold text-gray-800">{selectedTx.bankAccountNumber}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="font-semibold text-gray-500">Ngày chuyển thành công:</span>

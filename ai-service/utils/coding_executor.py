@@ -172,45 +172,65 @@ PISTON_LANGUAGE_MAP = {
 
 async def _run_piston(language: str, code: str, stdin_data: str, timeout: float) -> dict:
     """
-    Chạy code qua Piston API thay vì subprocess local.
-    Trả về cùng format với _run_subprocess để không phải sửa code gọi.
+    Chạy code cục bộ thay vì gọi Piston API (do lỗi 401 Unauthorized từ emkc.org).
     """
-    piston_lang = PISTON_LANGUAGE_MAP.get(language.lower(), language.lower())
-    start = time.perf_counter()
-
-    try:
-        async with httpx.AsyncClient(timeout=timeout + 5) as client:
-            response = await client.post(PISTON_URL, json={
-                "language": piston_lang,
-                "version": "*",
-                "files": [{"content": code}],
-                "stdin": stdin_data,
-            })
-            response.raise_for_status()
-            data = response.json()
-
-        run_data = data.get("run", {})
-        elapsed = (time.perf_counter() - start) * 1000
-
+    import asyncio
+    import tempfile
+    import os
+    import shutil
+    
+    lang = language.lower()
+    if lang == 'python':
+        with tempfile.NamedTemporaryFile(suffix='.py', delete=False, mode='w', encoding='utf-8') as f:
+            f.write(code)
+            temp_name = f.name
+        
+        cmd = ['python', temp_name]
+        try:
+            return await asyncio.to_thread(_run_subprocess, cmd, stdin_data, timeout)
+        finally:
+            if os.path.exists(temp_name):
+                os.remove(temp_name)
+                
+    elif lang == 'javascript' or lang == 'js':
+        with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w', encoding='utf-8') as f:
+            f.write(code)
+            temp_name = f.name
+        
+        cmd = ['node', temp_name]
+        try:
+            return await asyncio.to_thread(_run_subprocess, cmd, stdin_data, timeout)
+        finally:
+            if os.path.exists(temp_name):
+                os.remove(temp_name)
+                
+    elif lang == 'java':
+        temp_dir = tempfile.mkdtemp()
+        temp_name = os.path.join(temp_dir, 'Main.java')
+        with open(temp_name, 'w', encoding='utf-8') as f:
+            f.write(code)
+        
+        compile_cmd = ['javac', temp_name]
+        compile_res = await asyncio.to_thread(_run_subprocess, compile_cmd, '', 10.0)
+        if compile_res['returncode'] != 0:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return compile_res
+            
+        run_cmd = ['java', '-cp', temp_dir, 'Main']
+        try:
+            return await asyncio.to_thread(_run_subprocess, run_cmd, stdin_data, timeout)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+    elif lang == 'c#' or lang == 'csharp':
         return {
-            "stdout": run_data.get("stdout", ""),
-            "stderr": run_data.get("stderr", ""),
-            "returncode": run_data.get("code", 0) or 0,
-            "elapsed_ms": round(elapsed, 2),
-            "memory_mb": 0.0,  # Piston không trả memory usage
-            "timed_out": False,
+             "stdout": "", "stderr": "ExecutionError: C# local fallback not fully implemented yet.", "returncode": -1,
+             "elapsed_ms": 0, "memory_mb": 0.0, "timed_out": False,
         }
-    except httpx.TimeoutException:
-        elapsed = (time.perf_counter() - start) * 1000
+    else:
         return {
-            "stdout": "", "stderr": "Time Limit Exceeded", "returncode": -1,
-            "elapsed_ms": round(elapsed, 2), "memory_mb": 0.0, "timed_out": True,
-        }
-    except Exception as e:
-        elapsed = (time.perf_counter() - start) * 1000
-        return {
-            "stdout": "", "stderr": f"ExecutionError: {str(e)}", "returncode": -2,
-            "elapsed_ms": round(elapsed, 2), "memory_mb": 0.0, "timed_out": False,
+             "stdout": "", "stderr": f"ExecutionError: Unsupported language {language}", "returncode": -1,
+             "elapsed_ms": 0, "memory_mb": 0.0, "timed_out": False,
         }
 
 

@@ -20,7 +20,7 @@ const TABS = [
 const DIFF_COLORS = {
   Easy: 'bg-[#fafafa] text-[#333333] border-[#e6e6e6]',
   Medium: 'bg-[#fafafa] text-[#333333] border-[#333333]',
-  Hard: 'bg-[#333333] text-white border-[#333333]'
+  Hard: 'bg-[#B4F290] text-[#111827] border-[#B4F290]'
 };
 
 const STATUS_BADGES = {
@@ -38,7 +38,8 @@ const STATUS_TEXT = {
 };
 
 const POPULAR_CATEGORIES = [
-  { value: 'all', label: 'Chủ đề' },
+  { value: 'all', label: 'Chủ đề', disabled: true, hidden: true },
+  { value: '', label: 'Tất cả' },
   { value: 'Array', label: 'Array (Mảng)' },
   { value: 'String', label: 'String (Chuỗi)' },
   { value: 'HashMap', label: 'Hash Table (Bảng băm)' },
@@ -56,7 +57,6 @@ export default function UserQuestionBank() {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [recommendedLevelFilter, setRecommendedLevelFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const [items, setItems] = useState([]);
@@ -79,7 +79,7 @@ export default function UserQuestionBank() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [difficultyFilter, statusFilter, categoryFilter, recommendedLevelFilter, searchQuery]);
+  }, [difficultyFilter, statusFilter, categoryFilter, searchQuery]);
 
   const fetchProgress = async () => {
     try {
@@ -92,20 +92,20 @@ export default function UserQuestionBank() {
 
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const params = {
-        search: searchQuery || undefined,
-        difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
-        pageSize: 200
-      };
+      try {
+        const params = {
+          search: searchQuery || undefined,
+          difficulty: (difficultyFilter !== 'all' && difficultyFilter !== '') ? difficultyFilter : undefined,
+          pageSize: 200
+        };
 
       const currentTab = TABS.find(t => t.key === activeTab);
       
       let data;
-      if (currentTab.apiCategory === 'Coding') {
-        if (categoryFilter !== 'all') {
-          params.category = categoryFilter;
-        }
+        if (currentTab.apiCategory === 'Coding') {
+          if (categoryFilter !== 'all' && categoryFilter !== '') {
+            params.category = categoryFilter;
+          }
         data = await practiceCodingApi.getAll(params);
       } else {
         params.category = currentTab.apiCategory;
@@ -126,24 +126,20 @@ export default function UserQuestionBank() {
     setDifficultyFilter('all');
     setStatusFilter('all');
     setCategoryFilter('all');
-    setRecommendedLevelFilter('all');
     setSearchQuery('');
     setCurrentPage(1);
   };
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      if (statusFilter !== 'all') {
+      if (statusFilter !== 'all' && statusFilter !== '') {
         const isCompleted = item.practiceStatus === 'Practiced' || item.practiceStatus === 'Completed' || item.practiceStatus === 'Solved';
         if (statusFilter === 'completed' && !isCompleted) return false;
         if (statusFilter === 'incomplete' && isCompleted) return false;
       }
-      if (activeTab === 'Lập trình' && recommendedLevelFilter !== 'all') {
-        if (item.recommendedLevel !== recommendedLevelFilter) return false;
-      }
       return true;
     });
-  }, [items, statusFilter, activeTab, recommendedLevelFilter]);
+  }, [items, statusFilter, activeTab]);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -303,21 +299,20 @@ export default function UserQuestionBank() {
                   className="input !w-auto cursor-pointer"
                 >
                   {POPULAR_CATEGORIES.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    <option key={cat.value} value={cat.value} disabled={cat.disabled} hidden={cat.hidden}>{cat.label}</option>
                   ))}
                 </select>
 
                 <select
-                  value={recommendedLevelFilter}
-                  onChange={(e) => { setRecommendedLevelFilter(e.target.value); setCurrentPage(1); }}
+                  value={difficultyFilter}
+                  onChange={(e) => { setDifficultyFilter(e.target.value); setCurrentPage(1); }}
                   className="input !w-auto cursor-pointer"
                 >
-                  <option value="all">Trình độ</option>
-                  <option value="Intern">Intern</option>
-                  <option value="Fresher">Fresher</option>
-                  <option value="Junior">Junior</option>
-                  <option value="Middle">Middle</option>
-                  <option value="Senior">Senior</option>
+                  <option value="all" disabled hidden>Độ khó</option>
+                  <option value="">Tất cả</option>
+                  <option value="Dễ">Dễ</option>
+                  <option value="Vừa">Vừa</option>
+                  <option value="Khó">Khó</option>
                 </select>
               </div>
             </div>
@@ -342,12 +337,11 @@ export default function UserQuestionBank() {
                 onChange={(e) => setDifficultyFilter(e.target.value)}
                 className="input !w-auto cursor-pointer"
               >
-                <option value="all">Độ khó</option>
-                <option value="Intern">Intern</option>
-                <option value="Fresher">Fresher</option>
-                <option value="Junior">Junior</option>
-                <option value="Middle">Middle</option>
-                <option value="Senior">Senior</option>
+                <option value="all" disabled hidden>Độ khó</option>
+                <option value="">Tất cả</option>
+                <option value="Dễ">Dễ</option>
+                <option value="Vừa">Vừa</option>
+                <option value="Khó">Khó</option>
               </select>
 
               <select
@@ -355,7 +349,8 @@ export default function UserQuestionBank() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="input !w-auto cursor-pointer"
               >
-                <option value="all">Trạng thái</option>
+                <option value="all" disabled hidden>Trạng thái</option>
+                <option value="">Tất cả</option>
                 <option value="completed">Đã hoàn thành</option>
                 <option value="incomplete">Chưa hoàn thành</option>
               </select>
@@ -381,7 +376,6 @@ export default function UserQuestionBank() {
                     <tr className="border-b border-[#eeeeee] bg-white">
                       <th className="py-4 pl-5 pr-8 label-caps">Tên bài</th>
                       <th className="py-4 px-4 label-caps">Độ khó</th>
-                      <th className="py-4 px-4 label-caps">Trình độ</th>
                       <th className="py-4 px-4 label-caps">Thời gian</th>
                       <th className="py-4 px-4 label-caps">Tốt nhất</th>
                       <th className="py-4 px-4 label-caps">Trạng thái</th>
@@ -402,15 +396,6 @@ export default function UserQuestionBank() {
                             <span className={`inline-block px-2.5 py-1 rounded border text-[10px] font-extrabold uppercase tracking-widest ${getDifficultyStyle(p.difficulty)}`}>
                               {p.difficulty?.toUpperCase() || '-'}
                             </span>
-                          </td>
-                          <td className="py-4 px-4 align-middle whitespace-nowrap">
-                            {p.recommendedLevel ? (
-                              <span className="inline-block px-2.5 py-1 bg-[#333333] text-white rounded text-[10px] font-extrabold tracking-widest uppercase">
-                                {p.recommendedLevel}
-                              </span>
-                            ) : (
-                              <span className="text-[#e6e6e6] font-bold">—</span>
-                            )}
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap">
                             <div className="flex items-center gap-1.5 text-xs text-[#333333] font-extrabold tabular-nums">
@@ -545,14 +530,14 @@ export default function UserQuestionBank() {
               <Target className="w-4 h-4" /> Tiến độ của tôi
             </h3>
 
-            <div className="rounded-lg bg-[#333333] p-4 mb-4 text-white">
+            <div className="rounded-lg bg-[#B4F290] p-4 mb-4 text-[#111827]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/65">Chuỗi liên tục</p>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#111827]/65">Chuỗi liên tục</p>
                   <p className="text-[28px] font-extrabold leading-none mt-2 tabular-nums">{progress.dailyStreak}</p>
                 </div>
-                <div className="w-10 h-10 border border-white/20 bg-white/5 rounded-lg flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 border border-[#111827]/20 bg-[#111827]/5 rounded-lg flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-[#111827]" />
                 </div>
               </div>
             </div>

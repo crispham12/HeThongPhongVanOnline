@@ -287,10 +287,14 @@ namespace InterviewPro.API.Services
         // ─────────────────────────────────────────────────────────────
         // GET ERROR LOGS
         // ─────────────────────────────────────────────────────────────
-        public async Task<List<AiErrorLogDto>> GetErrorsAsync(int page, int pageSize)
+        public async Task<PaginatedResult<AiErrorLogDto>> GetErrorsAsync(int page, int pageSize)
         {
-            var list = await _db.AiRequestLogs.AsNoTracking()
-                .Where(l => l.Status == "Failed" || l.Status == "Timeout")
+            var query = _db.AiRequestLogs.AsNoTracking()
+                .Where(l => l.Status == "Failed" || l.Status == "Timeout");
+
+            var total = await query.CountAsync();
+
+            var list = await query
                 .OrderByDescending(l => l.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -305,7 +309,13 @@ namespace InterviewPro.API.Services
                 })
                 .ToListAsync();
 
-            return list;
+            return new PaginatedResult<AiErrorLogDto>
+            {
+                Items = list,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = total
+            };
         }
 
         // ─────────────────────────────────────────────────────────────

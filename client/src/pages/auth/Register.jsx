@@ -169,7 +169,7 @@ export default function Register() {
                 </div>
                 
                 <button id="btn-register-submit" type="submit" disabled={loading} 
-                  className="w-full h-[46px] bg-[#2f2f2f] hover:bg-[#151515] text-white text-sm font-extrabold rounded-xl shadow-sm transition-all active:translate-y-px disabled:opacity-50 disabled:active:translate-y-0 flex items-center justify-center gap-2 mt-4">
+                    className="w-full h-[46px] bg-[#B4F290] text-[#111827] hover:bg-[#9de675] text-sm font-extrabold rounded-xl shadow-sm transition-all active:translate-y-px disabled:opacity-50 disabled:active:translate-y-0 flex items-center justify-center gap-2 mt-4">
                   {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý...</> : 'Tạo tài khoản'}
                 </button>
               </form>

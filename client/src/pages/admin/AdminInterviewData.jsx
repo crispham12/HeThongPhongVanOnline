@@ -30,13 +30,13 @@ const formatDate = (dateString) => {
 function StatCard({ title, value, highlight = false, sub }) {
   if (highlight) {
     return (
-      <div className="min-h-[116px] bg-[#333333] rounded-2xl p-6 border border-[#303030] text-white shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+      <div className="min-h-[116px] bg-[#B4F290] rounded-2xl p-6 border border-[#B4F290] text-[#111827] shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-white/65">{title}</p>
-          <h3 className="mt-3 text-[22px] font-medium leading-none tabular-nums text-white/70">
-            {value}<span className="text-base font-normal text-white/70">/100</span>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#111827]/65">{title}</p>
+          <h3 className="mt-3 text-[22px] font-medium leading-none tabular-nums text-[#111827]/70">
+            {value}<span className="text-base font-normal text-[#111827]/70">/100</span>
           </h3>
-          {sub && <p className="mt-4 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/60">{sub}</p>}
+          {sub && <p className="mt-4 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#111827]/60">{sub}</p>}
         </div>
       </div>
     );
@@ -316,7 +316,7 @@ export default function AdminInterviewData() {
         <button
           onClick={handleExportPDF}
           disabled={isExporting}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
         >
           <Download className="h-3.5 w-3.5" />
           {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
@@ -368,7 +368,7 @@ export default function AdminInterviewData() {
             </select>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button type="submit" disabled={loading} className="h-9 rounded-lg bg-[#333333] px-4 text-[13px] font-extrabold text-white shadow-sm transition-all hover:bg-black active:translate-y-px flex items-center justify-center gap-1.5 disabled:opacity-70 disabled:active:translate-y-0">
+            <button type="submit" disabled={loading} className="h-9 rounded-lg bg-[#B4F290] text-[#111827] px-4 text-[13px] font-extrabold  shadow-sm transition-all hover:bg-[#9de675] active:translate-y-px flex items-center justify-center gap-1.5 disabled:opacity-70 disabled:active:translate-y-0">
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Filter className="h-3.5 w-3.5" /> Lọc</>}
             </button>
             <button type="button" onClick={handleClearFilters} className="h-9 rounded-lg border border-[#e8e8e8] bg-white px-3 text-[13px] font-bold text-[#96939a] transition-all hover:border-[#d6d6d6] hover:text-[#333333]">Xóa</button>
@@ -400,7 +400,7 @@ export default function AdminInterviewData() {
               ) : (
                 sessions.map((item) => (
                   <tr key={item.id} onClick={() => handleViewSessionDetails(item)} className="group cursor-pointer border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
-                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">#SES-{item.id}</td>
+                    <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">#SES-{item.id}</td>
                     <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333]">{item.userName}</td>
                     <td className="px-5 py-5 text-[14px] font-semibold leading-tight text-[#333333]">{item.role}</td>
                     <td className="px-5 py-5"><span className="inline-flex rounded-md bg-[#f1f1f1] px-2.5 py-1 text-[10px] font-extrabold uppercase text-[#333333]">{item.skillType}</span></td>

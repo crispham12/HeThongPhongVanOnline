@@ -145,7 +145,7 @@ export default function InterviewAnalysis() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Phân tích thất bại</h2>
             <p className="text-gray-500 mb-6">Chúng tôi gặp lỗi khi xử lý dữ liệu phỏng vấn của bạn. Vui lòng thử lại.</p>
             <div className="flex justify-center gap-3">
-              <button onClick={handleRetry} className="px-6 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800">
+              <button onClick={handleRetry} className="px-6 py-2 bg-[#B4F290] text-[#111827] rounded-lg font-medium hover:bg-[#9de675]">
                 Thử lại
               </button>
               <button className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">

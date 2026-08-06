@@ -104,7 +104,7 @@ export default function AdminDashboard() {
             <Calendar className="w-3.5 h-3.5" />
             7 ngày qua
           </button>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm">
+          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm">
             <Download className="w-3.5 h-3.5" />
             Xuất báo cáo
           </button>
@@ -189,12 +189,12 @@ export default function AdminDashboard() {
             <tbody>
               {recentInterviews.map((item) => (
                 <tr key={item.id} className="group cursor-pointer border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
-                  <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{item.id}</td>
+                  <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">{item.id}</td>
                   <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333]">{item.name}</td>
                   <td className="px-5 py-5 text-[14px] font-semibold leading-tight text-[#333333]">{item.role}</td>
-                  <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">{item.score}</td>
+                  <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">{item.score}</td>
                   <td className="px-5 py-5 text-center">
-                    <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${item.live ? 'bg-[#efe4ed] text-[#66767b]' : 'bg-[#c9f0d2] text-[#4b7a55]'}`}>
+                    <span className={`inline-flex rounded-full px-4 py-1.5 text-[12px] font-extrabold ${item.live ? 'bg-[#efe4ed] text-[#66767b]' : 'bg-[#c9f0d2] text-[#4b7a55]'}`}>
                       {item.live ? 'Đang diễn ra' : 'Hoàn thành'}
                     </span>
                   </td>

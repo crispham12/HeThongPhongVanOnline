@@ -21,22 +21,22 @@ function DifficultyDots({ level, label }) {
 function StatusBadge({ status }) {
   if (status === 'Approve' || status === 'Published') {
     return (
-      <div className="flex items-center gap-1.5 text-green-600 font-bold text-sm">
-        <CheckCircle2 className="w-4 h-4" /> Published
-      </div>
+      <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-extrabold bg-[#c9f0d2] text-[#4b7a55]">
+        Published
+      </span>
     );
   }
   if (status === 'Reject' || status === 'Disabled') {
     return (
-      <div className="flex items-center gap-1.5 text-red-600 font-bold text-sm">
-        <XCircle className="w-4 h-4" /> Disabled
-      </div>
+      <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-extrabold bg-[#f1e5ed] text-[#7d7280]">
+        Disabled
+      </span>
     );
   }
   return (
-    <div className="flex items-center gap-1.5 text-gray-500 font-bold text-sm">
-      <MoreHorizontal className="w-4 h-4" /> Draft
-    </div>
+    <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-extrabold bg-[#fff4e5] text-[#e65100]">
+      Draft
+    </span>
   );
 }
 
@@ -197,7 +197,7 @@ export default function AdminQuestionBank() {
         </div>
         <button 
           onClick={() => navigate('/admin/question-bank/add')}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all shadow-sm"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
           Thêm câu hỏi mới
@@ -235,14 +235,13 @@ export default function AdminQuestionBank() {
             <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-[#8d8a91]">Danh mục</label>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-9 w-full rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-3 text-[13px] font-bold text-[#333333] outline-none transition-all focus:border-[#333333] focus:bg-white focus:ring-2 focus:ring-[#333333]/10">
               <option value="Tất cả danh mục">Tất cả danh mục</option>
-              <option value="Coding">Coding</option>
               <option value="Kỹ thuật">Kỹ thuật (Technical)</option>
               <option value="HR">HR</option>
               <option value="GitHub">GitHub</option>
             </select>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={handleFilter} className="h-9 rounded-lg bg-[#333333] px-4 text-[13px] font-extrabold text-white shadow-sm transition-all hover:bg-black active:translate-y-px flex items-center justify-center gap-1.5">
+            <button onClick={handleFilter} className="h-9 rounded-lg bg-[#B4F290] text-[#111827] px-4 text-[13px] font-extrabold  shadow-sm transition-all hover:bg-[#9de675] active:translate-y-px flex items-center justify-center gap-1.5">
               <Filter className="h-3.5 w-3.5" /> Lọc
             </button>
           </div>
@@ -284,9 +283,9 @@ export default function AdminQuestionBank() {
               ) : (
                 paginatedQuestions.map((q, idx) => (
                   <tr key={q.id} className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
-                    <td className="px-5 py-5 font-mono text-[14px] font-extrabold text-[#333333] tabular-nums">#Q-{q.id}</td>
+                    <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">#Q-{q.id}</td>
                     <td className="px-5 py-5">
-                      <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase ${
+                      <span className={`inline-flex rounded-full px-4 py-1.5 text-[12px] font-extrabold ${
                         q.category.includes('Coding') ? 'bg-indigo-100 text-indigo-700' :
                         q.category.includes('HR') ? 'bg-purple-100 text-purple-700' :
                         'bg-blue-100 text-blue-700'

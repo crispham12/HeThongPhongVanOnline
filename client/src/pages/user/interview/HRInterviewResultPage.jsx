@@ -327,7 +327,7 @@ const NextActionsBar = ({ onPractice, onHistory, onDashboard }) => (
   <div>
     <h3 className="text-lg font-bold text-gray-900 mb-4">Bước Tiếp Theo</h3>
     <div className="flex flex-wrap gap-4">
-      <button onClick={onPractice} className="px-6 py-2.5 bg-[#6B705C] hover:bg-[#5a5f4c] text-white font-medium rounded-lg transition-colors shadow-sm">
+      <button onClick={onPractice} className="px-6 py-2.5 bg-[#6B705C] hover:bg-[#5a5f4c]  font-medium rounded-lg transition-colors shadow-sm">
         Luyện Tập Lại
       </button>
       <button onClick={onHistory} className="px-6 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors">
@@ -433,7 +433,7 @@ const ResultEmptyState = ({ onBack }) => (
     <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-md w-full">
       <h3 className="text-xl font-bold text-gray-900 mb-2">Báo Cáo Chưa Sẵn Sàng</h3>
       <p className="text-gray-600 mb-6">AI đang phân tích kết quả phỏng vấn của bạn. Vui lòng quay lại sau ít phút.</p>
-      <button onClick={onBack} className="px-6 py-2.5 bg-[#6B705C] hover:bg-[#5a5f4c] text-white font-medium rounded-lg w-full">
+      <button onClick={onBack} className="px-6 py-2.5 bg-[#6B705C] hover:bg-[#5a5f4c]  font-medium rounded-lg w-full">
         Quay lại Tiến trình
       </button>
     </div>

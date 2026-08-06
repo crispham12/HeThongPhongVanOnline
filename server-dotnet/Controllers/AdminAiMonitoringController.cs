@@ -104,22 +104,8 @@ namespace InterviewPro.API.Controllers
             {
                 if (page < 1) page = 1;
                 if (pageSize < 1) pageSize = 10;
-                var errors = await _logService.GetErrorsAsync(page, pageSize);
-                
-                // Expose total items count or wrap in PaginatedResult if needed, otherwise return list.
-                // Prompt: Response contains "items": [...], "page": 1, "pageSize": 10, "totalItems": 20
-                // So let's wrap this in a pagination structure
-                // Let's count them:
-                var total = await _logService.GetErrorsAsync(1, int.MaxValue); // count them
-                var items = await _logService.GetErrorsAsync(page, pageSize);
-                
-                return Ok(new PaginatedResult<AiErrorLogDto>
-                {
-                    Items = items,
-                    Page = page,
-                    PageSize = pageSize,
-                    TotalItems = total.Count
-                });
+                var result = await _logService.GetErrorsAsync(page, pageSize);
+                return Ok(result);
             }
             catch (Exception ex)
             {

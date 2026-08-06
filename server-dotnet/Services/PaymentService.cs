@@ -16,13 +16,6 @@ namespace InterviewPro.API.Services
         private readonly AppDbContext _db;
         private readonly IConfiguration _config;
 
-        // Cấu hình gói
-        private static readonly Dictionary<string, (long Amount, int Days)> Plans = new()
-        {
-            ["Monthly"] = (10_000, 30),
-            ["Yearly"]  = (1_000_000, 365),
-        };
-
         public PaymentService(AppDbContext db, IConfiguration config)
         {
             _db = db;
@@ -31,7 +24,8 @@ namespace InterviewPro.API.Services
 
         public async Task<CreateOrderResponse> CreateOrderAsync(int userId, string planType)
         {
-            if (!Plans.TryGetValue(planType, out var plan))
+            var plans = PricingManager.GetPlans();
+            if (!plans.TryGetValue(planType, out var plan))
                 throw new ArgumentException("Gói không hợp lệ. Chỉ chấp nhận Monthly hoặc Yearly.");
 
             // Hủy đơn Pending cũ của user (nếu có)
@@ -131,7 +125,8 @@ namespace InterviewPro.API.Services
                 // Đúng hoặc nhiều hơn → cấp Premium
                 order.Status = "Completed";
 
-                if (Plans.TryGetValue(order.PlanType, out var plan))
+                var plans = PricingManager.GetPlans();
+                if (plans.TryGetValue(order.PlanType, out var plan))
                 {
                     var user    = order.User;
                     var baseDate = (user.PremiumExpiresAt.HasValue && user.PremiumExpiresAt > DateTime.UtcNow)

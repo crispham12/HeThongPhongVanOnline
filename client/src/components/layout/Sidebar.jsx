@@ -30,7 +30,7 @@ export default function Sidebar() {
         {/* Primary Action Button */}
         <button
           onClick={() => navigate('/setup')}
-          className="w-full mb-6 flex items-center justify-center gap-2 bg-primary-600 text-white py-2.5 rounded-lg text-sm font-bold shadow-md shadow-primary-100 hover:bg-primary-700 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+          className="w-full mb-6 flex items-center justify-center gap-2 bg-[#B4F290] text-[#111827] py-2.5 rounded-lg text-sm font-bold shadow-md shadow-primary-100 hover:bg-[#9de675] hover:-translate-y-0.5 active:translate-y-0 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Bắt đầu phỏng vấn</span>

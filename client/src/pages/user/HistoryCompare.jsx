@@ -140,7 +140,7 @@ export default function HistoryCompare() {
             <button
               onClick={handleCompare}
               disabled={loading || !selectedA || !selectedB}
-              className="px-8 py-3 bg-[#6B705C] text-white rounded-xl text-sm font-semibold hover:bg-[#5a5f4c] transition-colors shadow-sm disabled:opacity-40">
+              className="px-8 py-3 bg-[#6B705C]  rounded-xl text-sm font-semibold hover:bg-[#5a5f4c] transition-colors shadow-sm disabled:opacity-40">
               So sánh ngay
             </button>
           </div>

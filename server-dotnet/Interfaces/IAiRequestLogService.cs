@@ -11,7 +11,7 @@ namespace InterviewPro.API.Interfaces
         Task<List<AiTokenUsageDto>> GetTokenUsageAsync(string range);
         Task<List<AiFeatureUsageDto>> GetFeatureUsageAsync(string range);
         Task<PaginatedResult<AiRecentLogDto>> GetRecentLogsAsync(int page, int pageSize);
-        Task<List<AiErrorLogDto>> GetErrorsAsync(int page, int pageSize);
+        Task<PaginatedResult<AiErrorLogDto>> GetErrorsAsync(int page, int pageSize);
         Task<AiSystemStatusDto> GetSystemStatusAsync();
     }
 }

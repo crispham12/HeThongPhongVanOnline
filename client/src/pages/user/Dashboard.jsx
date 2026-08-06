@@ -108,7 +108,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => navigate('/upgrade')}
-                className="ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shrink-0"
+                className="ml-4 px-3 py-1.5 bg-[#B4F290] text-[#111827] text-[10px] font-bold rounded-lg shrink-0"
               >
                 Nâng cấp
               </button>
@@ -133,7 +133,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => navigate('/upgrade')}
-                className="ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shrink-0"
+                className="ml-4 px-3 py-1.5 bg-[#B4F290] text-[#111827] text-[10px] font-bold rounded-lg shrink-0"
               >
                 Nâng cấp
               </button>

@@ -457,7 +457,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
               <button
                 onClick={answerState === 'recording' ? stopAnswer : startAnswer}
                 className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${answerState === 'recording'
-                  ? 'bg-red-500 text-white animate-pulse border border-red-500'
+                  ? 'bg-red-500  animate-pulse border border-red-500'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
                   }`}
               >
@@ -539,7 +539,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
                 {cameraStatus === 'disabled' && (
                   <>
                     <p className="text-gray-500 text-sm mb-4">Camera preview will appear here</p>
-                    <button onClick={enableCamera} className="px-5 py-2 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800">
+                    <button onClick={enableCamera} className="px-5 py-2 bg-[#B4F290] text-[#111827] text-sm font-medium rounded-md hover:bg-[#9de675]">
                       Enable Camera
                     </button>
                   </>
@@ -568,11 +568,11 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
                   Recording duration: {formatTime(answerTime)}
                 </div>
                 {answerState === 'recording' ? (
-                  <button onClick={stopAnswer} className="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
+                  <button onClick={stopAnswer} className="px-5 py-2 bg-red-600  text-sm font-medium rounded-md hover:bg-red-700">
                     Stop Recording
                   </button>
                 ) : (
-                  <button onClick={startAnswer} disabled={cameraStatus !== 'enabled' || answerState === 'stopped'} className="px-5 py-2 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800 disabled:opacity-50">
+                  <button onClick={startAnswer} disabled={cameraStatus !== 'enabled' || answerState === 'stopped'} className="px-5 py-2 bg-[#B4F290] text-[#111827] text-sm font-medium rounded-md hover:bg-[#9de675] disabled:opacity-50">
                     {answerState === 'stopped' ? 'Finished Recording' : 'Start Recording'}
                   </button>
                 )}
@@ -640,7 +640,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
             {/* Timers & Buttons */}
             <div>
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className={`border rounded-xl p-4 shadow-sm ${answerState === 'preparing' ? 'bg-black text-white border-black' : 'bg-white border-gray-200'}`}>
+                <div className={`border rounded-xl p-4 shadow-sm ${answerState === 'preparing' ? 'bg-[#B4F290] text-[#111827] border-black' : 'bg-white border-gray-200'}`}>
                   <p className={`text-[13px] mb-1 ${answerState === 'preparing' ? 'text-gray-300' : 'text-gray-500'}`}>Preparation Timer</p>
                   <p className="text-3xl font-medium">{formatTime(prepTime)}</p>
                 </div>
@@ -653,7 +653,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
                 <button
                   onClick={startPreparation}
                   disabled={cameraStatus !== 'enabled' || answerState !== 'idle'}
-                  className="px-4 py-2 bg-black text-white text-[13.5px] font-medium rounded-full hover:bg-gray-800 disabled:opacity-50 flex-1">
+                  className="px-4 py-2 bg-[#B4F290] text-[#111827] text-[13.5px] font-medium rounded-full hover:bg-[#9de675] disabled:opacity-50 flex-1">
                   Start Preparation
                 </button>
                 <button
@@ -715,7 +715,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
           <button
             onClick={submitAnswer}
             disabled={answerState !== 'stopped' || transcript.trim().length < 20}
-            className="px-6 py-2 bg-black text-white rounded-full text-[14px] font-medium hover:bg-gray-800 disabled:opacity-50"
+            className="px-6 py-2 bg-[#B4F290] text-[#111827] rounded-full text-[14px] font-medium hover:bg-[#9de675] disabled:opacity-50"
             title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
           >
             Submit Answer & Next

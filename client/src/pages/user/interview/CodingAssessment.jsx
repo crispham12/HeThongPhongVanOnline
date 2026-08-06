@@ -457,7 +457,7 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
                     <button
                       onClick={handleSubmitProblem}
                       disabled={submitting || !code.trim()}
-                      className="bg-primary-600 text-white px-4 py-1.5 rounded text-[11px] font-bold hover:bg-primary-700 flex items-center gap-2 shadow-sm disabled:opacity-50"
+                      className="bg-[#B4F290] text-[#111827] px-4 py-1.5 rounded text-[11px] font-bold hover:bg-[#9de675] flex items-center gap-2 shadow-sm disabled:opacity-50"
                     >
                       {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Nộp bài
                     </button>
@@ -465,7 +465,7 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
                 ) : (
                   <button
                     onClick={handleNextProblem}
-                    className="bg-primary-600 text-white px-5 py-1.5 rounded text-[11px] font-bold hover:bg-primary-700 flex items-center gap-2 shadow-sm animate-pulse"
+                    className="bg-[#B4F290] text-[#111827] px-5 py-1.5 rounded text-[11px] font-bold hover:bg-[#9de675] flex items-center gap-2 shadow-sm animate-pulse"
                   >
                     {currentProblemIndex < problems.length - 1 ? 'Bài tiếp theo →' : 'Đi tới trang báo cáo 📊'}
                   </button>

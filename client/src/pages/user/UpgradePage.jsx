@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Copy, Zap, Crown } from 'lucide-react';
 import { paymentApi } from '../../services/paymentApi';
 
-const PLANS = [
+const INITIAL_PLANS = [
   {
     id: 'Monthly',
     label: 'Gói tháng',
-    price: '10.000đ',
+    price: '99.000đ',
     duration: '30 ngày',
     badge: null,
     highlight: false,
@@ -24,11 +24,32 @@ const PLANS = [
 
 export default function UpgradePage() {
   const navigate = useNavigate();
+  const [plans, setPlans] = useState(INITIAL_PLANS);
   const [selectedPlan, setSelectedPlan] = useState('Yearly');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pollingStatus, setPollingStatus] = useState(null); // null | 'polling' | 'completed' | 'wrongAmount'
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const { data } = await paymentApi.getPackages();
+        if (data && Array.isArray(data)) {
+          setPlans(prevPlans => prevPlans.map(plan => {
+            const serverPkg = data.find(p => p.id === plan.id);
+            if (serverPkg) {
+              return { ...plan, price: serverPkg.price.toLocaleString('vi-VN') + 'đ' };
+            }
+            return plan;
+          }));
+        }
+      } catch (err) {
+        console.error("Lỗi tải gói cước", err);
+      }
+    };
+    fetchPackages();
+  }, []);
 
   const handleCreateOrder = async () => {
     setLoading(true);
@@ -106,7 +127,7 @@ export default function UpgradePage() {
             href="https://m.me/YOUR_PAGE"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold text-sm rounded-xl"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F290] text-[#111827] font-bold text-sm rounded-xl"
           >
             Liên hệ hỗ trợ qua Messenger
           </a>
@@ -132,7 +153,7 @@ export default function UpgradePage() {
           <>
             {/* Chọn gói */}
             <div className="space-y-3 mb-8">
-              {PLANS.map((plan) => (
+              {plans.map((plan) => (
                 <button
                   key={plan.id}
                   onClick={() => setSelectedPlan(plan.id)}
@@ -176,7 +197,7 @@ export default function UpgradePage() {
             <button
               onClick={handleCreateOrder}
               disabled={loading}
-              className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-black text-sm rounded-2xl transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-[#B4F290] hover:bg-[#9de675] text-[#111827] font-black text-sm rounded-2xl transition-all flex items-center justify-center gap-2"
             >
               {loading
                 ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

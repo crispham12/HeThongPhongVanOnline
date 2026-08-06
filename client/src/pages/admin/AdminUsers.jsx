@@ -91,13 +91,13 @@ function PlanBadge({ plan }) {
 function KpiCard({ title, value, subtext, highlight = false }) {
   if (highlight) {
     return (
-      <div className="min-h-[116px] bg-[#333333] rounded-2xl p-6 border border-[#303030] text-white shadow-sm flex flex-col justify-between transition-all hover:shadow-md cursor-default">
+      <div className="min-h-[116px] bg-[#B4F290] rounded-2xl p-6 border border-[#B4F290] text-[#111827] shadow-sm flex flex-col justify-between transition-all hover:shadow-md cursor-default">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-white/65">{title}</p>
-          <h3 className="mt-3 text-[22px] font-medium leading-none tabular-nums text-white">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#111827]/65">{title}</p>
+          <h3 className="mt-3 text-[22px] font-medium leading-none tabular-nums text-[#111827]">
             {value}
           </h3>
-          {subtext && <p className="mt-4 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/60">{subtext}</p>}
+          {subtext && <p className="mt-4 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#111827]/60">{subtext}</p>}
         </div>
       </div>
     );
@@ -155,7 +155,7 @@ function ModalHeader({ title, icon: Icon, iconColor = 'text-gray-700', onClose }
 function ModalActions({ onCancel, submitLabel, submitting, variant = 'primary' }) {
   const btnClass = variant === 'danger'
     ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-red-300'
-    : 'bg-[#333333] hover:bg-black text-white disabled:bg-gray-300';
+    : 'bg-[#333333] hover:bg-[#B4F290] text-[#111827] disabled:bg-gray-300';
   return (
     <div className="flex gap-2 pt-4">
       <button
@@ -451,7 +451,7 @@ export default function AdminUsers() {
           <button
             onClick={handleExportPDF}
             disabled={isExporting}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-black text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
           >
             <Download className="w-3.5 h-3.5" />
             {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
@@ -512,7 +512,7 @@ export default function AdminUsers() {
             </select>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button type="submit" className="h-9 rounded-lg bg-[#333333] px-4 text-[13px] font-extrabold text-white shadow-sm transition-all hover:bg-black active:translate-y-px flex items-center justify-center gap-1.5">
+            <button type="submit" className="h-9 rounded-lg bg-[#B4F290] text-[#111827] px-4 text-[13px] font-extrabold  shadow-sm transition-all hover:bg-[#9de675] active:translate-y-px flex items-center justify-center gap-1.5">
               <Search className="h-3.5 w-3.5" /> Lọc
             </button>
             <button type="button" onClick={() => { setSearch(''); setPlan('Tất cả'); setStatus('Tất cả'); setPage(1); }} className="h-9 rounded-lg border border-[#e8e8e8] bg-white px-3 text-[13px] font-bold text-[#96939a] transition-all hover:border-[#d6d6d6] hover:text-[#333333]">Xóa</button>
@@ -553,7 +553,7 @@ export default function AdminUsers() {
                   <tr key={user.id} className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
                     {/* Code */}
                     <td className="py-3.5 px-5">
-                      <span className="font-mono text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                      <span className="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                         {user.userCode}
                       </span>
                     </td>
@@ -723,7 +723,7 @@ export default function AdminUsers() {
                       <h4 className="text-base font-extrabold text-gray-900 truncate">{detailUser.fullName}</h4>
                       <p className="text-xs text-gray-500 truncate mt-0.5">{detailUser.email}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="font-mono text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                           {detailUser.userCode}
                         </span>
                         <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded uppercase">

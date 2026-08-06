@@ -190,7 +190,7 @@ export default function FullMockReport() {
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-lg transition"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] hover:bg-[#9de675] text-[#111827] font-bold text-xs rounded-lg transition"
             >
               Quay lại Dashboard <ArrowRight className="w-3.5 h-3.5" />
             </button>
