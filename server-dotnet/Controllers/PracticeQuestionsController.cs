@@ -50,7 +50,7 @@ namespace InterviewPro.API.Controllers
             var userId = GetUserId();
 
             // Base query: ONLY published + client-visible
-            var query = _db.Questions
+            var query = _db.Questions.AsNoTracking()
                 .Where(q => q.Status == "Published" && q.IsClientVisible);
 
             if (!string.IsNullOrWhiteSpace(category))
@@ -64,25 +64,6 @@ namespace InterviewPro.API.Controllers
                     q.Title.Contains(search) || q.Content.Contains(search));
 
             var total = await query.CountAsync();
-
-            var questionIds = await query
-                .OrderByDescending(q => q.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(q => q.Id)
-                .ToListAsync();
-
-            // Get this user's practice history for these questions
-            var historyList = await _db.UserQuestionPracticeHistories
-                .Where(h => h.UserId == userId && questionIds.Contains(h.QuestionId))
-                .ToListAsync();
-
-            var practiceMap = historyList
-                .GroupBy(h => h.QuestionId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.OrderByDescending(h => h.CreatedAt).First().PracticeStatus
-                );
 
             var questions = await query
                 .OrderByDescending(q => q.CreatedAt)
@@ -100,6 +81,20 @@ namespace InterviewPro.API.Controllers
                     TechStackJson = q.TechStackJson
                 })
                 .ToListAsync();
+
+            var questionIds = questions.Select(q => q.Id).ToList();
+
+            // Get this user's practice history for these questions
+            var historyList = await _db.UserQuestionPracticeHistories.AsNoTracking()
+                .Where(h => h.UserId == userId && questionIds.Contains(h.QuestionId))
+                .ToListAsync();
+
+            var practiceMap = historyList
+                .GroupBy(h => h.QuestionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(h => h.CreatedAt).First().PracticeStatus
+                );
 
             // Enrich with practice status
             foreach (var item in questions)

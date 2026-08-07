@@ -185,6 +185,7 @@ namespace InterviewPro.API.Data
                 e.HasIndex(q => q.Status);
                 e.HasIndex(q => q.Category);
                 e.HasIndex(q => q.IsClientVisible);
+                e.HasIndex(q => q.CreatedAt);
                 e.Property(q => q.Content).HasColumnType("nvarchar(max)");
                 e.Property(q => q.ExpectedAnswerGuide).HasColumnType("nvarchar(max)");
                 e.Property(q => q.ExampleAnswer).HasColumnType("nvarchar(max)");
@@ -195,6 +196,7 @@ namespace InterviewPro.API.Data
                 e.HasIndex(p => p.Status);
                 e.HasIndex(p => p.Difficulty);
                 e.HasIndex(p => p.IsClientVisible);
+                e.HasIndex(p => p.CreatedAt);
                 e.Property(p => p.Description).HasColumnType("nvarchar(max)");
                 e.Property(p => p.CategoriesJson).HasColumnType("nvarchar(max)");
                 e.Property(p => p.ConstraintsJson).HasColumnType("nvarchar(max)");

@@ -45,7 +45,7 @@ namespace InterviewPro.API.Controllers
         {
             if (!IsAdmin()) return Forbid();
 
-            var query = _db.Questions.AsQueryable();
+            var query = _db.Questions.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(category))
                 query = query.Where(q => q.Category == category);
@@ -67,8 +67,6 @@ namespace InterviewPro.API.Controllers
                     Id = q.Id,
                     Title = q.Title,
                     Content = q.Content,
-                    ExpectedAnswerGuide = q.ExpectedAnswerGuide,
-                    ExampleAnswer = q.ExampleAnswer,
                     Category = q.Category,
                     Role = q.Role,
                     Difficulty = q.Difficulty,
@@ -163,6 +161,7 @@ namespace InterviewPro.API.Controllers
             q.Difficulty = req.Difficulty;
             q.TechStackJson = req.TechStackJson;
             q.TagsJson = req.TagsJson;
+            q.Status = req.Status;
             q.AllowAIUse = req.AllowAIUse;
             q.AllowRandomSelection = req.AllowRandomSelection;
             q.IsClientVisible = req.IsClientVisible;

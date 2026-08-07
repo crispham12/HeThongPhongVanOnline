@@ -286,6 +286,7 @@ export default function AdminAddQuestion() {
     setLoading(true);
 
     try {
+      const finalStatus = actionType === 'draft' ? 'Draft' : data.status;
       const payload = {
         title: data.title,
         content: `${data.content}`,
@@ -294,13 +295,13 @@ export default function AdminAddQuestion() {
         category: data.category === 'Kỹ thuật' ? 'Technical' : data.category,
         role: data.category === 'HR' ? 'All' : data.role,
         difficulty: data.difficulty,
-        techStackJson: JSON.stringify(techStack),
-        tagsJson: JSON.stringify(tags),
+        techStackJson: JSON.stringify(data.category === 'HR' ? [] : techStack),
+        tagsJson: JSON.stringify(data.category === 'HR' ? [] : tags),
         source: data.source || 'Human',
-        status: actionType === 'draft' ? 'Draft' : 'Published',
+        status: finalStatus,
         allowAIUse: data.allowAIUse,
         allowRandomSelection: data.allowRandomSelection,
-        isClientVisible: !data.adminOnly
+        isClientVisible: finalStatus === 'Published'
       };
 
       if (id) {
@@ -459,6 +460,7 @@ export default function AdminAddQuestion() {
             </SectionCard>
 
             {/* Section D: Tags Input */}
+            {watchCategory !== 'HR' && (
             <SectionCard title="Tags">
               <div className="flex flex-wrap gap-2 p-2.5 bg-[#F9FAFB] border border-gray-205 rounded-xl focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary transition-all">
                 {tags.map((tag) => (
@@ -480,6 +482,7 @@ export default function AdminAddQuestion() {
               </div>
               <p className="text-[11px] text-gray-400 font-semibold mt-2">Nhấn Enter để thêm tag. Ví dụ: JWT, Authentication, SQL, etc.</p>
             </SectionCard>
+            )}
 
           </div>
 
@@ -561,6 +564,7 @@ export default function AdminAddQuestion() {
             </SectionCard>
 
             {/* Card 2: Tech Stack Multi-select */}
+            {watchCategory !== 'HR' && (
             <SectionCard title="Tech Stack">
               <div className="relative mb-3.5">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -590,6 +594,7 @@ export default function AdminAddQuestion() {
                 )}
               </div>
             </SectionCard>
+            )}
 
 
 
@@ -730,7 +735,7 @@ export default function AdminAddQuestion() {
                   </div>
                 )}
 
-                {tags.length > 0 && (
+                {watchCategory !== 'HR' && tags.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-xs font-black text-gray-500 tracking-wide uppercase">Tags liên quan</h4>
                     <div className="flex flex-wrap gap-2">
@@ -743,7 +748,7 @@ export default function AdminAddQuestion() {
                   </div>
                 )}
 
-                {techStack.length > 0 && (
+                {watchCategory !== 'HR' && techStack.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-xs font-black text-gray-500 tracking-wide uppercase">Tech Stack</h4>
                     <div className="flex flex-wrap gap-2">

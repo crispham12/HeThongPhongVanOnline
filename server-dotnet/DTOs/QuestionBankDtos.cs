@@ -33,7 +33,8 @@ public record UpdateQuestionRequest(
     string? TagsJson,
     bool AllowAIUse,
     bool AllowRandomSelection,
-    bool IsClientVisible
+    bool IsClientVisible,
+    string Status
 );
 
 public class QuestionAdminDto
