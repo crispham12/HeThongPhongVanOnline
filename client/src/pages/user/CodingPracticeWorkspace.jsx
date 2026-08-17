@@ -246,10 +246,11 @@ export default function CodingPracticeWorkspace() {
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">{problem?.title}</h2>
               <div className="flex gap-2">
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-tighter ${problem?.difficulty === 'Dễ' ? 'bg-green-50 text-green-600 border border-green-200' :
-                    problem?.difficulty === 'Trung bình' || problem?.difficulty === 'Vừa' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                      'bg-red-50 text-red-600 border border-red-200'
-                  }`}>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-tighter ${
+                  ['dễ', 'easy', 'fresher', 'intern'].includes(problem?.difficulty?.toLowerCase()) ? 'bg-green-50 text-green-600 border border-green-200' :
+                  ['trung bình', 'vừa', 'medium', 'junior'].includes(problem?.difficulty?.toLowerCase()) ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                  'bg-red-50 text-red-600 border border-red-200'
+                }`}>
                   {problem?.difficulty || 'N/A'}
                 </span>
                 <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded uppercase tracking-tighter border border-gray-200">Coding Practice</span>

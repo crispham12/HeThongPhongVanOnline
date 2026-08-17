@@ -24,44 +24,81 @@ namespace InterviewPro.API.Services
 
         public async Task<InterviewHistoryResponseDto> GetHistoryAsync(int userId, InterviewHistoryQueryDto query, bool isAdmin)
         {
-            // Logging query
-            _logger.LogInformation("GetHistoryAsync called by UserId={UserId}, Admin={IsAdmin}. Filters: Search={Search}, Type={Type}, Status={Status}, DateRange={DateRange}, Sort={Sort}, Page={Page}, PageSize={PageSize}",
-                userId, isAdmin, query.Search, query.InterviewType, query.Status, query.DateRange, query.Sort, query.Page, query.PageSize);
-
-            // Start queryable (Currently focusing on HrInterviewSession as main source per requirements)
-            var queryable = _context.HrInterviewSessions
+            var hrQuery = _context.HrInterviewSessions
                 .Include(s => s.FinalResult)
                 .AsNoTracking()
-                .Where(s => !s.IsDeleted && (s.Status == "Completed" || s.FinalResult != null));
+                .AsQueryable();
 
             if (!isAdmin)
             {
-                queryable = queryable.Where(s => s.UserId == userId);
+                hrQuery = hrQuery.Where(s => s.UserId == userId);
             }
 
-            // Apply Search Filter (Role, Level/Difficulty)
+            var hrSessionsList = await hrQuery.Select(s => new {
+                SessionId = s.SessionGuid,
+                UserId = s.UserId,
+                InterviewType = "HR",
+                Role = s.Role,
+                Difficulty = s.Difficulty,
+                CreatedAt = s.CreatedAt,
+                CompletedAt = s.CompletedAt,
+                HasResult = s.FinalResult != null,
+                Score = s.FinalResult != null ? (double)s.FinalResult.OverallScore : 0.0,
+                TotalQuestions = s.TotalQuestions,
+                AnsweredQuestions = s.AnsweredQuestions,
+                DurationMinutes = s.DurationMinutes
+            }).ToListAsync();
+
+            var fmQuery = _context.FullMockSessions
+                .AsNoTracking()
+                .Where(s => s.Status == "Completed")
+                .AsQueryable();
+
+            if (!isAdmin)
+            {
+                fmQuery = fmQuery.Where(s => s.UserId == userId);
+            }
+
+            var fullMockSessionsList = await fmQuery.Select(s => new {
+                SessionId = s.SessionGuid,
+                UserId = s.UserId,
+                InterviewType = "FullMock",
+                Role = s.Role,
+                Difficulty = s.Difficulty,
+                CreatedAt = s.CreatedAt,
+                CompletedAt = s.CompletedAt,
+                HasResult = _context.CandidateReports.Any(r => r.SessionGuid == s.SessionGuid),
+                Score = (double)_context.CandidateReports.Where(r => r.SessionGuid == s.SessionGuid).Select(r => r.OverallScore).FirstOrDefault(),
+                TotalQuestions = 3,
+                AnsweredQuestions = 3,
+                DurationMinutes = 120
+            }).ToListAsync();
+
+            var combinedSessions = hrSessionsList.Concat(fullMockSessionsList).AsEnumerable();
+
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 string searchTerm = query.Search.ToLower();
-                queryable = queryable.Where(s => s.Role.ToLower().Contains(searchTerm) || s.Difficulty.ToLower().Contains(searchTerm));
+                combinedSessions = combinedSessions.Where(s => s.Role.ToLower().Contains(searchTerm) || s.Difficulty.ToLower().Contains(searchTerm));
             }
 
-            // Apply InterviewType Filter
             if (!string.IsNullOrWhiteSpace(query.InterviewType) && !query.InterviewType.Equals("All", StringComparison.OrdinalIgnoreCase))
             {
-                // Current table is HrInterviewSessions, so if it's not HR/All, we might return empty if it doesn't match
-                if (query.InterviewType.Equals("HR", StringComparison.OrdinalIgnoreCase))
+                string typeLower = query.InterviewType.ToLower();
+                if (typeLower == "hr")
                 {
-                    // Everything here is HR implicitly
+                    combinedSessions = combinedSessions.Where(s => s.InterviewType == "HR");
+                }
+                else if (typeLower == "fullmock")
+                {
+                    combinedSessions = combinedSessions.Where(s => s.InterviewType == "FullMock");
                 }
                 else
                 {
-                    // Unsupported types for this table for now, return empty
-                    queryable = queryable.Where(s => false);
+                    combinedSessions = combinedSessions.Where(s => false);
                 }
             }
 
-            // Apply DateRange Filter
             if (!string.IsNullOrWhiteSpace(query.DateRange) && !query.DateRange.Equals("all", StringComparison.OrdinalIgnoreCase))
             {
                 DateTime? fromDate = query.DateRange.ToLower() switch
@@ -74,46 +111,25 @@ namespace InterviewPro.API.Services
 
                 if (fromDate.HasValue)
                 {
-                    queryable = queryable.Where(s => s.CompletedAt >= fromDate.Value || s.CreatedAt >= fromDate.Value);
+                    combinedSessions = combinedSessions.Where(s => s.CompletedAt >= fromDate.Value || s.CreatedAt >= fromDate.Value);
                 }
             }
-
-            // To support status filtering, we fetch data or compute it. 
-            // Because status mapping is based on FinalResult.OverallScore and EF can translate some conditional logic:
-            // Ready: 8.5 - 10.0
-            // AlmostReady: 7.0 - 8.4
-            // NeedsImprovement: 0.0 - 6.9
-            // Pending: No Evaluation
 
             if (!string.IsNullOrWhiteSpace(query.Status) && !query.Status.Equals("All", StringComparison.OrdinalIgnoreCase))
             {
                 string statusFilter = query.Status.ToLower();
                 
                 if (statusFilter == "ready")
-                {
-                    queryable = queryable.Where(s => s.FinalResult != null && s.FinalResult.OverallScore >= 8.5);
-                }
+                    combinedSessions = combinedSessions.Where(s => s.HasResult && s.Score >= 8.5);
                 else if (statusFilter == "almostready")
-                {
-                    queryable = queryable.Where(s => s.FinalResult != null && s.FinalResult.OverallScore >= 7.0 && s.FinalResult.OverallScore < 8.5);
-                }
+                    combinedSessions = combinedSessions.Where(s => s.HasResult && s.Score >= 7.0 && s.Score < 8.5);
                 else if (statusFilter == "needsimprovement")
-                {
-                    queryable = queryable.Where(s => s.FinalResult != null && s.FinalResult.OverallScore < 7.0);
-                }
+                    combinedSessions = combinedSessions.Where(s => s.HasResult && s.Score < 7.0);
                 else if (statusFilter == "pending" || statusFilter == "notready")
-                {
-                    queryable = queryable.Where(s => s.FinalResult == null);
-                }
+                    combinedSessions = combinedSessions.Where(s => !s.HasResult);
             }
 
-            // Calculate Summary Before Pagination
-            var summaryData = await queryable
-                .Select(s => new {
-                    HasResult = s.FinalResult != null,
-                    Score = s.FinalResult != null ? s.FinalResult.OverallScore : 0
-                })
-                .ToListAsync();
+            var summaryData = combinedSessions.Select(s => new { s.HasResult, s.Score }).ToList();
 
             int totalInterviews = summaryData.Count;
             var evaluatedSessions = summaryData.Where(x => x.HasResult).ToList();
@@ -133,45 +149,39 @@ namespace InterviewPro.API.Services
                 ReadySessions = readySessionsCount
             };
 
-            // Apply Sorting
             var sortQuery = query.Sort?.ToLower() ?? "newest";
             switch (sortQuery)
             {
                 case "oldest":
-                    queryable = queryable.OrderBy(s => s.CompletedAt ?? s.CreatedAt);
+                    combinedSessions = combinedSessions.OrderBy(s => s.CompletedAt ?? s.CreatedAt);
                     break;
                 case "highestscore":
-                    queryable = queryable.OrderByDescending(s => s.FinalResult != null ? s.FinalResult.OverallScore : 0)
-                                         .ThenByDescending(s => s.CompletedAt ?? s.CreatedAt);
+                    combinedSessions = combinedSessions.OrderByDescending(s => s.Score).ThenByDescending(s => s.CompletedAt ?? s.CreatedAt);
                     break;
                 case "lowestscore":
-                    // To sort lowest, we might want to put nulls last or first. Let's assume evaluated first
-                    queryable = queryable.Where(s => s.FinalResult != null)
-                                         .OrderBy(s => s.FinalResult!.OverallScore)
-                                         .ThenByDescending(s => s.CompletedAt ?? s.CreatedAt);
+                    combinedSessions = combinedSessions.Where(s => s.HasResult).OrderBy(s => s.Score).ThenByDescending(s => s.CompletedAt ?? s.CreatedAt);
                     break;
                 case "newest":
                 default:
-                    queryable = queryable.OrderByDescending(s => s.CompletedAt ?? s.CreatedAt);
+                    combinedSessions = combinedSessions.OrderByDescending(s => s.CompletedAt ?? s.CreatedAt);
                     break;
             }
 
-            // Pagination
             int page = query.Page < 1 ? 1 : query.Page;
             int pageSize = query.PageSize < 1 ? 10 : (query.PageSize > 50 ? 50 : query.PageSize);
             
-            var pagedSessions = await queryable
+            var pagedSessions = combinedSessions
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
             var items = pagedSessions.Select(s => {
                 string statusMapped = "Pending";
-                double score = 0;
+                double score = s.Score;
                 
-                if (s.FinalResult != null)
+                if (s.HasResult)
                 {
-                    score = Math.Round(s.FinalResult.OverallScore, 1);
+                    score = Math.Round(s.Score, 1);
                     if (score >= 8.5) statusMapped = "Ready";
                     else if (score >= 7.0) statusMapped = "AlmostReady";
                     else statusMapped = "NeedsImprovement";
@@ -179,17 +189,17 @@ namespace InterviewPro.API.Services
 
                 return new InterviewHistoryItemDto
                 {
-                    SessionId = s.SessionGuid,
-                    InterviewType = "HR", // Default for HrInterviewSession
+                    SessionId = s.SessionId,
+                    InterviewType = s.InterviewType,
                     Role = s.Role,
                     Level = s.Difficulty,
                     Score = score,
                     Status = statusMapped,
-                    QuestionsAnswered = s.AnsweredQuestions, // From new field
+                    QuestionsAnswered = s.AnsweredQuestions,
                     TotalQuestions = s.TotalQuestions,
-                    DurationMinutes = s.DurationMinutes, // From new field
+                    DurationMinutes = s.DurationMinutes,
                     InterviewDate = s.CompletedAt ?? s.CreatedAt,
-                    HasResult = s.FinalResult != null
+                    HasResult = s.HasResult
                 };
             }).ToList();
 

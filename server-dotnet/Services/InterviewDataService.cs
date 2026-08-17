@@ -60,24 +60,36 @@ namespace InterviewPro.API.Services
         /// </summary>
         public async Task<InterviewDataOverviewDto> GetOverviewAsync()
         {
-            var sessions = await _db.PracticeSessions.AsNoTracking().ToListAsync();
+            var query = _db.PracticeSessions.AsNoTracking();
 
-            var completedSessions = sessions.Where(s => s.Status == "Completed").ToList();
+            var totalSessions = await query.CountAsync();
+            var totalAttempts = totalSessions > 0 ? await query.SumAsync(s => s.AttemptCount) : 0;
+            var uniqueUsers = await query.Select(s => s.UserId).Distinct().CountAsync();
+
+            var completedQuery = query.Where(s => s.Status == "Completed");
+            var hasCompleted = await completedQuery.AnyAsync();
+            var averageScore = hasCompleted ? await completedQuery.AverageAsync(s => s.LatestScore) : 0;
+
+            var skillCounts = await query.GroupBy(s => s.SkillType)
+                                         .Select(g => new { Skill = g.Key, Count = g.Count() })
+                                         .ToDictionaryAsync(x => x.Skill, x => x.Count);
+                                         
+            var statusCounts = await query.GroupBy(s => s.Status)
+                                          .Select(g => new { Status = g.Key, Count = g.Count() })
+                                          .ToDictionaryAsync(x => x.Status, x => x.Count);
 
             return new InterviewDataOverviewDto
             {
-                TotalSessions  = sessions.Count,
-                TotalAttempts  = sessions.Sum(s => s.AttemptCount),
-                UniqueUsers    = sessions.Select(s => s.UserId).Distinct().Count(),
-                AverageScore   = completedSessions.Any()
-                                    ? Math.Round(completedSessions.Average(s => s.LatestScore), 1)
-                                    : 0,
-                HrCount            = sessions.Count(s => s.SkillType == "HR"),
-                TechnicalCount     = sessions.Count(s => s.SkillType == "TECHNICAL"),
-                CodingCount        = sessions.Count(s => s.SkillType == "CODING"),
-                ComprehensiveCount = sessions.Count(s => s.SkillType == "COMPREHENSIVE"),
-                ActiveCount    = sessions.Count(s => s.Status == "Active"),
-                CompletedCount = sessions.Count(s => s.Status == "Completed"),
+                TotalSessions  = totalSessions,
+                TotalAttempts  = totalAttempts,
+                UniqueUsers    = uniqueUsers,
+                AverageScore   = hasCompleted ? Math.Round(averageScore, 1) : 0,
+                HrCount            = skillCounts.GetValueOrDefault("HR", 0),
+                TechnicalCount     = skillCounts.GetValueOrDefault("TECHNICAL", 0),
+                CodingCount        = skillCounts.GetValueOrDefault("CODING", 0),
+                ComprehensiveCount = skillCounts.GetValueOrDefault("COMPREHENSIVE", 0),
+                ActiveCount    = statusCounts.GetValueOrDefault("Active", 0),
+                CompletedCount = statusCounts.GetValueOrDefault("Completed", 0),
             };
         }
 

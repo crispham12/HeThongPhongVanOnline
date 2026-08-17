@@ -5,6 +5,7 @@ import StatCard from '../../components/ui/StatCard';
 import { Trophy, Target, Zap, Star, BrainCircuit, ArrowRight, Crown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
 import { quotaApi } from '../../services/quotaApi';
+import { userDashboardApi } from '../../services/userDashboardApi';
 
 const data = [
   { name: 'Phản biện', score: 85 },
@@ -22,22 +23,19 @@ const radarData = [
   { subject: 'Soft Skills', A: 85, fullMark: 150 },
 ];
 
-const mockStats = {
-  totalInterviews: 12,
-  averageScore: 78.5,
-  streak: 4,
-  recentHistory: [
-    { id: 1, role: 'Backend Developer', type: 'Technical', level: 'Junior', totalScore: 82, createdAt: new Date().toISOString() },
-    { id: 2, role: 'Frontend Developer', type: 'HR Behavioral', level: 'Fresher', totalScore: 75, createdAt: new Date().toISOString() },
-    { id: 3, role: 'AI Engineer', type: 'Coding Task', level: 'Intern', totalScore: 91, createdAt: new Date().toISOString() },
-  ]
-};
-
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const stats = mockStats; // In real app, fetch from API
 
+  const [stats, setStats] = useState({
+    totalInterviews: 0,
+    averageScore: 0,
+    streak: 0,
+    recentHistory: [],
+    skillProgress: [],
+    radarData: []
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
   const [quota, setQuota] = useState(null);
   const [quotaLoading, setQuotaLoading] = useState(true);
 
@@ -52,7 +50,20 @@ export default function Dashboard() {
         setQuotaLoading(false);
       }
     };
+    
+    const fetchStats = async () => {
+      try {
+        const { data } = await userDashboardApi.getStats();
+        setStats(data);
+      } catch (err) {
+        console.error('Không thể lấy thống kê:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
     fetchQuota();
+    fetchStats();
   }, []);
 
   return (
@@ -66,9 +77,9 @@ export default function Dashboard() {
         <button 
           id="btn-start-interview" 
           onClick={() => navigate('/setup')} 
-          disabled={!quota?.isUnlimited && quota?.remaining === 0}
+          disabled={quotaLoading || (!quota?.isUnlimited && quota?.remaining === 0)}
           className={`inline-flex items-center justify-center gap-2 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-all duration-150 shadow-sm active:scale-[0.98] w-full sm:w-auto
-            ${(!quota?.isUnlimited && quota?.remaining === 0)
+            ${(quotaLoading || (!quota?.isUnlimited && quota?.remaining === 0))
               ? 'bg-neutral-300 cursor-not-allowed opacity-60'
               : 'bg-[#333333] hover:bg-[#1a1a1a] cursor-pointer'
             }`}
@@ -161,10 +172,10 @@ export default function Dashboard() {
             </div>
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={stats.skillProgress} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888888' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888888' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888888' }} domain={[0, 100]} />
                   <Tooltip 
                     cursor={{ fill: '#fafafa' }} 
                     contentStyle={{ 
@@ -225,7 +236,7 @@ export default function Dashboard() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-6">Bản đồ năng lực AI</h3>
             <div className="h-[260px] w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={stats.radarData}>
                   <PolarGrid stroke="#e5e5e5" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#737373', fontWeight: 500 }} />
                   <Radar name="Kỹ năng" dataKey="A" stroke="#333333" fill="#333333" fillOpacity={0.15} />

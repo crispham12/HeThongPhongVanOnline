@@ -110,39 +110,32 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
     const publicTests = currentProblem.test_cases.slice(0, 3);
 
     try {
-      const results = await Promise.all(
-        publicTests.map(async (tc) => {
-          try {
-            const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                language: language,
-                version: '*',
-                files: [{ content: code }],
-                stdin: tc.input
-              })
-            });
-            const data = await response.json();
-            const actual = data.run?.stdout?.trim() || data.run?.stderr?.trim() || '';
-            return {
-              input: tc.input,
-              expected: tc.expected_output,
-              actual: actual,
-              passed: actual.replace(/\r\n/g, '\n').trim() === tc.expected_output.replace(/\r\n/g, '\n').trim()
-            };
-          } catch {
-            return { input: tc.input, expected: tc.expected_output, actual: '', passed: false };
-          }
-        })
-      );
+      const aiUrl = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+      const formattedTestCases = publicTests.map(tc => ({
+        input: tc.input,
+        expectedOutput: tc.expected_output,
+        isHidden: false
+      }));
 
-      const passedCount = results.filter(r => r.passed).length;
-      setTestResults({ passed: passedCount, total: results.length, results });
+      const { data } = await axios.post(`${aiUrl}/ai/practice/run`, {
+        language: language,
+        code: code,
+        testCases: formattedTestCases,
+        functionName: 'solution'
+      });
+
+      const mappedResults = data.results.map(r => ({
+        input: r.input,
+        expected: r.expectedOutput,
+        actual: r.actualOutput || r.status,
+        passed: r.passed
+      }));
+
+      setTestResults({ passed: data.passedTestCases, total: data.totalTestCases, results: mappedResults });
       setIsRunResult(true);
     } catch (error) {
       console.error(error);
-      alert('Lỗi kết nối Piston API. Vui lòng thử lại.');
+      alert('Lỗi chạy code trên máy chủ. Vui lòng thử lại.');
     } finally {
       setRunning(false);
     }
@@ -156,38 +149,31 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
     const currentProblem = problems[currentProblemIndex];
 
     try {
-      // Run ALL test cases on Piston
-      const allResults = await Promise.all(
-        currentProblem.test_cases.map(async (tc) => {
-          try {
-            const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                language: language,
-                version: '*',
-                files: [{ content: code }],
-                stdin: tc.input
-              })
-            });
-            const data = await response.json();
-            const actual = data.run?.stdout?.trim() || data.run?.stderr?.trim() || '';
-            return {
-              input: tc.input,
-              expected: tc.expected_output,
-              actual: actual,
-              passed: actual.replace(/\r\n/g, '\n').trim() === tc.expected_output.replace(/\r\n/g, '\n').trim()
-            };
-          } catch {
-            return { input: tc.input, expected: tc.expected_output, actual: '', passed: false };
-          }
-        })
-      );
+      // Run ALL test cases via Backend Sandbox
+      const aiUrl = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+      const formattedTestCases = currentProblem.test_cases.map(tc => ({
+        input: tc.input,
+        expectedOutput: tc.expected_output,
+        isHidden: false
+      }));
 
-      const passedCount = allResults.filter(r => r.passed).length;
+      const { data: runData } = await axios.post(`${aiUrl}/ai/practice/run`, {
+        language: language,
+        code: code,
+        testCases: formattedTestCases,
+        functionName: 'solution'
+      });
+
+      const allResults = runData.results.map(r => ({
+        input: r.input,
+        expected: r.expectedOutput,
+        actual: r.actualOutput || r.status,
+        passed: r.passed
+      }));
+
+      const passedCount = runData.passedTestCases;
 
       // AI evaluation for quality & complexity
-      const aiUrl = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
       const evalResponse = await axios.post(`${aiUrl}/ai/coding/full-mock/evaluate`, {
         problem_title: currentProblem.title,
         problem_description: currentProblem.description,

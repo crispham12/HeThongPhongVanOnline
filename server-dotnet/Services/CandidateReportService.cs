@@ -143,7 +143,7 @@ namespace InterviewPro.API.Services
                 LearningAbility = (float)Math.Round((hrDto?.SelfAwareness * 0.4f ?? 3.2f) + (codingDto?.ComplexityAnalysis * 0.6f ?? 4.2f), 1)
             };
 
-            return new CandidateReportResponse
+            var response = new CandidateReportResponse
             {
                 SessionGuid = report.SessionGuid,
                 CandidateName = report.CandidateName,
@@ -162,6 +162,39 @@ namespace InterviewPro.API.Services
                     ? codingDto.LearningRoadmap.Select(r => new LearningRoadmapItemDto { Topic = r, Resource = "Tài liệu học tập tương ứng" }).ToList()
                     : new List<LearningRoadmapItemDto>()
             };
+
+            // AI Suggestion based on weaknesses (Bug 3 Fix)
+            if (techDto != null && techDto.OverallTechnicalScore < 7.0f)
+            {
+                var techQuestions = _db.Questions
+                    .Where(q => q.Category == "Technical" && (q.Difficulty == report.Level || q.Role == report.TargetRole))
+                    .OrderBy(q => Guid.NewGuid())
+                    .Take(3)
+                    .Select(q => new RecommendedPracticeQuestionDto {
+                        Id = q.Id.ToString(),
+                        Title = q.Title,
+                        Type = "Technical",
+                        Difficulty = q.Difficulty
+                    }).ToList();
+                response.RecommendedPracticeQuestions.AddRange(techQuestions);
+            }
+
+            if (codingDto != null && codingDto.OverallCodingScore < 7.0f)
+            {
+                var codingProblems = _db.CodingProblems
+                    .Where(p => p.Difficulty == report.Level)
+                    .OrderBy(p => Guid.NewGuid())
+                    .Take(2)
+                    .Select(p => new RecommendedPracticeQuestionDto {
+                        Id = p.Id.ToString(),
+                        Title = p.Title,
+                        Type = "Coding",
+                        Difficulty = p.Difficulty
+                    }).ToList();
+                response.RecommendedPracticeQuestions.AddRange(codingProblems);
+            }
+
+            return response;
         }
 
         private async Task<CandidateReport?> GenerateReportFromSessionsAsync(int userId, string sessionGuid)
@@ -179,41 +212,96 @@ namespace InterviewPro.API.Services
             // 1. HR Session evaluation
             bool hrSkipped = string.IsNullOrEmpty(hrGuid) || hrGuid.Contains("skipped");
             float hrScore = 0f;
-            string hrAiSummary = hrSkipped ? "Vòng HR Behavioral đã bị bỏ qua." : "Ứng viên thể hiện tốt trong vòng phỏng vấn hành vi.";
+            string hrAiSummary = hrSkipped ? "Vòng HR Behavioral đã bị bỏ qua." : "Ứng viên chưa hoàn thành vòng HR hoặc chưa có báo cáo.";
+            HrInterviewEvaluation? hrFinalResult = null;
+            
             if (!hrSkipped)
             {
-                var hrSession = await _db.HrInterviewSessions.FirstOrDefaultAsync(h => h.SessionGuid == hrGuid);
+                var hrSession = await _db.HrInterviewSessions
+                    .Include(h => h.FinalResult)
+                        .ThenInclude(f => f.Strengths)
+                    .Include(h => h.FinalResult)
+                        .ThenInclude(f => f.Improvements)
+                    .FirstOrDefaultAsync(h => h.SessionGuid == hrGuid);
+
                 if (hrSession != null)
                 {
                     hrScore = (float)(hrSession.FinalScore ?? 0.0);
                     hrAiSummary = hrSession.FinalSummary ?? hrAiSummary;
+                    hrFinalResult = hrSession.FinalResult;
                 }
             }
 
             // 2. Technical Session evaluation
             bool techSkipped = string.IsNullOrEmpty(techGuid) || techGuid.Contains("skipped");
             float techScore = 0f;
-            string techAiSummary = techSkipped ? "Vòng Technical đã bị bỏ qua." : "Ứng viên nắm được các kiến thức kỹ thuật cơ bản.";
+            string techAiSummary = techSkipped ? "Vòng Technical đã bị bỏ qua." : "Ứng viên chưa hoàn thành vòng Technical hoặc chưa có báo cáo.";
+            var techFeedbackDict = new Dictionary<string, object>();
+            
             if (!techSkipped)
             {
-                var techSession = await _db.InterviewSessions.FirstOrDefaultAsync(t => t.SessionGuid == techGuid);
+                var techSession = await _db.TechnicalInterviewSessions.FirstOrDefaultAsync(t => t.SessionGuid == techGuid);
                 if (techSession != null)
                 {
-                    techScore = (float)techSession.OverallScore;
-                    techAiSummary = techSession.OverallFeedback ?? techAiSummary;
+                    techScore = techSession.OverallScore;
+                    if (!string.IsNullOrEmpty(techSession.FinalFeedbackJson))
+                    {
+                        try {
+                            using var doc = JsonDocument.Parse(techSession.FinalFeedbackJson);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("scores", out var scoresEl)) {
+                                if (scoresEl.TryGetProperty("technicalKnowledge", out var tk)) techFeedbackDict["technicalKnowledge"] = tk.GetDouble();
+                                if (scoresEl.TryGetProperty("problemSolving", out var ps)) techFeedbackDict["problemSolving"] = ps.GetDouble();
+                                if (scoresEl.TryGetProperty("practicalExperience", out var pe)) techFeedbackDict["practicalExperience"] = pe.GetDouble();
+                                if (scoresEl.TryGetProperty("systemDesign", out var sd)) techFeedbackDict["systemDesign"] = sd.GetDouble();
+                                if (scoresEl.TryGetProperty("communication", out var cm)) techFeedbackDict["communication"] = cm.GetDouble();
+                                if (scoresEl.TryGetProperty("bestPractices", out var bp)) techFeedbackDict["bestPractices"] = bp.GetDouble();
+                            }
+                            
+                            // Handling array of objects to array of strings
+                            if (root.TryGetProperty("strengths", out var strEl) && strEl.ValueKind == JsonValueKind.Array) 
+                            {
+                                var strList = new List<string>();
+                                foreach (var s in strEl.EnumerateArray()) {
+                                    if (s.ValueKind == JsonValueKind.Object && s.TryGetProperty("title", out var title)) strList.Add(title.GetString() ?? "");
+                                    else if (s.ValueKind == JsonValueKind.String) strList.Add(s.GetString() ?? "");
+                                }
+                                techFeedbackDict["strengths"] = JsonSerializer.Serialize(strList);
+                            }
+                            if (root.TryGetProperty("weaknesses", out var weakEl) && weakEl.ValueKind == JsonValueKind.Array)
+                            {
+                                var weakList = new List<string>();
+                                foreach (var w in weakEl.EnumerateArray()) {
+                                    if (w.ValueKind == JsonValueKind.Object && w.TryGetProperty("title", out var title)) weakList.Add(title.GetString() ?? "");
+                                    else if (w.ValueKind == JsonValueKind.String) weakList.Add(w.GetString() ?? "");
+                                }
+                                techFeedbackDict["weaknesses"] = JsonSerializer.Serialize(weakList);
+                            }
+                            if (root.TryGetProperty("summary", out var sumEl)) techAiSummary = sumEl.GetString() ?? techAiSummary;
+                        } catch {}
+                    }
+                }
+                else
+                {
+                    var legacySession = await _db.InterviewSessions.FirstOrDefaultAsync(t => t.SessionGuid == techGuid);
+                    if (legacySession != null)
+                    {
+                        techScore = (float)legacySession.OverallScore;
+                        techAiSummary = legacySession.OverallFeedback ?? techAiSummary;
+                    }
                 }
             }
 
             // 3. Coding Session evaluation
             bool codingSkipped = string.IsNullOrEmpty(codingGuid) || codingGuid.Contains("skipped");
             float overallCodingScore = 0.0f;
-            float problemUnderstanding = 7.0f;
-            float algorithmDesign = 7.0f;
-            float codeCorrectness = 7.0f;
-            float codeQuality = 7.0f;
-            float complexityAnalysis = 7.0f;
-            float testingValidation = 7.0f;
-            float communication = 7.0f;
+            float problemUnderstanding = 0.0f;
+            float algorithmDesign = 0.0f;
+            float codeCorrectness = 0.0f;
+            float codeQuality = 0.0f;
+            float complexityAnalysis = 0.0f;
+            float testingValidation = 0.0f;
+            float communication = 0.0f;
             string strengthsJson = "[]";
             string weaknessesJson = "[]";
             string learningRoadmapJson = "[]";
@@ -234,9 +322,17 @@ namespace InterviewPro.API.Services
                     complexityAnalysis = codingSession.AvgComplexityScore;
                     testingValidation = codingSession.AvgTestingScore;
                     communication = codingSession.AvgCommunicationScore;
-                    strengthsJson = "[\"Viết code tối ưu O(N)\", \"Đặt tên biến chuẩn\"]";
-                    weaknessesJson = "[\"Thiếu một số edge case biên\"]";
-                    learningRoadmapJson = "[\"Tối ưu thuật toán nâng cao\", \"Clean Code Conventions\"]";
+                    
+                    if (!string.IsNullOrEmpty(codingSession.FinalReportJson))
+                    {
+                        try {
+                            using var doc = JsonDocument.Parse(codingSession.FinalReportJson);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("strengths", out var sEl)) strengthsJson = sEl.ToString();
+                            if (root.TryGetProperty("weaknesses", out var wEl)) weaknessesJson = wEl.ToString();
+                            if (root.TryGetProperty("roadmap", out var rEl)) learningRoadmapJson = rEl.ToString();
+                        } catch {}
+                    }
                 }
                 else
                 {
@@ -283,15 +379,11 @@ namespace InterviewPro.API.Services
                                 complexityAnalysis = (float)Math.Round(totalComplexity / legacyScores.Count, 1);
                                 
                                 strengthsJson = JsonSerializer.Serialize(listStrengths);
-                                weaknessesJson = "[]";
-                                learningRoadmapJson = "[\"Tối ưu hóa thuật toán nâng cao\", \"Clean Code Conventions\"]";
                             }
                         }
                         catch
                         {
                             codeCorrectness = overallCodingScore;
-                            codeQuality = 7.5f;
-                            complexityAnalysis = 7.0f;
                         }
                     }
                 }
@@ -310,7 +402,7 @@ namespace InterviewPro.API.Services
                 Level = fullMock?.Difficulty ?? "Fresher",
                 OverallScore = overallScore,
                 HiringRecommendation = overallScore >= 8.0f ? "Strong Hire" : (overallScore >= 6.5f ? "Hire" : "Borderline"),
-                ConfidenceScore = 85.0f,
+                ConfidenceScore = hrFinalResult != null ? (float)hrFinalResult.ConfidenceScore : 85.0f,
                 AiAssessmentSummary = $"Ứng viên {name} đã hoàn thành buổi phỏng vấn thử Full Mock."
             };
 
@@ -322,15 +414,15 @@ namespace InterviewPro.API.Services
             {
                 CandidateReportId = report.Id,
                 OverallHrScore = hrScore,
-                CommunicationScore = hrSkipped ? 0f : 8.0f,
-                MotivationScore = hrSkipped ? 0f : 7.0f,
-                ProblemSolvingScore = hrSkipped ? 0f : 7.5f,
-                TeamworkScore = hrSkipped ? 0f : 8.0f,
-                AdaptabilityScore = hrSkipped ? 0f : 7.0f,
-                ProfessionalismScore = hrSkipped ? 0f : 8.0f,
-                SelfAwarenessScore = hrSkipped ? 0f : 7.5f,
-                StrengthsJson = hrSkipped ? "[]" : "[\"Giao tiếp mạch lạc\", \"Tinh thần làm việc nhóm cao\"]",
-                ImprovementsJson = hrSkipped ? "[]" : "[\"Cần làm rõ động lực cá nhân\"]",
+                CommunicationScore = hrFinalResult != null ? (float)hrFinalResult.CommunicationScore : 0f,
+                MotivationScore = hrFinalResult != null ? (float)hrFinalResult.StarStructureScore : 0f,
+                ProblemSolvingScore = hrFinalResult != null ? (float)hrFinalResult.LogicScore : 0f,
+                TeamworkScore = hrFinalResult != null ? (float)hrFinalResult.CompletenessScore : 0f,
+                AdaptabilityScore = hrFinalResult != null ? (float)hrFinalResult.ClarityScore : 0f,
+                ProfessionalismScore = hrFinalResult != null ? (float)hrFinalResult.ProfessionalismScore : 0f,
+                SelfAwarenessScore = hrFinalResult != null ? (float)hrFinalResult.ConfidenceScore : 0f,
+                StrengthsJson = hrFinalResult != null && hrFinalResult.Strengths.Any() ? JsonSerializer.Serialize(hrFinalResult.Strengths.Select(s => s.Title)) : "[]",
+                ImprovementsJson = hrFinalResult != null && hrFinalResult.Improvements.Any() ? JsonSerializer.Serialize(hrFinalResult.Improvements.Select(i => i.Title)) : "[]",
                 AiSummary = hrAiSummary,
                 HrRecommendation = hrScore >= 7.0f ? "Hire" : "Borderline"
             };
@@ -340,14 +432,14 @@ namespace InterviewPro.API.Services
             {
                 CandidateReportId = report.Id,
                 OverallTechnicalScore = techScore,
-                TechnicalKnowledgeScore = techSkipped ? 0f : 8.0f,
-                ProblemSolvingScore = techSkipped ? 0f : 7.5f,
-                PracticalExperienceScore = techSkipped ? 0f : 7.8f,
-                SystemThinkingScore = techSkipped ? 0f : 7.0f,
-                CommunicationScore = techSkipped ? 0f : 8.0f,
-                BestPracticesScore = techSkipped ? 0f : 8.5f,
-                StrengthsJson = techSkipped ? "[]" : "[\"Hiểu sâu về cấu trúc dữ liệu\", \"Áp dụng tốt design patterns\"]",
-                WeaknessesJson = techSkipped ? "[]" : "[\"Tư duy hệ thống phân tán cần cải thiện thêm\"]",
+                TechnicalKnowledgeScore = techFeedbackDict.ContainsKey("technicalKnowledge") ? (float)(double)techFeedbackDict["technicalKnowledge"] : 0f,
+                ProblemSolvingScore = techFeedbackDict.ContainsKey("problemSolving") ? (float)(double)techFeedbackDict["problemSolving"] : 0f,
+                PracticalExperienceScore = techFeedbackDict.ContainsKey("practicalExperience") ? (float)(double)techFeedbackDict["practicalExperience"] : 0f,
+                SystemThinkingScore = techFeedbackDict.ContainsKey("systemDesign") ? (float)(double)techFeedbackDict["systemDesign"] : 0f,
+                CommunicationScore = techFeedbackDict.ContainsKey("communication") ? (float)(double)techFeedbackDict["communication"] : 0f,
+                BestPracticesScore = techFeedbackDict.ContainsKey("bestPractices") ? (float)(double)techFeedbackDict["bestPractices"] : 0f,
+                StrengthsJson = techFeedbackDict.ContainsKey("strengths") ? (string)techFeedbackDict["strengths"] : "[]",
+                WeaknessesJson = techFeedbackDict.ContainsKey("weaknesses") ? (string)techFeedbackDict["weaknesses"] : "[]",
                 AiSummary = techAiSummary,
                 TechnicalRecommendation = techScore >= 7.0f ? "Hire" : "Borderline"
             };

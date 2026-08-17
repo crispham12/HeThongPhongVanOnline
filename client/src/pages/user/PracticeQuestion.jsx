@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Sparkles, CheckCircle2, AlertCircle,
   HelpCircle, Settings, Bell, BookOpen, Clock, Play, Award,
   Check, RefreshCw, Loader2, Key, Lightbulb, Compass, Star,
-  TrendingUp, Users, History, Shield
+  TrendingUp, Users, History, Shield, Mic, Square
 } from 'lucide-react';
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 import { practiceQuestionApi } from '../../services/questionBankApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,6 +23,48 @@ export default function PracticeQuestion() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [wordCount, setWordCount] = useState(0);
+
+  // Voice Recording States
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current && SpeechRecognition) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsRecording(false);
+    } else {
+      if (!SpeechRecognition) {
+        alert("Trình duyệt của bạn không hỗ trợ tính năng nhận diện giọng nói. Vui lòng dùng Chrome hoặc Edge.");
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'vi-VN';
+
+      recognition.onresult = (event) => {
+        let currentTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript + ' ';
+        }
+        setAnswer(currentTranscript);
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+    }
+  };
 
   // Load question and related questions
   useEffect(() => {
@@ -87,7 +131,6 @@ export default function PracticeQuestion() {
         improvements: improvements,
         starCompletion: res.starCompletion,
         starChecklist: res.starChecklist,
-        starAnalysis: res.starAnalysis,
         starAnalysis: res.starAnalysis,
         improvedAnswer: res.improvedAnswer,
         nextRecommendation: res.nextRecommendation,
@@ -276,16 +319,26 @@ export default function PracticeQuestion() {
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-extrabold text-gray-900">Câu trả lời của bạn</h3>
-              <span className={`text-xs font-semibold ${wordCount >= 200 && wordCount <= 500 ? 'text-emerald-500' : 'text-gray-400'}`}>
-                Gợi ý: 200 - 500 từ ({wordCount} từ)
-              </span>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleRecording}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wider font-bold transition-all ${isRecording ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse shadow-sm shadow-red-100' : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 shadow-sm'}`}
+                >
+                  {isRecording ? <Square className="w-3.5 h-3.5 fill-red-600 text-red-600" /> : <Mic className="w-3.5 h-3.5" />}
+                  {isRecording ? 'Dừng ghi âm' : 'Ghi âm trả lời'}
+                </button>
+                <span className={`text-xs font-semibold ${wordCount >= 200 && wordCount <= 500 ? 'text-emerald-500' : 'text-gray-400'}`}>
+                  Gợi ý: 200 - 500 từ ({wordCount} từ)
+                </span>
+              </div>
             </div>
 
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Nhập câu trả lời của bạn tại đây..."
-              className="w-full min-h-[220px] p-4 bg-gray-50 border border-gray-250 rounded-xl text-sm font-medium text-gray-750 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-300 transition-all resize-y"
+              readOnly
+              placeholder="Vui lòng nhấn nút 'Ghi âm trả lời' ở trên. (Hệ thống yêu cầu trả lời bằng giọng nói thay vì nhập văn bản)..."
+              className="w-full min-h-[220px] p-4 bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none transition-all resize-y cursor-not-allowed"
             />
 
             {/* Sparkle submission button */}
@@ -293,7 +346,7 @@ export default function PracticeQuestion() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !answer.trim()}
-                className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-750 disabled:opacity-50  font-bold text-sm rounded-xl shadow-md shadow-primary-100 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                className="flex items-center gap-2 px-6 py-3 bg-[#B4F290] text-[#111827] hover:bg-[#9de675] disabled:opacity-50 disabled:hover:bg-[#B4F290] disabled:hover:translate-y-0 font-bold text-sm rounded-xl shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
                 {submitting ? (
                   <>

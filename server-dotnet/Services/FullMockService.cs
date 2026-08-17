@@ -113,18 +113,6 @@ namespace InterviewPro.API.Services
                 throw new InvalidOperationException("Session không ở trạng thái InProgress.");
             }
 
-            var completedRounds = JsonSerializer.Deserialize<List<string>>(session.CompletedRoundsJson) ?? new List<string>();
-            int roundsNotDone = 3 - completedRounds.Count;
-
-            if (roundsNotDone > 0)
-            {
-                var user = await _context.Users.FindAsync(userId);
-                if (user != null && user.Plan == "Free")
-                {
-                    user.DailyInterviewUsed = Math.Max(0, user.DailyInterviewUsed - roundsNotDone);
-                }
-            }
-
             session.Status = "Abandoned";
             await _context.SaveChangesAsync();
         }
@@ -149,19 +137,19 @@ namespace InterviewPro.API.Services
 
             if (!string.IsNullOrEmpty(session.TechnicalSessionGuid))
             {
-                var techSession = await _context.InterviewSessions.FirstOrDefaultAsync(ts => ts.SessionGuid == session.TechnicalSessionGuid);
+                var techSession = await _context.TechnicalInterviewSessions.FirstOrDefaultAsync(ts => ts.SessionGuid == session.TechnicalSessionGuid);
                 if (techSession != null)
                 {
-                    technicalSummary = new RoundSummary("Technical", techSession.OverallScore, techSession.OverallFeedback);
+                    technicalSummary = new RoundSummary("Technical", techSession.OverallScore, techSession.FinalFeedbackJson);
                 }
             }
 
             if (!string.IsNullOrEmpty(session.CodingSessionGuid))
             {
-                var codingSession = await _context.InterviewSessions.FirstOrDefaultAsync(cs => cs.SessionGuid == session.CodingSessionGuid);
+                var codingSession = await _context.CodingInterviewSessions.FirstOrDefaultAsync(cs => cs.SessionGuid == session.CodingSessionGuid);
                 if (codingSession != null)
                 {
-                    codingSummary = new RoundSummary("Coding", codingSession.OverallScore, codingSession.OverallFeedback);
+                    codingSummary = new RoundSummary("Coding", codingSession.OverallScore, codingSession.FinalReportJson);
                 }
             }
 

@@ -29,7 +29,24 @@ export default function UpgradePage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [pollingStatus, setPollingStatus] = useState(null); // null | 'polling' | 'completed' | 'wrongAmount'
+  const [pollingStatus, setPollingStatus] = useState(null); // null | 'polling' | 'completed' | 'wrongAmount' | 'failed'
+  const [timeLeft, setTimeLeft] = useState(120);
+
+  useEffect(() => {
+    if (order && (pollingStatus === 'polling' || pollingStatus === 'partiallyPaid')) {
+      if (timeLeft <= 0) return;
+      const timerId = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timerId);
+    }
+  }, [order, pollingStatus, timeLeft]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -56,6 +73,7 @@ export default function UpgradePage() {
     try {
       const { data } = await paymentApi.createOrder(selectedPlan);
       setOrder(data);
+      setTimeLeft(120);
       startPolling(data.orderCode);
     } catch {
       alert('Có lỗi xảy ra. Vui lòng thử lại.');
@@ -67,7 +85,7 @@ export default function UpgradePage() {
   const startPolling = (orderCode) => {
     setPollingStatus('polling');
     let attempts = 0;
-    const maxAttempts = 120; // 10 phút × 5s
+    const maxAttempts = 24; // 2 minutes × 5s
 
     const interval = setInterval(async () => {
       attempts++;
@@ -80,12 +98,27 @@ export default function UpgradePage() {
         } else if (data.status === 'WrongAmount') {
           clearInterval(interval);
           setPollingStatus('wrongAmount');
+        } else if (data.status === 'PartiallyPaid') {
+          const remainingAmount = data.amount - (data.actualAmount || 0);
+          const bankName = order.bankName;
+          const bankAccount = order.bankAccount;
+          const accountNameEncoded = encodeURIComponent(order.accountName);
+          const newQrUrl = `https://img.vietqr.io/image/${bankName}-${bankAccount}-compact2.png?amount=${remainingAmount}&addInfo=${order.orderCode}&accountName=${accountNameEncoded}`;
+          
+          setOrder(prev => ({
+            ...prev,
+            actualAmount: data.actualAmount,
+            remainingAmount: remainingAmount,
+            qrUrl: newQrUrl
+          }));
+          setPollingStatus('partiallyPaid');
+          // Không clear interval, tiếp tục chờ lần thanh toán thứ 2
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
-          setPollingStatus(null);
+          setPollingStatus('failed');
         }
       } catch {
-        clearInterval(interval);
+        // ignore errors during polling
       }
     }, 5000);
   };
@@ -95,6 +128,31 @@ export default function UpgradePage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // Trạng thái: Thất bại (Quá thời gian)
+  if (pollingStatus === 'failed') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⏳</span>
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Quá thời gian thanh toán</h2>
+          <p className="text-slate-500 text-sm mb-6">Bạn đã không hoàn tất thanh toán trong thời gian quy định (2 phút). Vui lòng tạo đơn hàng mới nếu bạn vẫn muốn nâng cấp.</p>
+          <button
+            onClick={() => {
+              setOrder(null);
+              setPollingStatus(null);
+              setTimeLeft(120);
+            }}
+            className="w-full py-3 bg-slate-900 text-white font-bold text-sm rounded-xl"
+          >
+            Quay lại tạo đơn mới
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Trạng thái: Thanh toán thành công
   if (pollingStatus === 'completed') {
@@ -122,6 +180,9 @@ export default function UpgradePage() {
           </p>
           <div className="bg-slate-50 rounded-xl px-4 py-3 font-mono font-bold text-slate-800 text-lg mb-4">
             {order?.orderCode}
+          </div>
+          <div className="text-sm font-semibold text-slate-700 mb-4 border border-slate-200 p-3 rounded-xl">
+            Hotline Admin: 0987.654.321
           </div>
           <a
             href="https://m.me/YOUR_PAGE"
@@ -208,6 +269,14 @@ export default function UpgradePage() {
         ) : (
           /* Hướng dẫn chuyển khoản */
           <div className="space-y-4">
+            {pollingStatus === 'partiallyPaid' && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-4 text-left">
+                <p className="text-sm font-bold text-red-700">⚠️ Bạn đã thanh toán thiếu {(order.actualAmount || 0).toLocaleString('vi-VN')}đ</p>
+                <p className="text-xs text-red-600 mt-1">Vui lòng quét mã QR bên dưới để nạp bù phần còn lại ({(order.remainingAmount || 0).toLocaleString('vi-VN')}đ).</p>
+                <p className="text-[10px] font-bold text-red-700 mt-2 italic">Lưu ý: Chỉ hỗ trợ nạp bù 1 lần duy nhất.</p>
+              </div>
+            )}
+
             <div className="bg-slate-50 rounded-2xl p-5 text-center">
               <p className="text-xs text-slate-400 mb-1">Mã đơn hàng</p>
               <p className="text-2xl font-black text-slate-900 font-mono mb-3">{order.orderCode}</p>
@@ -220,7 +289,7 @@ export default function UpgradePage() {
               { label: 'Ngân hàng', value: order.bankName },
               { label: 'Số tài khoản', value: order.bankAccount },
               { label: 'Chủ tài khoản', value: order.accountName },
-              { label: 'Số tiền', value: `${order.amount.toLocaleString('vi-VN')}đ` },
+              { label: 'Số tiền cần chuyển', value: `${(pollingStatus === 'partiallyPaid' ? order.remainingAmount : order.amount).toLocaleString('vi-VN')}đ` },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl">
                 <span className="text-xs text-slate-400">{label}</span>
@@ -244,10 +313,15 @@ export default function UpgradePage() {
             </div>
 
             {/* Trạng thái chờ */}
-            {pollingStatus === 'polling' && (
-              <div className="flex items-center justify-center gap-2 py-4 text-slate-400">
-                <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                <span className="text-xs">Đang chờ xác nhận thanh toán...</span>
+            {(pollingStatus === 'polling' || pollingStatus === 'partiallyPaid') && (
+              <div className="flex flex-col items-center justify-center py-4">
+                <div className="flex items-center gap-2 text-slate-400 mb-2">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  <span className="text-xs">Đang chờ xác nhận thanh toán...</span>
+                </div>
+                <div className="text-xl font-bold text-slate-700 font-mono">
+                  {formatTime(timeLeft)}
+                </div>
               </div>
             )}
           </div>
