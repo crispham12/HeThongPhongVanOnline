@@ -166,14 +166,28 @@ namespace InterviewPro.API.Services
                 int nextIndex = currentQuestion.QuestionIndex + 1;
                 string nextStage = GetStage(nextIndex);
 
-                // Build context from previous answers
+                // Re-query from DB to get the freshest data (including the answer we just saved)
+                var answeredQs = await _db.TechnicalInterviewQuestions
+                    .Where(q => q.SessionId == session.Id && q.AnsweredAt != null)
+                    .OrderBy(q => q.QuestionIndex)
+                    .ToListAsync();
+
+                // Build context from previous Q&A pairs
                 var contextBuilder = new System.Text.StringBuilder();
-                var answeredQs = session.Questions.Where(q => q.AnsweredAt != null).OrderBy(q => q.QuestionIndex);
+                contextBuilder.AppendLine("=== CÁC CÂU HỎI VÀ TRẢ LỜI TRƯỚC ĐÓ ===");
                 foreach(var q in answeredQs)
                 {
-                    contextBuilder.AppendLine($"Q{q.QuestionIndex} ({q.Stage}): {q.Content}");
-                    contextBuilder.AppendLine($"A: {q.CandidateAnswer}");
+                    contextBuilder.AppendLine($"Câu {q.QuestionIndex} [{q.Stage}]: {q.Content}");
+                    contextBuilder.AppendLine($"Trả lời: {q.CandidateAnswer}");
                     contextBuilder.AppendLine("---");
+                }
+
+                // Explicitly list already-asked topics so AI avoids them
+                contextBuilder.AppendLine();
+                contextBuilder.AppendLine("=== DANH SÁCH CÁC CÂU HỎI ĐÃ HỎI (TUYỆT ĐỐI KHÔNG LẶP LẠI) ===");
+                foreach(var q in answeredQs)
+                {
+                    contextBuilder.AppendLine($"- [{q.Stage}] {q.Content}");
                 }
 
                 var aiReq = new AiGenerateQuestionRequest

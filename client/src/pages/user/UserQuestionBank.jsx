@@ -106,6 +106,9 @@ export default function UserQuestionBank() {
           if (categoryFilter !== 'all' && categoryFilter !== '') {
             params.category = categoryFilter;
           }
+          if (params.difficulty === 'Dễ') params.difficulty = 'Easy';
+          if (params.difficulty === 'Vừa') params.difficulty = 'Medium';
+          if (params.difficulty === 'Khó') params.difficulty = 'Hard';
         data = await practiceCodingApi.getAll(params);
       } else {
         params.category = currentTab.apiCategory;

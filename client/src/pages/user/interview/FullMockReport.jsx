@@ -524,6 +524,37 @@ export default function FullMockReport() {
           </div>
         </div>
 
+        {/* Section 4: Recommended Practice (Bug 3 Fix) */}
+        {report.recommendedPracticeQuestions && report.recommendedPracticeQuestions.length > 0 && (
+          <div className="print-card bg-white p-8 rounded-2xl border border-slate-150 shadow-sm space-y-4 mt-8">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+              <RotateCcw className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-base font-extrabold text-slate-900">Gợi ý luyện tập nâng cao (Dựa trên điểm yếu)</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              {report.recommendedPracticeQuestions.map((q, idx) => (
+                <div key={idx} className="p-4 border border-slate-200 rounded-xl hover:border-indigo-300 transition bg-slate-50 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase ${q.type === 'Technical' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {q.type}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-semibold">{q.difficulty}</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800 line-clamp-2">{q.title}</h4>
+                  </div>
+                  <button 
+                    onClick={() => navigate(q.type === 'Technical' ? `/practice` : `/coding/problems/${q.id}`)}
+                    className="mt-4 flex items-center justify-center gap-1.5 w-full py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+                  >
+                    Luyện tập ngay <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
