@@ -14,10 +14,11 @@ if is_gemini:
     print("[AI Service] Google Gemini API Key detected. Using Gemini compatibility layer.")
     client = AsyncOpenAI(
         api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        max_retries=0
     )
 else:
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, max_retries=0)
 
 
 async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
@@ -25,8 +26,8 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
     Call OpenAI/Gemini and parse JSON response.
     Returns the parsed result dict. Usage data is stored in result["usage"] and result["model"].
     """
-    # Override model if using Gemini key
-    actual_model = "gemini-2.5-flash" if is_gemini else model
+    # Use the model as passed in (caller is responsible for choosing the right model)
+    actual_model = model
 
     try:
         response = await client.chat.completions.create(

@@ -78,7 +78,7 @@ async def generate_question(setup: InterviewSetup):
     if not api_key or api_key.startswith("AIza"):
         # Fallback nếu chưa có key hoặc dùng nhầm key Google (AIza...)
         return {
-            "question": f"Please explain your experience with {', '.join(setup.stack)} as a {setup.role}.",
+            "question": f"Hãy chia sẻ kinh nghiệm của bạn về {', '.join(setup.stack)} với vai trò {setup.role}.",
             "context": {"status": "mock_mode_invalid_key"},
             "phase": setup.interview_type,
             "tags": ["General"]
@@ -118,7 +118,7 @@ async def generate_question(setup: InterviewSetup):
         print(f"Error in generate_question: {str(e)}")
         # Trả về câu hỏi mặc định nếu có lỗi API (Đí dụ: Key sai, hết tiền...)
         return {
-            "question": f"Can you describe a challenging project you worked on using {', '.join(setup.stack)}?",
+            "question": f"Bạn có thể kể về một dự án thử thách mà bạn đã làm với {', '.join(setup.stack)} không?",
             "context": {"status": "error_fallback", "error": str(e)},
             "phase": setup.interview_type,
             "tags": ["General"]
@@ -135,9 +135,9 @@ async def evaluate_answer(submission: AnswerSubmission):
         score = random.randint(60, 90)
         return {
             "score": score,
-            "feedback": "API Key is invalid or missing (You might be using a Google Key instead of OpenAI sk-...). This is a mock evaluation.",
+            "feedback": "API Key không hợp lệ hoặc bị thiếu (Có thể bạn đang dùng Google Key thay vì OpenAI sk-...). Đây là đánh giá giả lập.",
             "is_correct": score > 70,
-            "next_question": "Can you elaborate more on that?"
+            "next_question": "Bạn có thể giải thích chi tiết hơn về vấn đề này không?"
         }
 
     try:
@@ -168,7 +168,7 @@ async def evaluate_answer(submission: AnswerSubmission):
         print(f"Error in evaluate_answer: {str(e)}")
         return {
             "score": 0,
-            "feedback": f"Evaluation failed due to API error: {str(e)}. Please check your API Key.",
+            "feedback": f"Đánh giá thất bại do lỗi API: {str(e)}. Vui lòng kiểm tra lại API Key.",
             "is_correct": False,
             "next_question": None
         }
@@ -179,7 +179,7 @@ async def generate_report(request: InterviewReportRequest):
     Logic: Tổng hợp kết quả để đưa ra đánh giá cuối cùng.
     """
     if not os.getenv("OPENAI_API_KEY"):
-        return {"overall_assessment": "Mock report: Please set API Key", "roadmap": [], "final_decision": "Review needed"}
+        return {"overall_assessment": "Báo cáo giả lập: Vui lòng cấu hình API Key", "roadmap": [], "final_decision": "Cần xem xét thêm"}
 
     try:
         scores_str = json.dumps(request.scores)
@@ -197,7 +197,7 @@ async def generate_report(request: InterviewReportRequest):
         response_data = {
             "overall_assessment": ai_response.get("overall_advice", ""),
             "roadmap": ai_response.get("roadmap", []),
-            "final_decision": "Recommend Hire" if sum(request.scores.values()) / len(request.scores) > 70 else "Recommend Further Training"
+            "final_decision": "Đề xuất tuyển dụng" if sum(request.scores.values()) / len(request.scores) > 70 else "Đề xuất đào tạo thêm"
         }
         if usage:
             response_data["usage"] = usage

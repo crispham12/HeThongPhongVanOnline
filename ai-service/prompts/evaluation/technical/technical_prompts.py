@@ -29,7 +29,7 @@ QUY TẮC:
    - Câu hỏi 3 của giai đoạn này: Hỏi về giải pháp cải tiến nếu được làm lại dự án đó từ đầu.
 - Nếu Giai đoạn là "System Thinking", đưa ra một bài toán thiết kế hệ thống phù hợp với level {difficulty} (VD: CRUD cho Intern, Auth cho Junior, Upload cho Middle, Notification cho Senior, Distributed cho Lead).
 - Chỉ sinh ra CHÍNH XÁC MỘT câu hỏi bằng tiếng Việt.
-- KHÔNG lặp lại các câu hỏi đã hỏi trong ngữ cảnh.
+- **CHỐNG LẶP CÂU (QUAN TRỌNG NHẤT)**: Trong phần ngữ cảnh có một section "=== DANH SÁCH CÁC CÂU HỎI ĐÃ HỎI ===" liệt kê toàn bộ câu hỏi đã hỏi. Bạn PHẢI đọc toàn bộ danh sách đó và TUYỆT ĐỐI KHÔNG sinh câu hỏi trùng nội dung, trùng chủ đề, hoặc trùng khái niệm với bất kỳ câu nào trong danh sách đó. Nếu đã hỏi về Database → hỏi về API. Nếu đã hỏi về API → hỏi về Security, Caching, Message Queue, Testing, Performance, hoặc chủ đề hoàn toàn khác.
 
 Trả về kết quả dưới định dạng JSON:
 {{

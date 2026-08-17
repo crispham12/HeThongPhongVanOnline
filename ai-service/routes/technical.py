@@ -36,46 +36,60 @@ class GenerateQuestionResponse(BaseModel):
 @router.post("/generate-question", response_model=GenerateQuestionResponse)
 async def generate_question(req: GenerateQuestionRequest):
     try:
+        # Truncate context if too long to avoid token limits
+        context = req.context
+        if len(context) > 8000:
+            context = context[-8000:]
+
         prompt = TECHNICAL_GENERATE_QUESTION_PROMPT.format(
             role=req.role,
             difficulty=req.difficulty,
             tech_stack=req.tech_stack,
             stage=req.stage,
             question_index=req.question_index,
-            context=req.context
+            context=context
         )
+        print(f"\n[Technical] Generating question {req.question_index}/10 | Stage: {req.stage} | Role: {req.role} | Model: gemini-2.5-flash")
+        print(f"[Technical] Context length: {len(context)} chars")
         result, usage = await call_openai_with_usage(prompt)
+        question_text = result.get("questionText", "").strip()
+        if not question_text:
+            raise ValueError("AI returned empty questionText")
+        print(f"[Technical] ✅ Generated: {question_text[:80]}...")
         return GenerateQuestionResponse(
-            questionText=result.get("questionText", "Could you elaborate more on your previous answer?"),
+            questionText=question_text,
             expectedAnswerGuide=result.get("expectedAnswerGuide", ""),
             usage=TokenUsageInfo(**usage)
         )
     except Exception as e:
-        print(f"[Technical] Generate Question Error: {e}. Using fallback question.")
+        print(f"[Technical] ❌ Generate Question Error: {type(e).__name__}: {e}")
         traceback.print_exc()
         stage_name = req.stage if req.stage else "Technical"
         tech = req.tech_stack if req.tech_stack else req.role
         
-        fallback_questions = {
-            "warm-up": f"Chào bạn, hãy giới thiệu bản thân và chia sẻ lý do bạn theo đuổi công nghệ {tech}.",
-            "core knowledge": f"Hãy giải thích các khái niệm cơ bản cốt lõi liên quan đến {tech} mà bạn thấy quan trọng nhất.",
-            "applied knowledge": f"Trong công việc thực tế với {tech}, bạn đã bao giờ tối ưu hóa hoặc giải quyết một bug phức tạp nào chưa? Hãy chia sẻ chi tiết.",
-            "project deep dive": f"Hãy mô tả chi tiết một dự án thực tế sử dụng {tech} mà bạn tâm đắc nhất và những thách thức bạn đã vượt qua.",
-            "system thinking": f"Khi thiết kế hệ thống sử dụng {tech}, làm thế nào để bạn đảm bảo tính mở rộng (scalability) và bảo mật (security)?"
+        # Use question_index to pick DIFFERENT fallback questions so they don't all repeat
+        fallback_by_index = {
+            1:  f"Chào bạn! Hãy giới thiệu bản thân và chia sẻ lý do bạn theo đuổi lĩnh vực {tech}.",
+            2:  f"Bạn có thể giải thích sự khác biệt giữa các design pattern phổ biến (VD: Singleton, Factory, Observer) và khi nào nên dùng mỗi loại?",
+            3:  f"Trong dự án thực tế với {tech}, làm thế nào bạn đảm bảo chất lượng code (code review, testing, CI/CD)?",
+            4:  f"Hãy giải thích về dependency injection và lý do tại sao nó quan trọng trong {tech}.",
+            5:  f"Bạn đã từng gặp một bug khó debug trong {tech} chưa? Hãy mô tả cách bạn tìm ra nguyên nhân.",
+            6:  f"Mô tả kiến trúc của một dự án thực tế bạn đã làm với {tech} — các layer, pattern và công nghệ sử dụng.",
+            7:  f"Trong dự án đó, bạn đã gặp khó khăn lớn nhất nào và giải quyết như thế nào?",
+            8:  f"Nếu được làm lại dự án đó từ đầu, bạn sẽ thay đổi gì trong kiến trúc hoặc công nghệ?",
+            9:  f"Làm thế nào bạn thiết kế một hệ thống notification realtime có thể scale lên hàng triệu user?",
+            10: f"Nếu hệ thống {tech} của bạn bị chậm đột ngột trong production, các bước debug và xử lý của bạn là gì?",
         }
         
-        stage_key = stage_name.lower()
-        question_text = fallback_questions.get(stage_key, f"Hãy chia sẻ kinh nghiệm thực tế của bạn khi làm việc với {tech}.")
-        for k, v in fallback_questions.items():
-            if k in stage_key:
-                question_text = v
-                break
-                
+        question_text = fallback_by_index.get(req.question_index,
+            f"Hãy chia sẻ kinh nghiệm thực tế của bạn khi làm việc với {tech} - câu {req.question_index}."
+        )
         return GenerateQuestionResponse(
             questionText=question_text,
-            expectedAnswerGuide=f"Đánh giá hiểu biết sâu sắc và kinh nghiệm thực tiễn của ứng viên về {tech} tại giai đoạn {stage_name}.",
+            expectedAnswerGuide=f"Đánh giá ở giai đoạn {stage_name}.",
             usage=TokenUsageInfo(inputTokens=0, outputTokens=0, totalTokens=0, model="fallback-mode")
         )
+
 
 # -- Evaluate Answer --
 class EvaluateAnswerRequest(BaseModel):

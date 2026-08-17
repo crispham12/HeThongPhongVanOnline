@@ -12,13 +12,13 @@ async def evaluate_answer(req: EvaluateAnswerRequest):
     try:
         data = await call_openai(prompt)
         return EvaluateAnswerResponse(
-            feedback=data.get("feedback", "Good attempt. Keep practicing."),
+            feedback=data.get("feedback", "Câu trả lời tốt. Hãy tiếp tục luyện tập nhé."),
             score=int(data.get("score", 70)),
             next_question=data.get("next_question"),
             tags=data.get("tags"),
         )
     except Exception:
         return EvaluateAnswerResponse(
-            feedback="Thank you for your answer. Consider adding more specific examples and quantifying the impact of your actions.",
+            feedback="Cảm ơn câu trả lời của bạn. Hãy cân nhắc thêm các ví dụ cụ thể và định lượng kết quả các hành động của bạn nhé.",
             score=72,
         )

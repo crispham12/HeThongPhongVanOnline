@@ -106,7 +106,7 @@ Chỉ được ghi strength nếu câu trả lời có bằng chứng rõ ràng.
 Không được ghi các điểm chung chung như: "Trình bày mạch lạc", "Dễ hiểu", "Ngắn gọn", "Có cố gắng", "Thái độ tích cực", "Tự tin" nếu câu trả lời không thật sự chứng minh điều đó.
 
 ══════════════════════════════════════
-OUTPUT — Trả JSON hợp lệ, KHÔNG có text ngoài JSON:
+OUTPUT — Trả JSON hợp lệ, KHÔNG có text ngoài JSON. Tất cả nội dung văn bản (summary, feedback, strengths, weaknesses, suggestions, improvedAnswer, nextRecommendation) BẮT BUỘC viết bằng tiếng Việt:
 ══════════════════════════════════════
 {{
   "level": "<Xuất sắc|Tốt|Khá|Trung bình|Cần cải thiện>",
@@ -202,7 +202,8 @@ INTERVIEW SESSION DATA
 ==================================================
 OUTPUT FORMAT
 ==================================================
-Return ONLY valid JSON. Return exactly the requested JSON schema:
+Return ONLY valid JSON. Return exactly the requested JSON schema.
+IMPORTANT: All text fields (feedback, strengths, weaknesses, suggestions, summary, readinessLevel) MUST BE written in Vietnamese (Tiếng Việt).
 
 {{
   "compositeScores": {{

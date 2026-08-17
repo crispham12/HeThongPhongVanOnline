@@ -136,18 +136,18 @@ Your task is to generate a COMPLETE coding problem in JSON format. IMPORTANT RUL
 Return a single valid JSON object with this EXACT structure:
 
 {{
-  "title": "Creative title for the problem (not a copy of LeetCode title)",
-  "shortDescription": "One sentence summary of what to solve (under 100 chars)",
-  "description": "Full problem description in 3-5 paragraphs. Written from scratch. Professional tone. Explain context, objective, and constraints. In Vietnamese is acceptable.",
+  "title": "Exact English LeetCode title of the problem (e.g. 'Two Sum', 'Reverse Linked List')",
+  "shortDescription": "Tóm tắt bài toán trong một câu (dưới 100 ký tự) bằng tiếng Việt",
+  "description": "Mô tả bài toán chi tiết bằng tiếng Việt. Bắt buộc 100% bằng tiếng Việt. Giải thích bối cảnh, mục tiêu và các ràng buộc.",
   "difficulty": {{
     "level": "Easy",
-    "reason": "Bullet points explaining why: what data structures needed, target level (Intern/Fresher/Junior/etc.)"
+    "reason": "Giải thích lý do chọn độ khó này (cấu trúc dữ liệu cần dùng, trình độ mục tiêu...)"
   }},
-  "category": "Main algorithm category e.g. Array, Hash Table, Dynamic Programming",
-  "role": "Target job role e.g. Software Engineer - Intern",
+  "category": "Danh mục thuật toán chính (vd: Array, Hash Table, Dynamic Programming)",
+  "role": "Vị trí tuyển dụng mục tiêu bằng tiếng Việt (vd: Kỹ sư phần mềm - Thực tập sinh)",
   "tags": ["tag1", "tag2", "tag3"],
-  "inputFormat": "Describe input format clearly",
-  "outputFormat": "Describe expected output format clearly",
+  "inputFormat": "Mô tả định dạng đầu vào (Input) bằng tiếng Việt",
+  "outputFormat": "Mô tả định dạng đầu ra (Output) bằng tiếng Việt",
   "constraints": [
     "2 <= nums.length <= 10^4",
     "All values are unique"
@@ -378,7 +378,7 @@ QUAN TRỌNG: Trả về JSON hợp lệ theo format sau, không có markdown:
         
         fallback_problems = [
             {
-                "title": "Đảo ngược chuỗi (Reverse String)",
+                "title": "Reverse String",
                 "description": "Viết một hàm nhận đầu vào là một chuỗi và trả về chuỗi đảo ngược của nó. Ví dụ: 'hello' -> 'olleh'.",
                 "difficulty": "Easy",
                 "examples": [
@@ -401,7 +401,7 @@ QUAN TRỌNG: Trả về JSON hợp lệ theo format sau, không có markdown:
                 }
             },
             {
-                "title": "Kiểm tra chuỗi ngoặc hợp lệ (Valid Parentheses)",
+                "title": "Valid Parentheses",
                 "description": "Cho một chuỗi chỉ chứa các ký tự '(', ')', '{', '}', '[' và ']'. Xác định xem chuỗi đầu vào có hợp lệ hay không. Một chuỗi đầu vào hợp lệ khi: Các ngoặc mở phải được đóng bằng cùng một loại ngoặc, và theo đúng thứ tự.",
                 "difficulty": "Medium",
                 "examples": [
@@ -424,7 +424,7 @@ QUAN TRỌNG: Trả về JSON hợp lệ theo format sau, không có markdown:
                 }
             },
             {
-                "title": "Tổng lớn nhất của mảng con (Maximum Subarray)",
+                "title": "Maximum Subarray",
                 "description": "Tìm mảng con liên tiếp (chứa ít nhất một số) có tổng lớn nhất trong một mảng số nguyên. Ví dụ: [-2,1,-3,4,-1,2,1,-5,4] -> 6 (mảng con [4,-1,2,1]). Input nhận vào là chuỗi các số cách nhau bởi dấu phẩy.",
                 "difficulty": "Hard",
                 "examples": [

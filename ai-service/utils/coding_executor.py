@@ -419,8 +419,8 @@ def _parse_text_args_with_signature(tc_input: str, sig_info: dict):
     return out
 
 
-def _build_args_dict(tc_input: str, method_signature: str):
-    sig_info = parse_java_signature(method_signature) if method_signature else None
+def _build_args_dict(tc_input: str, method_signature: str, inferred_sig: Optional[dict] = None):
+    sig_info = parse_java_signature(method_signature) if method_signature else inferred_sig
 
     # 1) JSON path first
     try:
@@ -430,11 +430,16 @@ def _build_args_dict(tc_input: str, method_signature: str):
         if isinstance(parsed, list) and sig_info and sig_info.get('params'):
             names = [p['name'] for p in sig_info['params']]
             return {names[i]: parsed[i] for i in range(min(len(names), len(parsed)))}
+        # Single scalar check if sig_info has exactly 1 parameter
+        if sig_info and sig_info.get('params') and len(sig_info['params']) == 1:
+            return {sig_info['params'][0]['name']: parsed}
     except Exception:
         pass
 
     # 2) Plain text path based on signature
     if sig_info and sig_info.get('params'):
+        if len(sig_info['params']) == 1:
+            return {sig_info['params'][0]['name']: _to_typed_value(tc_input, sig_info['params'][0]['type'])}
         return _parse_text_args_with_signature(tc_input, sig_info)
 
     # 3) No signature => empty args (stdin mode should be used upstream)
@@ -537,6 +542,70 @@ def _parse_loose_value(text: str):
         return t
 
 
+import re
+
+def infer_python_signature(code: str, func_name: str) -> Optional[dict]:
+    # Match: def func_name(self, arg1, arg2): or def func_name(arg1, arg2):
+    pattern = rf"def\s+{re.escape(func_name)}\s*\((.*?)\)"
+    match = re.search(pattern, code)
+    if not match:
+        return None
+    params_str = match.group(1).strip()
+    
+    # Split parameters, ignoring default values and self
+    raw_params = []
+    current_param = []
+    depth = 0
+    for char in params_str:
+        if char in ('(', '[', '{'):
+            depth += 1
+        elif char in (')', ']', '}'):
+            depth -= 1
+        elif char == ',' and depth == 0:
+            raw_params.append(''.join(current_param).strip())
+            current_param = []
+        else:
+            current_param.append(char)
+    if current_param:
+        raw_params.append(''.join(current_param).strip())
+
+    params = []
+    for rp in raw_params:
+        if not rp:
+            continue
+        name = rp.split('=')[0].split(':')[0].strip()
+        if name == 'self':
+            continue
+        params.append({'type': 'String', 'name': name})
+        
+    return {
+        'func_name': func_name,
+        'params': params
+    }
+
+def infer_javascript_signature(code: str, func_name: str) -> Optional[dict]:
+    patterns = [
+        rf"function\s+{re.escape(func_name)}\s*\((.*?)\)",
+        rf"(?:const|let|var)\s+{re.escape(func_name)}\s*=\s*(?:async\s*)?\((.*?)\)\s*=>",
+        rf"(?:const|let|var)\s+{re.escape(func_name)}\s*=\s*(?:async\s*)?function\s*\((.*?)\)"
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, code)
+        if match:
+            params_str = match.group(1).strip()
+            raw_params = [p.split('=')[0].strip() for p in params_str.split(',')]
+            params = []
+            for rp in raw_params:
+                if not rp:
+                    continue
+                params.append({'type': 'String', 'name': rp})
+            return {
+                'func_name': func_name,
+                'params': params
+            }
+    return None
+
+
 def _outputs_match_json(actual: str, expected: str) -> bool:
     act = actual.strip()
     exp = expected.strip()
@@ -553,10 +622,10 @@ def _outputs_match_json(actual: str, expected: str) -> bool:
 # Python Executor
 # ═══════════════════════════════════════════════
 
-def _build_python_runner(code: str, tc_input: str, func_name: str, method_signature: str) -> str:
-    args_dict = _build_args_dict(tc_input, method_signature)
+def _build_python_runner(code: str, tc_input: str, func_name: str, method_signature: str, inferred_sig: Optional[dict] = None) -> str:
+    args_dict = _build_args_dict(tc_input, method_signature, inferred_sig)
 
-    sig_info = parse_java_signature(method_signature) if method_signature else None
+    sig_info = parse_java_signature(method_signature) if method_signature else inferred_sig
     if sig_info and sig_info['params']:
         param_names = [p['name'] for p in sig_info['params']]
     else:
@@ -595,19 +664,29 @@ def _build_python_runner(code: str, tc_input: str, func_name: str, method_signat
 
 async def execute_python(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
     results = []
+    
+    if not func_name:
+        import re
+        pattern = r"def\s+([a-zA-Z_]\w*)\s*\("
+        for match in re.finditer(pattern, code):
+            if match.group(1) != "main":
+                func_name = match.group(1)
+                break
+                
+    inferred = infer_python_signature(code, func_name) if func_name else None
     for idx, tc in enumerate(test_cases):
         tc_input = tc.get('input', '').strip()
         tc_expected = tc.get('expectedOutput', '').strip()
 
         if func_name:
-            runner_code = _build_python_runner(code, tc_input, func_name, method_signature)
+            runner_code = _build_python_runner(code, tc_input, func_name, method_signature, inferred)
         else:
             runner_code = code
 
         try:
             run_result = await _run_piston(
                 'python', runner_code,
-                stdin_data='' if func_name else tc_input,
+                stdin_data=tc_input,
                 timeout=TIMEOUT_SECONDS,
             )
             # Use json-aware matcher
@@ -635,10 +714,10 @@ async def execute_python(code: str, test_cases: list, func_name: Optional[str] =
 # JavaScript (Node.js) Executor
 # ═══════════════════════════════════════════════
 
-def _build_js_runner(code: str, tc_input: str, func_name: str, method_signature: str) -> str:
-    args_dict = _build_args_dict(tc_input, method_signature)
+def _build_js_runner(code: str, tc_input: str, func_name: str, method_signature: str, inferred_sig: Optional[dict] = None) -> str:
+    args_dict = _build_args_dict(tc_input, method_signature, inferred_sig)
 
-    sig_info = parse_java_signature(method_signature) if method_signature else None
+    sig_info = parse_java_signature(method_signature) if method_signature else inferred_sig
     if sig_info and sig_info['params']:
         param_names = [p['name'] for p in sig_info['params']]
     else:
@@ -674,19 +753,20 @@ def _build_js_runner(code: str, tc_input: str, func_name: str, method_signature:
 
 async def execute_javascript(code: str, test_cases: list, func_name: Optional[str] = None, method_signature: Optional[str] = None) -> list:
     results = []
+    inferred = infer_javascript_signature(code, func_name) if func_name else None
     for idx, tc in enumerate(test_cases):
         tc_input = tc.get('input', '').strip()
         tc_expected = tc.get('expectedOutput', '').strip()
 
         if func_name:
-            runner_code = _build_js_runner(code, tc_input, func_name, method_signature)
+            runner_code = _build_js_runner(code, tc_input, func_name, method_signature, inferred)
         else:
             runner_code = code
 
         try:
             run_result = await _run_piston(
                 'javascript', runner_code,
-                stdin_data='' if func_name else tc_input,
+                stdin_data=tc_input,
                 timeout=TIMEOUT_SECONDS,
             )
             passed = _outputs_match_json(run_result['stdout'], tc_expected)
