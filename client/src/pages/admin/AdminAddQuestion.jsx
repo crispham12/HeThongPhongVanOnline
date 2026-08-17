@@ -253,12 +253,14 @@ export default function AdminAddQuestion() {
     }
   }, [toast]);
 
-  // Set default role to 'All' when category is HR
+  // Set default role to 'All' when category is HR, reset otherwise
   useEffect(() => {
     if (watchCategory === 'HR') {
       setValue('role', 'All');
+    } else if (watchCategory === 'Kỹ thuật' && watchRole === 'All') {
+      setValue('role', 'Software Engineer');
     }
-  }, [watchCategory, setValue]);
+  }, [watchCategory, watchRole, setValue]);
 
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
@@ -501,7 +503,6 @@ export default function AdminAddQuestion() {
                   >
                     <option value="Kỹ thuật">Kỹ thuật</option>
                     <option value="HR">HR</option>
-                    <option value="Coding">Coding</option>
                   </select>
                 </div>
 

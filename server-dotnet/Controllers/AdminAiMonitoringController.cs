@@ -9,7 +9,7 @@ namespace InterviewPro.API.Controllers
 {
     [ApiController]
     [Route("api/admin/ai-monitoring")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class AdminAiMonitoringController : ControllerBase
     {
         private readonly IAiRequestLogService _logService;
@@ -19,10 +19,18 @@ namespace InterviewPro.API.Controllers
             _logService = logService;
         }
 
+        private bool IsAdmin() =>
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "1" ||
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin" ||
+            User.HasClaim("role", "1") ||
+            User.HasClaim("role", "Admin") ||
+            User.IsInRole("Admin");
+
         // GET /api/admin/ai-monitoring/overview
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview([FromQuery] string range = "24h")
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var overview = await _logService.GetOverviewAsync(range);
@@ -38,6 +46,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("token-usage")]
         public async Task<IActionResult> GetTokenUsage([FromQuery] string range = "24h")
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var usage = await _logService.GetTokenUsageAsync(range);
@@ -53,6 +62,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("feature-usage")]
         public async Task<IActionResult> GetFeatureUsage([FromQuery] string range = "24h")
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var features = await _logService.GetFeatureUsageAsync(range);
@@ -68,6 +78,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("system-status")]
         public async Task<IActionResult> GetSystemStatus()
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var status = await _logService.GetSystemStatusAsync();
@@ -83,6 +94,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("recent-logs")]
         public async Task<IActionResult> GetRecentLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 if (page < 1) page = 1;
@@ -100,6 +112,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("errors")]
         public async Task<IActionResult> GetErrors([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 if (page < 1) page = 1;

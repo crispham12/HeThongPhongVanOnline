@@ -21,7 +21,8 @@ namespace InterviewPro.API.Services
         public async Task<AdminDashboardOverviewDto> GetDashboardDataAsync()
         {
             var now = DateTime.UtcNow;
-            var startOfToday = now.Date;
+            var localToday = now.AddHours(7).Date;
+            var startOfToday = localToday.AddHours(-7);
             var thirtyDaysAgo = startOfToday.AddDays(-30);
             var sevenDaysAgo = startOfToday.AddDays(-6);
 
@@ -50,18 +51,23 @@ namespace InterviewPro.API.Services
 
             // 2. ChartData (7 days)
             var chartData = new List<AdminDashboardChartItemDto>();
+            var recentDates = await _context.PracticeSessions
+                .Where(s => s.CreatedAt >= sevenDaysAgo)
+                .Select(s => s.CreatedAt)
+                .ToListAsync();
+            
+            var groupedCounts = recentDates
+                .GroupBy(d => d.AddHours(7).Date)
+                .ToDictionary(g => g.Key, g => g.Count());
+
             for (int i = 0; i <= 6; i++)
             {
-                var date = sevenDaysAgo.AddDays(i);
-                var endOfDate = date.AddDays(1);
-                var sessionsCount = await _context.PracticeSessions.CountAsync(s => s.CreatedAt >= date && s.CreatedAt < endOfDate);
-                
-                string dayName = date.ToString("dd/MM");
-                if (date.Date == startOfToday) dayName = "Hôm nay";
+                var day = localToday.AddDays(-6 + i);
+                var sessionsCount = groupedCounts.GetValueOrDefault(day, 0);
 
                 chartData.Add(new AdminDashboardChartItemDto
                 {
-                    Name = dayName,
+                    Name = day == localToday ? "Hôm nay" : day.ToString("dd/MM"),
                     PhongVan = sessionsCount,
                     DoanhThu = sessionsCount * revenuePerSession / 1000000.0
                 });

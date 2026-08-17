@@ -159,7 +159,7 @@ namespace InterviewPro.API.Services
             {
                 FullName = dto.FullName,
                 Email = dto.Email,
-                PasswordHash = dto.Password, // Simple development hashing/text. Modify to BCrypt if needed.
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Role = dto.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
                 Plan = dto.Plan,
                 Status = "Active",

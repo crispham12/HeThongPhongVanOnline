@@ -20,8 +20,12 @@ namespace InterviewPro.API.Controllers
         public AdminPaymentController(AppDbContext db) => _db = db;
 
         private bool IsAdmin() =>
-            User.FindFirst(ClaimTypes.Role)?.Value == "1" ||
-            User.FindFirst("role")?.Value == "1";
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "1" ||
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin" ||
+            User.FindAll(System.Security.Claims.ClaimTypes.Role).Any(c => c.Value == "1" || c.Value == "Admin") ||
+            User.HasClaim("role", "1") ||
+            User.HasClaim("role", "Admin") ||
+            User.IsInRole("Admin");
 
         // GET /api/admin/payments?status=WrongAmount&page=1
         [HttpGet]
@@ -140,17 +144,14 @@ namespace InterviewPro.API.Controllers
                     result.Add(new { id = "Yearly", name = "Gói 1 Năm", price = yearly.Amount, credits = -1, isActive = true });
                 }
 
-                System.IO.File.WriteAllText("debug_packages.txt", $"Called GetPackages. Result count: {result.Count}. Plans count: {plans.Count}");
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                System.IO.File.WriteAllText("debug_packages_error.txt", ex.ToString());
                 throw;
             }
         }
 
-        // PUT /api/admin/payments/packages/{id}
         [HttpPut("packages/{id}")]
         public IActionResult UpdatePackage(string id, [FromBody] UpdatePackageDto req)
         {
