@@ -21,6 +21,7 @@ namespace InterviewPro.API.DTOs
         public CodingReportDto? CodingReport { get; set; }
         public CompetencyProfileDto? CompetencyProfile { get; set; }
         public List<LearningRoadmapItemDto> LearningRoadmap { get; set; } = new();
+        public List<RecommendedPracticeQuestionDto> RecommendedPracticeQuestions { get; set; } = new();
     }
 
     public class HRReportDto
@@ -89,5 +90,13 @@ namespace InterviewPro.API.DTOs
     {
         public string Topic { get; set; } = string.Empty;
         public string Resource { get; set; } = string.Empty;
+    }
+
+    public class RecommendedPracticeQuestionDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; // "Technical" or "Coding"
+        public string Difficulty { get; set; } = string.Empty;
     }
 }

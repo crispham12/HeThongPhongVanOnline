@@ -15,7 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ──────────────── Database ────────────────
 builder.Services.AddDbContext<AppDbContext>(opts =>
-    opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    opts.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.CommandTimeout(15) // Kill any query running > 15s to prevent lock exhaustion
+    ));
 
 builder.Services.AddHttpContextAccessor();
 
@@ -79,6 +82,20 @@ builder.Services.AddHostedService<InterviewPro.API.Workers.DailyQuotaResetWorker
 // Coding Problem Bank services
 builder.Services.AddScoped<IAdminCodingProblemService, AdminCodingProblemService>();
 builder.Services.AddScoped<IPracticeCodingProblemService, PracticeCodingProblemService>();
+
+// Technical and Coding Interview services
+builder.Services.AddScoped<ITechnicalInterviewService, TechnicalInterviewService>();
+builder.Services.AddScoped<ICodingInterviewService, CodingInterviewService>();
+builder.Services.AddScoped<ICandidateReportService, CandidateReportService>();
+builder.Services.AddScoped<ICodingQuestionSelectionEngine, CodingQuestionSelectionEngine>();
+
+// Coding Question Providers
+builder.Services.AddScoped<ICodingQuestionProvider, InternalQuestionProvider>();
+builder.Services.AddScoped<ICodingQuestionProvider, LeetCodeProvider>();
+builder.Services.AddScoped<ICodingQuestionProvider, HackerRankProvider>();
+builder.Services.AddScoped<ICodingQuestionProvider, CodeSignalProvider>();
+builder.Services.AddScoped<ICodingQuestionProvider, CompanyQuestionProvider>();
+builder.Services.AddScoped<ICodingQuestionProvider, AIGeneratedQuestionProvider>();
 
 builder.Services.AddHttpClient("AIService", client => {
     client.BaseAddress = new Uri("http://localhost:8000");

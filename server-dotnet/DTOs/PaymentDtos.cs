@@ -20,7 +20,8 @@ namespace InterviewPro.API.DTOs
         string PlanType,
         long Amount,
         DateTime? PaidAt,
-        DateTime? PremiumExpiresAt  // Chỉ có khi Status=Completed
+        DateTime? PremiumExpiresAt,  // Chỉ có khi Status=Completed
+        long ActualAmount = 0
     );
 
     // Webhook từ SePay — chỉ lấy những field cần thiết
