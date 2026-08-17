@@ -90,7 +90,8 @@ namespace InterviewPro.API.Services
                 PlanType:          order.PlanType,
                 Amount:            order.Amount,
                 PaidAt:            order.PaidAt,
-                PremiumExpiresAt:  premiumExpires
+                PremiumExpiresAt:  premiumExpires,
+                ActualAmount:      order.ActualAmount ?? 0
             );
         }
 
@@ -99,42 +100,61 @@ namespace InterviewPro.API.Services
             // Tìm mã IPXXXXXX trong description
             var match = System.Text.RegularExpressions.Regex.Match(
                 request.content ?? "",
-                @"IP[A-Z0-9]{6}"
+                @"IP[A-Z0-9]{6}",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
             );
             if (!match.Success) return; // Không phải giao dịch của hệ thống
 
-            var orderCode = match.Value;
+            var orderCode = match.Value.ToUpper();
             var order = await _db.PaymentOrders
                 .Include(o => o.User)
-                .Where(o => o.OrderCode == orderCode && o.Status == "Pending")
+                .Where(o => o.OrderCode == orderCode && (o.Status == "Pending" || o.Status == "PartiallyPaid"))
                 .FirstOrDefaultAsync();
 
             if (order == null) return; // Đơn không tồn tại hoặc đã xử lý
 
-            order.ActualAmount        = request.transferAmount;
-            order.SePayTransactionId  = request.referenceCode;
-            order.PaidAt              = DateTime.UtcNow;
-
-            if (request.transferAmount < order.Amount)
+            if (order.Status == "Pending")
             {
-                // Sai số tiền
-                order.Status = "WrongAmount";
+                order.ActualAmount = request.transferAmount;
+                order.SePayTransactionId = request.referenceCode;
+            }
+            else if (order.Status == "PartiallyPaid")
+            {
+                order.ActualAmount += request.transferAmount;
+                order.SePayTransactionId += $",{request.referenceCode}";
+            }
+
+            order.PaidAt = DateTime.UtcNow;
+
+            if (order.ActualAmount < order.Amount)
+            {
+                // Thiếu tiền
+                if (order.Status == "Pending")
+                {
+                    // Lần 1 chuyển thiếu
+                    order.Status = "PartiallyPaid";
+                }
+                else
+                {
+                    // Lần 2 vẫn thiếu -> Khóa
+                    order.Status = "WrongAmount";
+                }
             }
             else
             {
-                // Đúng hoặc nhiều hơn → cấp Premium
+                // Đủ hoặc dư tiền
                 order.Status = "Completed";
 
                 var plans = PricingManager.GetPlans();
                 if (plans.TryGetValue(order.PlanType, out var plan))
                 {
-                    var user    = order.User;
+                    var user = order.User;
                     var baseDate = (user.PremiumExpiresAt.HasValue && user.PremiumExpiresAt > DateTime.UtcNow)
-                        ? user.PremiumExpiresAt.Value   // Cộng dồn vào cuối kỳ hiện tại
+                        ? user.PremiumExpiresAt.Value
                         : DateTime.UtcNow;
 
-                    user.Plan               = "Premium";
-                    user.PremiumExpiresAt   = baseDate.AddDays(plan.Days);
+                    user.Plan = "Premium";
+                    user.PremiumExpiresAt = baseDate.AddDays(plan.Days);
                 }
             }
 

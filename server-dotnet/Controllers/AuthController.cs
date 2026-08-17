@@ -31,6 +31,15 @@ namespace InterviewPro.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+                return BadRequest(new { message = "Họ tên phải có ít nhất 2 ký tự" });
+
+            if (request.Password == null || request.Password.Length < 8 || 
+                !request.Password.Any(char.IsUpper) || !request.Password.Any(char.IsDigit))
+            {
+                return BadRequest(new { message = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm ít nhất 1 chữ hoa và 1 số" });
+            }
+
             if (await _repo.UserExists(request.Email))
                 return BadRequest(new { message = "Email đã được sử dụng" });
 
@@ -57,6 +66,9 @@ namespace InterviewPro.API.Controllers
 
             if (user == null)
                 return Unauthorized(new { message = "Email hoặc mật khẩu không chính xác" });
+
+            if (user.IsLocked)
+                return BadRequest(new { message = $"Tài khoản bị khóa. Lý do: {user.LockReason ?? "Vi phạm chính sách"}" });
 
             var token = CreateToken(user);
 

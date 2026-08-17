@@ -15,7 +15,17 @@ public record SubmitAnswerRequest(Guid InterviewId, Guid QuestionId, string Cont
 public record AnswerDto(Guid Id, string Content, string? AiFeedback, int? Score);
 
 // ──────────────── Dashboard ────────────────
-public record DashboardStatsDto(int TotalInterviews, double AverageScore, int Streak, List<InterviewDto> RecentHistory);
+public record ChartDataDto(string Name, int Score);
+public record RadarDataDto(string Subject, int A, int FullMark);
+
+public record DashboardStatsDto(
+    int TotalInterviews, 
+    double AverageScore, 
+    int Streak, 
+    List<InterviewDto> RecentHistory,
+    List<ChartDataDto> SkillProgress,
+    List<RadarDataDto> RadarData
+);
 
 // ──────────────── GitHub ────────────────
 public record GithubAnalysisRequest(string RepoUrl);

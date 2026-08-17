@@ -17,9 +17,18 @@ export default function Register() {
     e.preventDefault();
     setGeneralError('');
     setFieldErrors({});
+    if (form.name.trim().length < 2) {
+      setGeneralError('Họ tên phải có ít nhất 2 ký tự');
+      return;
+    }
     
     if (form.password.length < 8) {
       setFieldErrors({ password: 'Mật khẩu phải dài tối thiểu 8 ký tự' });
+      return;
+    }
+    
+    if (!/(?=.*[A-Z])(?=.*\d)/.test(form.password)) {
+      setFieldErrors({ password: 'Mật khẩu phải chứa ít nhất 1 chữ hoa và 1 số' });
       return;
     }
     
