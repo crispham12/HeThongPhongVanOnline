@@ -93,8 +93,8 @@ export default function AdminPayments() {
       };
       const res = await adminPaymentsApi.getTransactions(params);
       setTransactions(res.items);
-      setTotalPages(res.totalPages);
-      setTotalItems(res.totalItems);
+      setTotalPages(Math.ceil((res.total || 0) / (res.pageSize || 10)));
+      setTotalItems(res.total || 0);
     } catch (err) {
       console.error("Lỗi khi tải lịch sử giao dịch:", err);
     } finally {
@@ -306,7 +306,7 @@ export default function AdminPayments() {
                     <td className="px-5 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold bg-blue-100 text-blue-700 shrink-0">
-                          {tx.userName ? tx.userName.substring(0, Math.Min(2, tx.userName.length)).toUpperCase() : "US"}
+                          {tx.userName ? tx.userName.substring(0, 2).toUpperCase() : "US"}
                         </div>
                         <div>
                           <p className="text-[14px] font-semibold leading-tight text-[#333333]">{tx.userName}</p>

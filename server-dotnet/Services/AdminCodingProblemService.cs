@@ -133,27 +133,29 @@ namespace InterviewPro.API.Services
                     p.ShortDescription.Contains(search));
             }
 
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                query = query.Where(p => p.CategoriesJson.Contains(category));
+            }
+
             var total = await query.CountAsync();
+            
+            // Calculate stats
+            var statsQuery = await query.GroupBy(p => p.Difficulty)
+                .Select(g => new { Difficulty = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            int easyCount = statsQuery.FirstOrDefault(x => x.Difficulty == "Easy")?.Count ?? 0;
+            int mediumCount = statsQuery.FirstOrDefault(x => x.Difficulty == "Medium")?.Count ?? 0;
+            int hardCount = statsQuery.FirstOrDefault(x => x.Difficulty == "Hard")?.Count ?? 0;
+
             var problems = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Perform in-memory filter for Category since it resides in JSON array
-            var filteredProblems = problems.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(category))
-            {
-                filteredProblems = filteredProblems.Where(p =>
-                    Deserialize(p.CategoriesJson, new List<string>())
-                        .Any(c => c.Equals(category, StringComparison.OrdinalIgnoreCase)));
-                
-                // Adjust total count if filtered in-memory
-                total = filteredProblems.Count();
-                filteredProblems = filteredProblems.Skip((page - 1) * pageSize).Take(pageSize);
-            }
-
-            var items = filteredProblems.Select(p => new CodingProblemListItemDto
+            var items = problems.Select(p => new CodingProblemListItemDto
             {
                 Id = p.Id,
                 ProblemCode = p.ProblemCode,
@@ -179,7 +181,13 @@ namespace InterviewPro.API.Services
                 Items = items,
                 TotalItems = total,
                 Page = page,
-                PageSize = pageSize
+                PageSize = pageSize,
+                ExtraData = new Dictionary<string, object>
+                {
+                    { "easyCount", easyCount },
+                    { "mediumCount", mediumCount },
+                    { "hardCount", hardCount }
+                }
             };
         }
 

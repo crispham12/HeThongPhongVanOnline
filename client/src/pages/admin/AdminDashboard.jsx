@@ -28,15 +28,16 @@ function KpiCard({ title, value, trend, trendUp }) {
   );
 }
 
-function MetricRow({ label, value, color }) {
+function MetricRow({ label, value, color, max = 100, suffix = "%" }) {
+  const percent = Math.min((value / max) * 100, 100);
   return (
     <div>
       <div className="mb-2 flex items-center justify-between text-[14px]">
         <span className="font-medium text-[#66767b]">{label}</span>
-        <span className="font-medium text-[#151515] tabular-nums">{value}%</span>
+        <span className="font-medium text-[#151515] tabular-nums">{value}{suffix}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-[#efe4ed]">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
+        <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
       </div>
     </div>
   );
@@ -150,7 +151,7 @@ export default function AdminDashboard() {
         <aside className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col">
           <h2 className="mb-9 text-[18px] font-bold text-[#151515]">Trạng thái hệ thống</h2>
           <div className="space-y-7">
-            <MetricRow label="Phiên đang xử lý" value={systemStatus.activeSessions} color="#73836b" />
+            <MetricRow label="Phiên đang xử lý" value={systemStatus.activeSessions} color="#73836b" max={100} suffix=" phiên" />
             <MetricRow label="Server Load" value={systemStatus.serverLoad} color="#2f2f2f" />
             <MetricRow label="User Retention" value={systemStatus.userRetention} color="#6f7d80" />
           </div>

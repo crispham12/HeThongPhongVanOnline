@@ -10,7 +10,8 @@ import html2pdf from 'html2pdf.js';
 
 // ─── Avatar Indicator ─────────────────────────────────────────────────────────
 // Deterministic color from name string for consistent avatar backgrounds
-function getAvatarColor(name = '') {
+function getAvatarColor(name) {
+  const validName = name || '';
   const colors = [
     'bg-violet-100 text-violet-700',
     'bg-sky-100 text-sky-700',
@@ -22,25 +23,26 @@ function getAvatarColor(name = '') {
     'bg-orange-100 text-orange-700',
   ];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < validName.length; i++) hash = validName.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 }
 
-function UserAvatar({ name = '', avatarUrl, size = 'md' }) {
+function UserAvatar({ name, avatarUrl, size = 'md' }) {
+  const validName = name || '';
   const sz = size === 'lg' ? 'w-12 h-12 text-sm' : 'w-8 h-8 text-[11px]';
-  const colorClass = getAvatarColor(name);
+  const colorClass = getAvatarColor(validName);
   if (avatarUrl) {
     return (
       <img
         src={avatarUrl}
-        alt={name}
+        alt={validName}
         className={`${sz} rounded-full object-cover ring-2 ring-white shrink-0`}
       />
     );
   }
   return (
     <div className={`${sz} ${colorClass} rounded-full flex items-center justify-center font-bold shrink-0 ring-2 ring-white`}>
-      {name.slice(0, 2).toUpperCase()}
+      {validName.slice(0, 2).toUpperCase()}
     </div>
   );
 }
@@ -287,7 +289,11 @@ export default function AdminUsers() {
   useEffect(() => { fetchUsers(); }, [page, plan, status]);
 
   const handleRefresh = () => { fetchOverview(); fetchUsers(); };
-  const handleSearchSubmit = (e) => { e.preventDefault(); setPage(1); fetchUsers(); };
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (page !== 1) setPage(1); // triggers useEffect
+    else fetchUsers(); // already page 1, fetch manually
+  };
 
   // ── Action handlers ──
   const handleLockUser = async (e) => {

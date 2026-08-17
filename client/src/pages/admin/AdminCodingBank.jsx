@@ -101,10 +101,11 @@ export default function AdminCodingBank() {
   const [statusFilter, setStatusFilter] = useState('');
   const [recommendedLevelFilter, setRecommendedLevelFilter] = useState('');
 
-  // Pagination
+  // Pagination & Stats
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState({ easy: 0, medium: 0, hard: 0 });
   const PAGE_SIZE = 15;
 
   // Show toast from add/edit page redirect
@@ -139,6 +140,13 @@ export default function AdminCodingBank() {
       setProblems(res.items || []);
       setTotalItems(res.totalItems || 0);
       setTotalPages(res.totalPages || 1);
+      if (res.extraData) {
+        setStats({
+          easy: res.extraData.easyCount || 0,
+          medium: res.extraData.mediumCount || 0,
+          hard: res.extraData.hardCount || 0
+        });
+      }
     } catch {
       setToast({ type: 'error', message: 'Không thể tải danh sách bài coding.' });
     } finally {
@@ -177,11 +185,27 @@ export default function AdminCodingBank() {
     }
   };
 
-  const easyCount = problems.filter(p => p.difficulty?.toLowerCase() === 'easy').length;
-  const mediumCount = problems.filter(p => p.difficulty?.toLowerCase() === 'medium').length;
-  const hardCount = problems.filter(p => p.difficulty?.toLowerCase() === 'hard').length;
+  const easyCount = stats.easy;
+  const mediumCount = stats.medium;
+  const hardCount = stats.hard;
 
   const hasActiveFilters = diffFilter || statusFilter || recommendedLevelFilter || searchQuery;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push('...');
+      const start = Math.max(2, page - 1);
+      const end = Math.min(totalPages - 1, page + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (page < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   return (
     <div className="max-w-[1400px] relative text-[#333333]">
@@ -348,9 +372,13 @@ export default function AdminCodingBank() {
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <button disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45"><ChevronLeft className="h-4 w-4" /></button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
-                <button key={n} onClick={() => setPage(n)} className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold transition-colors ${page === n ? 'bg-[#333333] text-white shadow-sm' : 'border border-[#eeeeee] text-[#6f6a72] hover:bg-[#fafafa]'}`}>{n}</button>
-              ))}
+              {getPageNumbers().map((n, i) => 
+                n === '...' ? (
+                  <span key={`ellipsis-${i}`} className="flex h-9 w-9 items-center justify-center text-[#c8c5ca] text-sm font-extrabold">...</span>
+                ) : (
+                  <button key={n} onClick={() => setPage(n)} className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold transition-colors ${page === n ? 'bg-[#333333] text-white shadow-sm' : 'border border-[#eeeeee] text-[#6f6a72] hover:bg-[#fafafa]'}`}>{n}</button>
+                )
+              )}
               <button disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45"><ChevronRight className="h-4 w-4" /></button>
             </div>
           )}

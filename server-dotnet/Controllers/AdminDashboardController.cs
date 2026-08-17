@@ -9,7 +9,7 @@ namespace InterviewPro.API.Controllers
 {
     [ApiController]
     [Route("api/admin/dashboard")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class AdminDashboardController : ControllerBase
     {
         private readonly IAdminDashboardService _service;
@@ -19,9 +19,17 @@ namespace InterviewPro.API.Controllers
             _service = service;
         }
 
+        private bool IsAdmin() =>
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "1" ||
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin" ||
+            User.HasClaim("role", "1") ||
+            User.HasClaim("role", "Admin") ||
+            User.IsInRole("Admin");
+
         [HttpGet]
         public async Task<IActionResult> GetDashboardData()
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetDashboardDataAsync();

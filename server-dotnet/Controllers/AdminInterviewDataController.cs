@@ -16,7 +16,7 @@ namespace InterviewPro.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/admin/interview-data")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class AdminInterviewDataController : ControllerBase
     {
         private readonly IInterviewDataService _service;
@@ -26,6 +26,13 @@ namespace InterviewPro.API.Controllers
             _service = service;
         }
 
+        private bool IsAdmin() =>
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "1" ||
+            User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin" ||
+            User.HasClaim("role", "1") ||
+            User.HasClaim("role", "Admin") ||
+            User.IsInRole("Admin");
+
         // ──────────────────────────────────────────────────────
         // GET /api/admin/interview-data/overview
         // Cards thống kê tổng quan đầu trang
@@ -33,6 +40,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview()
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetOverviewAsync();
@@ -55,6 +63,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetSessions([FromQuery] AdminInterviewDataFilterRequest filter)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetSessionsAsync(filter);
@@ -74,6 +83,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("report")]
         public async Task<IActionResult> GetReportData()
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetReportDataAsync();
@@ -92,6 +102,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("{sessionId:int}")]
         public async Task<IActionResult> GetSessionDetail(int sessionId)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetSessionDetailAsync(sessionId);
@@ -114,6 +125,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("{sessionId:int}/attempts")]
         public async Task<IActionResult> GetAttempts(int sessionId)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetAttemptsAsync(sessionId);
@@ -136,6 +148,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("attempt/{attemptId:int}")]
         public async Task<IActionResult> GetAttemptDetail(int attemptId)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetAttemptDetailAsync(attemptId);
@@ -158,6 +171,7 @@ namespace InterviewPro.API.Controllers
         [HttpGet("attempt/{attemptId:int}/questions")]
         public async Task<IActionResult> GetAttemptQuestions(int attemptId)
         {
+            if (!IsAdmin()) return Forbid();
             try
             {
                 var result = await _service.GetAttemptQuestionsAsync(attemptId);

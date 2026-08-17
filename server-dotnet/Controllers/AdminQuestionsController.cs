@@ -182,7 +182,16 @@ namespace InterviewPro.API.Controllers
             var q = await _db.Questions.FindAsync(id);
             if (q == null) return NotFound();
 
-            _db.Questions.Remove(q);
+            if (await _db.UserQuestionPracticeHistories.AnyAsync(h => h.QuestionId == id))
+            {
+                q.Status = "Disabled";
+                q.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                _db.Questions.Remove(q);
+            }
+
             await _db.SaveChangesAsync();
             return NoContent();
         }
