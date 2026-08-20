@@ -419,6 +419,48 @@ def _parse_text_args_with_signature(tc_input: str, sig_info: dict):
     return out
 
 
+def _parse_key_value_args(tc_input: str) -> Optional[dict]:
+    """Parse format like 'nums = [2,7,11,15], target = 9' into dict."""
+    if '=' not in tc_input:
+        return None
+        
+    parts = []
+    current = []
+    depth_bracket = 0
+    depth_brace = 0
+    
+    for char in tc_input:
+        if char == '[': depth_bracket += 1
+        elif char == ']': depth_bracket -= 1
+        elif char == '{': depth_brace += 1
+        elif char == '}': depth_brace -= 1
+        elif char == ',' and depth_bracket == 0 and depth_brace == 0:
+            parts.append(''.join(current))
+            current = []
+            continue
+        current.append(char)
+        
+    if current:
+        parts.append(''.join(current))
+        
+    result = {}
+    for part in parts:
+        if '=' not in part:
+            return None # Must have = in all parts at top level
+        k, v = part.split('=', 1)
+        k = k.strip()
+        v = v.strip()
+        
+        try:
+            val = json.loads(v)
+        except Exception:
+            val = _parse_loose_value(v)
+            
+        result[k] = val
+        
+    return result
+
+
 def _build_args_dict(tc_input: str, method_signature: str, inferred_sig: Optional[dict] = None):
     sig_info = parse_java_signature(method_signature) if method_signature else inferred_sig
 
@@ -432,9 +474,17 @@ def _build_args_dict(tc_input: str, method_signature: str, inferred_sig: Optiona
             return {names[i]: parsed[i] for i in range(min(len(names), len(parsed)))}
         # Single scalar check if sig_info has exactly 1 parameter
         if sig_info and sig_info.get('params') and len(sig_info['params']) == 1:
-            return {sig_info['params'][0]['name']: parsed}
+            param = sig_info['params'][0]
+            if param.get('type', '').strip().lower() in ('string', 'str') and not isinstance(parsed, str):
+                parsed = str(parsed)
+            return {param['name']: parsed}
     except Exception:
         pass
+
+    # 1.5) Key-Value path (e.g. nums = [1,2], target = 3)
+    kv_parsed = _parse_key_value_args(tc_input)
+    if kv_parsed:
+        return kv_parsed
 
     # 2) Plain text path based on signature
     if sig_info and sig_info.get('params'):

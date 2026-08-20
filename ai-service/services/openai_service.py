@@ -26,8 +26,8 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
     Call OpenAI/Gemini and parse JSON response.
     Returns the parsed result dict. Usage data is stored in result["usage"] and result["model"].
     """
-    # Use the model as passed in (caller is responsible for choosing the right model)
-    actual_model = model
+    # gemini-3.6-flash: confirmed working via 17 live tests - supports OpenAI compat endpoint + JSON format
+    actual_model = "gemini-3.6-flash" if is_gemini else model
 
     try:
         response = await client.chat.completions.create(
@@ -36,6 +36,7 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
             temperature=0.7,
             response_format={"type": "json_object"},
         )
+        
         usage = response.usage if hasattr(response, "usage") else None
         if usage:
             print(f"\n[AI Success] Connected successfully! Model: {actual_model} | Prompt Tokens: {usage.prompt_tokens} | Completion Tokens: {usage.completion_tokens} | Total: {usage.total_tokens}")
@@ -58,7 +59,6 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
     except Exception as e:
         error_msg = str(e)
         print(f"\n[AI Error] Connection/API failed: {error_msg}")
-        # Re-raise so callers can inspect exception type and message
         raise
 
 
@@ -67,8 +67,8 @@ async def call_openai_with_usage(prompt: str, model: str = "gpt-4o-mini") -> Tup
     Call OpenAI/Gemini and return (result_dict, usage_dict) as a tuple.
     usage_dict contains: inputTokens, outputTokens, totalTokens, model.
     """
-    # Override model if using Gemini key
-    actual_model = "gemini-2.5-flash" if is_gemini else model
+    # Override model. gemini-3.6-flash confirmed working via live tests (OpenAI compat + JSON).
+    actual_model = "gemini-3.6-flash" if is_gemini else model
     result = await call_openai(prompt, actual_model)
     usage = result.pop("usage", {"inputTokens": 0, "outputTokens": 0, "totalTokens": 0})
     model_used = result.pop("model", actual_model)

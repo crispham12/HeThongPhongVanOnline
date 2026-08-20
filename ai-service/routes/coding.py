@@ -535,16 +535,27 @@ Trả về JSON (không có markdown):
             improvement_suggestions=response.get("improvement_suggestions", [])
         )
     except Exception as e:
-        # Fallback: chỉ tính điểm test cases nếu AI lỗi
+        err_str = str(e)
+        is_rate_limit = "429" in err_str or "quota" in err_str.lower()
+        is_auth_error = "400" in err_str and "api key" in err_str.lower()
+        
+        if is_rate_limit:
+            friendly_feedback = "Hệ thống AI đang xử lý quá nhiều yêu cầu. Điểm của bạn được tính hoàn toàn dựa trên test cases (đã quy đổi thang 100)."
+        elif is_auth_error:
+            friendly_feedback = "Lỗi cấu hình API Key trên máy chủ. Điểm của bạn được tính hoàn toàn dựa trên test cases (đã quy đổi thang 100)."
+        else:
+            friendly_feedback = "Không thể phân tích chi tiết do lỗi AI. Điểm dựa trên test cases (đã quy đổi thang 100)."
+
+        # Fallback: Quy đổi test_score (max 50) lên thang điểm 100 để ứng viên không bị trừ điểm oan
         return EvaluateFullMockCodingResponse(
-            score=test_score,
+            score=test_score * 2,
             test_score=test_score,
             quality_score=0,
             complexity_score=0,
-            feedback=f"Không thể phân tích chi tiết do lỗi AI: {str(e)}. Điểm dựa trên test cases.",
-            code_quality_notes="",
-            complexity_notes="",
-            improvement_suggestions=[]
+            feedback=friendly_feedback,
+            code_quality_notes="Bỏ qua đánh giá do AI quá tải.",
+            complexity_notes="Bỏ qua đánh giá do AI quá tải.",
+            improvement_suggestions=["Không có gợi ý do giới hạn kết nối API."]
         )
 
 
