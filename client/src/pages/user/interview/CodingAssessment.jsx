@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
@@ -23,6 +23,7 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
   const [language, setLanguage] = useState('python');
   const [submitting, setSubmitting] = useState(false);
   const [running, setRunning] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // Results
   const [testResults, setTestResults] = useState(null); // null | { passed, total, results }
@@ -143,7 +144,8 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
 
   // Submit problem and call AI evaluation
   const handleSubmitProblem = async () => {
-    if (submitted || submitting || !code.trim()) return;
+    if (submitted || submitting || isSubmittingRef.current || !code.trim()) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
 
     const currentProblem = problems[currentProblemIndex];
@@ -219,6 +221,7 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
       }]);
       setSubmitted(true);
     } finally {
+      isSubmittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -242,12 +245,13 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
         stack: stack || [],
         difficulty: difficulty || 'fresher',
         type: 'coding',
+        isFullMock: true
       });
 
       // Calculate overall score (0-10) and divide by the total number of problems
       const totalProblems = problems.length || 1;
       const avgScore = problemScores.reduce((sum, item) => sum + (item.score || 0), 0) / totalProblems;
-      const overallScore = avgScore / 10.0; 
+      const overallScore = avgScore / 10.0;
       const overallFeedback = JSON.stringify(problemScores);
 
       // Complete session to save score & feedback in InterviewSessions table
@@ -297,8 +301,8 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
           <div className="flex items-center gap-2">
             {problems.map((p, idx) => (
               <div key={idx} className={`px-3 py-1 rounded-full text-[10px] font-bold ${idx < currentProblemIndex ? 'bg-green-100 text-green-700' :
-                  idx === currentProblemIndex ? 'bg-primary-100 text-primary-700' :
-                    'bg-gray-100 text-gray-400'
+                idx === currentProblemIndex ? 'bg-primary-100 text-primary-700' :
+                  'bg-gray-100 text-gray-400'
                 }`}>
                 {idx < currentProblemIndex ? '✓' : `Bài ${idx + 1}`} · {p.difficulty}
               </div>
@@ -334,8 +338,8 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
               <h2 className="text-xl font-bold text-gray-900 mb-2">{currentProblem?.title}</h2>
               <div className="flex gap-2">
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-tighter ${currentProblem?.difficulty === 'Easy' ? 'bg-green-50 text-green-600' :
-                    currentProblem?.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600' :
-                      'bg-red-50 text-red-600'
+                  currentProblem?.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600' :
+                    'bg-red-50 text-red-600'
                   }`}>
                   {currentProblem?.difficulty}
                 </span>
@@ -421,10 +425,10 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
                 {/* Submit state check cases count */}
                 {submitted && testResults && (
                   <div className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold ${testResults.passed === testResults.total
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : testResults.passed === 0
-                        ? 'bg-red-50 text-red-700 border border-red-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : testResults.passed === 0
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}>
                     {testResults.passed === testResults.total ? '✓' : '◐'} {testResults.passed}/{testResults.total} test cases passed
                   </div>

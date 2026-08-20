@@ -148,10 +148,10 @@ export default function FullMockInterview() {
           {ROUNDS.map((round, idx) => (
             <div key={round} className="flex items-center gap-2">
               <div className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${idx < currentRoundIndex
-                  ? 'bg-[#b2f396] text-slate-900'
-                  : idx === currentRoundIndex
-                    ? 'bg-[#b2f396] text-slate-900 font-extrabold'
-                    : 'bg-[#f1f5f9] text-slate-450 border border-slate-200'
+                ? 'bg-[#b2f396] text-slate-900'
+                : idx === currentRoundIndex
+                  ? 'bg-[#b2f396] text-slate-900 font-extrabold'
+                  : 'bg-[#f1f5f9] text-slate-450 border border-slate-200'
                 }`}>
                 {idx < currentRoundIndex && (
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -176,8 +176,8 @@ export default function FullMockInterview() {
               <div
                 key={num}
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${isActive
-                    ? 'bg-[#b2f396] text-slate-900 font-bold border border-[#b2f396]'
-                    : 'bg-white border border-slate-200 text-slate-400 cursor-default'
+                  ? 'bg-[#b2f396] text-slate-900 font-bold border border-[#b2f396]'
+                  : 'bg-white border border-slate-200 text-slate-400 cursor-default'
                   }`}
               >
                 {num}

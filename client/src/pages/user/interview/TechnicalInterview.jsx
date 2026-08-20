@@ -247,7 +247,8 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
             <textarea
               value={answer}
               onChange={e => setAnswer(e.target.value)}
-              placeholder="Nhập câu trả lời chi tiết của bạn tại đây..."
+              readOnly={fullMockMode}
+              placeholder={fullMockMode ? "Câu trả lời của bạn sẽ được ghi nhận bằng giọng nói. Vui lòng bấm biểu tượng Micro phía dưới để bắt đầu nói..." : "Nhập câu trả lời chi tiết của bạn tại đây..."}
               className="w-full h-48 p-6 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-primary-100 text-gray-700 resize-none transition-all pr-12 text-sm md:text-base"
             />
           </div>

@@ -336,9 +336,15 @@ export default function PracticeQuestion() {
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              readOnly
-              placeholder="Vui lòng nhấn nút 'Ghi âm trả lời' ở trên. (Hệ thống yêu cầu trả lời bằng giọng nói thay vì nhập văn bản)..."
-              className="w-full min-h-[220px] p-4 bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none transition-all resize-y cursor-not-allowed"
+              readOnly={question.category !== 'Technical'}
+              placeholder={question.category === 'Technical' 
+                ? "Nhập câu trả lời của bạn vào đây (tạm thời hỗ trợ nhập text cho phần Kỹ thuật)..."
+                : "Vui lòng nhấn nút 'Ghi âm trả lời' ở trên. (Hệ thống yêu cầu trả lời bằng giọng nói thay vì nhập văn bản)..."}
+              className={`w-full min-h-[220px] p-4 border rounded-xl text-sm font-medium outline-none transition-all resize-y ${
+                question.category === 'Technical' 
+                  ? 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500' 
+                  : 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed'
+              }`}
             />
 
             {/* Sparkle submission button */}
@@ -378,7 +384,7 @@ export default function PracticeQuestion() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-bold text-gray-400">Điểm số</p>
-                  <p className="text-2xl font-black text-[#2563EB]">{result.score} <span className="text-sm text-gray-400 font-bold">/ 10</span></p>
+                  <p className="text-2xl font-black text-[#2563EB]">{Number(result.score).toFixed(1)} <span className="text-sm text-gray-400 font-bold">/ 10</span></p>
                 </div>
               </div>
 
@@ -490,10 +496,10 @@ export default function PracticeQuestion() {
                     const currentScore = result ? result.score : null;
                     const prevMax = question.highestScore;
                     if (currentScore != null && prevMax != null) {
-                      return `${Math.max(currentScore, prevMax)} / 10`;
+                      return `${Number(Math.max(currentScore, prevMax)).toFixed(1)} / 10`;
                     }
-                    if (currentScore != null) return `${currentScore} / 10`;
-                    if (prevMax != null) return `${prevMax} / 10`;
+                    if (currentScore != null) return `${Number(currentScore).toFixed(1)} / 10`;
+                    if (prevMax != null) return `${Number(prevMax).toFixed(1)} / 10`;
                     return '-- / 10';
                   })()}
                 </span>

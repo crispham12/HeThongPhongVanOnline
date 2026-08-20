@@ -408,7 +408,7 @@ export default function UserQuestionBank() {
                           </td>
                           <td className="py-4 px-4 align-middle whitespace-nowrap text-center">
                             {p.bestScore !== null && p.bestScore !== undefined ? (
-                              <span className="text-sm font-extrabold text-[#333333] tabular-nums">{p.bestScore}%</span>
+                              <span className="text-sm font-extrabold text-[#333333] tabular-nums">{Number(p.bestScore).toFixed(1)}%</span>
                             ) : (
                               <span className="text-[#e6e6e6] font-bold">—</span>
                             )}

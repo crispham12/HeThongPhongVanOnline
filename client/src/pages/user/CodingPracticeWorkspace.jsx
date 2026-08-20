@@ -7,14 +7,25 @@ import {
   Terminal, Monitor, Settings, ExternalLink, CheckCircle, XCircle, Award, Sparkles, Lightbulb, BarChart2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 import { codingPracticeApi } from '../../services/codingPracticeApi';
 
-const DEFAULT_STARTER = {
-  Python: 'def solution():\n    # Your code here\n    pass',
-  JavaScript: 'function solution() {\n    // Your code here\n}',
-  Java: 'import java.util.*;\n\nclass Solution {\n    public int[] solution(int[] nums, int target) {\n        // Your code here\n        return new int[]{};\n    }\n}',
-  'C#': 'public class Solution {\n    public void Solve() {\n        // Your code here\n    }\n}'
+// Generate full starter code (with function signature named 'solution' like Full Mock)
+const generateFullStarter = (lang, methodSig) => {
+  const paramNames = methodSig
+    ? methodSig.replace(/.*\(/, '').replace(/\).*/, '')
+        .split(',').map(p => p.trim().split(/\s+/).pop()).filter(Boolean)
+    : [];
+  const paramsStr = paramNames.join(', ');
+
+  const l = lang?.toLowerCase();
+  if (l === 'python') return `def solution(${paramsStr}):\n    # Viết logic của bạn ở đây\n    pass`;
+  if (l === 'javascript') return `function solution(${paramsStr}) {\n    // Viết logic của bạn ở đây\n}`;
+  if (l === 'java') return `class Solution {\n    public ${methodSig ? methodSig.replace(/^[\w<>\[\]\s]+\s+\w+/, 'solution') : 'Object solution()'} {\n        // Viết logic của bạn ở đây\n        return null;\n    }\n}`;
+  if (l === 'c#') return `using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic class Solution {\n    public ${methodSig ? methodSig.replace(/^[\w<>\[\]\s]+\s+\w+/, 'solution') : 'object solution()'} {\n        // Viết logic của bạn ở đây\n        return null;\n    }\n}`;
+  return '// Viết logic của bạn ở đây';
 };
+
 
 export default function CodingPracticeWorkspace() {
   const { id } = useParams();
@@ -47,7 +58,7 @@ export default function CodingPracticeWorkspace() {
     setIsRunResult(false);
     setRunning(false);
     setSubmitting(false);
-    setCode(starterCodeMap[language] || DEFAULT_STARTER[language] || '');
+    setCode(starterCodeMap[language] || '');
     navigate('/question-bank');
   };
 
@@ -64,9 +75,10 @@ export default function CodingPracticeWorkspace() {
         const defaultLang = supported[0] || 'Python';
         setLanguage(defaultLang);
 
-        const map = p.starterCode || {};
+        // Starter code with full signature named 'solution'
+        const map = {};
         supported.forEach(lang => {
-          if (!map[lang]) map[lang] = DEFAULT_STARTER[lang] || '';
+          map[lang] = generateFullStarter(lang, p.methodSignature);
         });
         setStarterCodeMap(map);
         setCode(map[defaultLang] || '');
@@ -99,6 +111,7 @@ export default function CodingPracticeWorkspace() {
     return 'python';
   };
 
+  // Run public test cases truc tiep qua Python AI Service (giong Full Mock)
   const handleRunCode = async () => {
     if (!code.trim() || running || submitted) return;
     setRunning(true);
@@ -107,19 +120,34 @@ export default function CodingPracticeWorkspace() {
     setConsoleTab('run');
 
     try {
-      const res = await codingPracticeApi.runCode(id, { language, code });
-      
-      const formattedResults = (res.testResults || []).map(tc => ({
+      const aiUrl = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+      // Chi lay public test cases de chay thu (khong co hidden)
+      const publicTests = (problem?.publicTestCases || []).slice(0, 3);
+      const formattedTestCases = publicTests.map(tc => ({
         input: tc.input,
-        expected: tc.expectedOutput,
-        actual: tc.actualOutput || '',
-        passed: tc.passed
+        expectedOutput: tc.expectedOutput,
+        isHidden: false
       }));
 
-      setTestResults({ 
-        passed: formattedResults.filter(r => r.passed).length, 
-        total: formattedResults.length, 
-        results: formattedResults 
+      const { data } = await axios.post(`${aiUrl}/ai/practice/run`, {
+        language: language.toLowerCase(),
+        code: code,
+        testCases: formattedTestCases,
+        functionName: 'solution',
+        methodSignature: null,
+      });
+
+      const mappedResults = (data.results || []).map(r => ({
+        input: r.input,
+        expected: r.expectedOutput,
+        actual: r.actualOutput || r.status || '',
+        passed: r.passed
+      }));
+
+      setTestResults({
+        passed: data.passedTestCases,
+        total: data.totalTestCases,
+        results: mappedResults
       });
     } catch (error) {
       console.error(error);
@@ -129,38 +157,56 @@ export default function CodingPracticeWorkspace() {
     }
   };
 
+  // Nop bai: chay tat ca test cases qua AI truc tiep, roi goi C# de luu ket qua
   const handleSubmitCode = async () => {
     if (!code.trim() || submitting) return;
     setSubmitting(true);
     setSubmitResult(null);
     setTestResults(null);
     setIsRunResult(false);
-    setSubmitted(true);
     setConsoleTab('run');
 
     try {
-      const res = await codingPracticeApi.submitCode(id, { language, code });
-      
-      setSubmitResult(res);
-
-      const formattedResults = (res.testResults || []).map(tc => ({
-        passed: tc.passed,
-        actual: tc.actualOutput || '',
+      const aiUrl = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+      // Chay qua tat ca public test cases (hidden test cases do C# xu ly)
+      const allPublicTests = (problem?.publicTestCases || []).map(tc => ({
         input: tc.input,
-        expected: tc.expectedOutput
+        expectedOutput: tc.expectedOutput,
+        isHidden: false
       }));
 
-      setTestResults({ 
-        passed: res.passedTestCases || 0, 
-        total: res.totalTestCases || 0, 
-        results: formattedResults 
+      const { data: runData } = await axios.post(`${aiUrl}/ai/practice/run`, {
+        language: language.toLowerCase(),
+        code: code,
+        testCases: allPublicTests,
+        functionName: 'solution',
+        methodSignature: null,
       });
-      
+
+      const allResults = (runData.results || []).map(r => ({
+        input: r.input,
+        expected: r.expectedOutput,
+        actual: r.actualOutput || r.status || '',
+        passed: r.passed
+      }));
+
+      setTestResults({
+        passed: runData.passedTestCases,
+        total: runData.totalTestCases,
+        results: allResults
+      });
+      setSubmitted(true);
+
+      // Goi C# Backend de luu ket qua va cap nhat progress (chay nen, block UI aifeedback thong qua submitting)
+      codingPracticeApi.submitCode(id, { language, code })
+        .then(res => setSubmitResult(res))
+        .catch(err => console.warn('[Submit Save] Failed to save attempt:', err))
+        .finally(() => setSubmitting(false));
+
     } catch (error) {
       console.error(error);
       alert('Lỗi nộp bài đánh giá.');
       setSubmitted(false);
-    } finally {
       setSubmitting(false);
     }
   };
@@ -393,6 +439,7 @@ export default function CodingPracticeWorkspace() {
                       )}
 
                       {isRunResult ? (
+                        // Khi Run: hien thi day du Input / Expected / Actual (giong Full Mock)
                         testResults.results.map((res, i) => (
                           <div key={i} className="border-b border-gray-200 pb-2 text-[11px]">
                             <div className="flex items-center gap-2 mb-1">
@@ -407,19 +454,17 @@ export default function CodingPracticeWorkspace() {
                           </div>
                         ))
                       ) : (
+                        // Khi Submit: chi hien Pass/Fail, KHONG hien expected (giong Full Mock)
                         testResults.results.map((res, i) => (
                           <div key={i} className="flex items-center gap-2 text-[11px] py-1 border-b border-gray-100 last:border-b-0 pb-1">
                             <span className={`font-bold ${res.passed ? 'text-green-600' : 'text-red-600'}`}>
                               {res.passed ? '✓' : '✗'}
                             </span>
                             <span className="text-gray-500 font-sans">Test case {i + 1}: {res.passed ? 'Passed' : 'Failed'}</span>
-                            {!res.passed && (
-                              <div className="w-full mt-2 space-y-1 ml-4 pl-4 border-l-2 border-red-200">
-                                <p><span className="text-gray-400">Input:</span> <span className="text-gray-600">{res.input}</span></p>
-                                <p><span className="text-gray-400">Expected:</span> <span className="text-green-600">{res.expected}</span></p>
-                                <p><span className="text-gray-400">Actual:</span> <span className="text-red-600">{res.actual || '<Empty/Error>'}</span></p>
-                              </div>
+                            {!res.passed && res.actual && (
+                              <span className="text-gray-400 font-sans font-medium">— Output của bạn: {res.actual}</span>
                             )}
+                            {/* KHONG hien thi expected output khi Submit */}
                           </div>
                         ))
                       )}
@@ -434,7 +479,13 @@ export default function CodingPracticeWorkspace() {
 
               {consoleTab === 'aifeedback' && (
                 <div className="p-5">
-                  {!submitResult || !submitResult.aiFeedback ? (
+                  {submitting ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-gray-400 font-sans">
+                      <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                      <p className="text-xs font-bold text-violet-600 animate-pulse">AI đang phân tích code của bạn...</p>
+                      <p className="text-[10px] text-gray-400 mt-1">Quá trình này có thể mất vài giây</p>
+                    </div>
+                  ) : !submitResult || !submitResult.aiFeedback ? (
                     <div className="flex flex-col items-center justify-center py-6 text-gray-400 font-sans">
                       <Sparkles className="w-8 h-8 text-gray-200 mb-2" />
                       <p className="text-xs font-bold">Hãy Nộp bài để nhận AI Feedback chi tiết.</p>

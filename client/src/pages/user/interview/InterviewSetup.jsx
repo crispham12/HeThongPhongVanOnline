@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Database, Layers, BrainCircuit, RotateCcw,
   ArrowRight, ArrowLeft, Check, Globe, Server, Code2, Cpu
@@ -60,11 +60,13 @@ const FRAMEWORK_TO_LANG = {
 
 export default function InterviewSetup() {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [config, setConfig] = useState({
-    role: 'backend',
-    stack: [],
-    level: 'fresher',
+    role: state?.role?.toLowerCase() || 'backend',
+    stack: state?.stack || [],
+    level: state?.level?.toLowerCase() || 'fresher',
   });
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState('');

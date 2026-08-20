@@ -46,15 +46,15 @@ export default function AdminQuestionBank() {
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Filter States
   const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
   const [difficultyFilter, setDifficultyFilter] = useState('Tất cả mức độ');
   const [categoryFilter, setCategoryFilter] = useState('Tất cả danh mục');
-  
+
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Filtered List state
   const [filteredQuestions, setFilteredQuestions] = useState([]);
 
@@ -138,8 +138,8 @@ export default function AdminQuestionBank() {
     // Filter by search query
     if (searchQuery.trim()) {
       const qLower = searchQuery.toLowerCase();
-      result = result.filter(q => 
-        q.content.toLowerCase().includes(qLower) || 
+      result = result.filter(q =>
+        q.content.toLowerCase().includes(qLower) ||
         q.tech.toLowerCase().includes(qLower) ||
         (q.id && `#Q-${q.id}`.toLowerCase().includes(qLower))
       );
@@ -195,7 +195,7 @@ export default function AdminQuestionBank() {
           <h1 className="text-[28px] font-extrabold tracking-tight text-[#333333]">Ngân hàng câu hỏi</h1>
           <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Quản lý và biên soạn danh sách câu hỏi phỏng vấn AI.</p>
         </div>
-        <button 
+        <button
           onClick={() => navigate('/admin/question-bank/add')}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#333333] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm"
         >
@@ -237,7 +237,6 @@ export default function AdminQuestionBank() {
               <option value="Tất cả danh mục">Tất cả danh mục</option>
               <option value="Kỹ thuật">Kỹ thuật (Technical)</option>
               <option value="HR">HR</option>
-              <option value="GitHub">GitHub</option>
             </select>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -285,11 +284,10 @@ export default function AdminQuestionBank() {
                   <tr key={q.id} className="group border-b border-[#eeeeee] transition-colors last:border-b-0 hover:bg-[#fafafa]">
                     <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">#Q-{q.id}</td>
                     <td className="px-5 py-5">
-                      <span className={`inline-flex rounded-full px-4 py-1.5 text-[12px] font-extrabold ${
-                        q.category.includes('Coding') ? 'bg-indigo-100 text-indigo-700' :
-                        q.category.includes('HR') ? 'bg-purple-100 text-purple-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
+                      <span className={`inline-flex rounded-full px-4 py-1.5 text-[12px] font-extrabold ${q.category.includes('Coding') ? 'bg-indigo-100 text-indigo-700' :
+                          q.category.includes('HR') ? 'bg-purple-100 text-purple-700' :
+                            'bg-blue-100 text-blue-700'
+                        }`}>
                         {q.category}
                       </span>
                     </td>
@@ -339,7 +337,7 @@ export default function AdminQuestionBank() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="flex flex-col items-center justify-between gap-4 border-t border-[#eeeeee] bg-white px-5 py-4 sm:flex-row">
           <p className="text-sm font-medium text-[#6f6a72]">
@@ -348,7 +346,7 @@ export default function AdminQuestionBank() {
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eeeeee] text-[#c8c5ca] transition-colors hover:bg-[#fafafa] disabled:opacity-45">&lt;</button>
-              {getPageNumbers().map((p, i) => 
+              {getPageNumbers().map((p, i) =>
                 p === '...' ? (
                   <span key={`ellipsis-${i}`} className="flex h-9 w-9 items-center justify-center text-[#c8c5ca] text-sm font-extrabold">...</span>
                 ) : (

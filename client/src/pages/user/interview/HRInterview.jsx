@@ -25,6 +25,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   // States camera & answer
   const [cameraStatus, setCameraStatus] = useState('disabled'); // disabled, loading, enabled, denied
@@ -86,7 +87,8 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
         role: role,
         techStack: stack,
         difficulty: difficulty,
-        questionMode: "AI_ONLY"
+        questionMode: "AI_ONLY",
+        isFullMock: true
       });
       setSessionId(data.sessionId);
       sessionIdRef.current = data.sessionId;
@@ -309,6 +311,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
     // Guard: chặn double-submit
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
+    setSubmitting(true);
 
     try {
       setDraftStatus('saving');
@@ -331,6 +334,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
       if (currentQIndex < (session.totalQuestions - 1)) {
         setCurrentQIndex(prev => prev + 1);
         resetState();
+        setSubmitting(false);
       } else {
         finishInterview();
       }
@@ -473,11 +477,18 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
           <div className="flex justify-end shrink-0">
             <button
               onClick={submitAnswer}
-              disabled={answerState !== 'stopped' && answerState !== 'submitted' || transcript.trim().length < 20}
-              className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm"
+              disabled={answerState !== 'stopped' && answerState !== 'submitted' || transcript.trim().length < 20 || submitting}
+              className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm flex items-center gap-2"
               title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
             >
-              Hoàn thành
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {currentQIndex === (session?.totalQuestions - 1) ? 'Đang chuyển vòng...' : 'Đang gửi...'}
+                </>
+              ) : (
+                'Hoàn thành'
+              )}
             </button>
           </div>
         </div>
@@ -714,11 +725,18 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
           </button>
           <button
             onClick={submitAnswer}
-            disabled={answerState !== 'stopped' || transcript.trim().length < 20}
-            className="px-6 py-2 bg-[#B4F290] text-[#111827] rounded-full text-[14px] font-medium hover:bg-[#9de675] disabled:opacity-50"
+            disabled={answerState !== 'stopped' || transcript.trim().length < 20 || submitting}
+            className="px-6 py-2 bg-[#B4F290] text-[#111827] rounded-full text-[14px] font-medium hover:bg-[#9de675] disabled:opacity-50 flex items-center gap-1.5"
             title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
           >
-            Submit Answer & Next
+            {submitting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                {currentQIndex === (session?.totalQuestions - 1) ? 'Đang hoàn thành...' : 'Đang gửi...'}
+              </>
+            ) : (
+              'Submit Answer & Next'
+            )}
           </button>
         </div>
 
