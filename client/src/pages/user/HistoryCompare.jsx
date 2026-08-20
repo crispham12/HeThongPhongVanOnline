@@ -23,8 +23,9 @@ export default function HistoryCompare() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await api.get('/interviews/history?pageSize=50&sort=newest');
-        setHistoryList(res.data.items || []);
+        const res = await api.get('/interviews/history?pageSize=100&sort=newest');
+        const validItems = (res.data.items || []).filter(item => item.hasResult && item.score > 0);
+        setHistoryList(validItems);
       } catch {
         // Non-critical, user can still type IDs
       } finally {
@@ -101,7 +102,7 @@ export default function HistoryCompare() {
             <span className="text-gray-900">So sánh phỏng vấn</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">So sánh phỏng vấn</h1>
-          <p className="text-[13px] text-gray-500 mt-1">So sánh hai phiên phỏng vấn để hiểu rõ sự tiến bộ, khoảng trống và trọng tâm thực hành tiếp theo.</p>
+          <p className="text-[13px] text-gray-500 mt-1">So sánh hai phiên phỏng vấn cùng loại để hiểu rõ sự tiến bộ, khoảng trống và trọng tâm thực hành tiếp theo.</p>
         </div>
 
         {/* Selection Boxes */}
@@ -110,12 +111,12 @@ export default function HistoryCompare() {
             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">PHIÊN PHỎNG VẤN A</p>
             <select
               value={selectedA}
-              onChange={e => setSelectedA(e.target.value)}
-              className="w-full text-[14px] font-bold text-gray-900 bg-transparent outline-none cursor-pointer"
-              disabled={historyLoading}>
+              onChange={(e) => setSelectedA(e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            >
               <option value="">-- Chọn phiên A --</option>
               {historyList.map(item => (
-                <option key={item.sessionId} value={item.sessionId}>{getInterviewLabel(item)}</option>
+                <option key={`a-${item.sessionId}`} value={item.sessionId}>{getInterviewLabel(item)}</option>
               ))}
             </select>
           </div>
@@ -123,13 +124,21 @@ export default function HistoryCompare() {
             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">PHIÊN PHỎNG VẤN B</p>
             <select
               value={selectedB}
-              onChange={e => setSelectedB(e.target.value)}
-              className="w-full text-[14px] font-bold text-gray-900 bg-transparent outline-none cursor-pointer"
-              disabled={historyLoading}>
+              onChange={(e) => setSelectedB(e.target.value)}
+              disabled={!selectedA}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
+            >
               <option value="">-- Chọn phiên B --</option>
-              {historyList.map(item => (
-                <option key={item.sessionId} value={item.sessionId}>{getInterviewLabel(item)}</option>
-              ))}
+              {historyList
+                .filter(item => {
+                  if (!selectedA) return true;
+                  const itemA = historyList.find(x => x.sessionId === selectedA);
+                  if (!itemA) return true;
+                  return item.interviewType === itemA.interviewType && item.sessionId !== selectedA;
+                })
+                .map(item => (
+                  <option key={`b-${item.sessionId}`} value={item.sessionId}>{getInterviewLabel(item)}</option>
+                ))}
             </select>
           </div>
         </div>

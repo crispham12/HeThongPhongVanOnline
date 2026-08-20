@@ -73,7 +73,10 @@ namespace InterviewPro.API.Controllers
             // Kiểm tra và áp dụng quota phỏng vấn trước khi bắt đầu session
             try
             {
-                await _quotaService.ConsumeQuotaAsync(userId);
+                if (request.IsFullMock != true)
+                {
+                    await _quotaService.ConsumeQuotaAsync(userId);
+                }
             }
             catch (QuotaExceededException ex)
             {
@@ -313,7 +316,7 @@ namespace InterviewPro.API.Controllers
         }
     }
 
-    public record InterviewSetupRequest(string Role, List<string> Stack, string Difficulty, string Type);
+    public record InterviewSetupRequest(string Role, List<string> Stack, string Difficulty, string Type, bool? IsFullMock = false);
     public record AnswerRequest(string SessionId, string QuestionContent, string Answer);
     public record CompleteSessionRequest(string SessionId, double OverallScore, string? OverallFeedback);
 }

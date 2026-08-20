@@ -11,6 +11,7 @@ namespace InterviewPro.API.DTOs
         public string Difficulty { get; set; } = string.Empty;  // Intern | Fresher | Junior (acts as Level)
         public string QuestionMode { get; set; } = "BANK_FIRST_AI_FALLBACK"; // BANK_ONLY, BANK_FIRST_AI_FALLBACK, AI_ONLY
         public List<string> TechStack { get; set; } = new();
+        public bool IsFullMock { get; set; } = false;
     }
 
     public class StartHrInterviewResponse

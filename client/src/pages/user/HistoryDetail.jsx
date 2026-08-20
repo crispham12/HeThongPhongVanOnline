@@ -133,7 +133,7 @@ export default function HistoryDetail() {
               <div className="flex justify-between items-end">
                 <div>
                   <h2 className="text-[32px] font-bold text-gray-900 leading-none">
-                    {overall?.overallScore} <span className="text-xl text-gray-500">/ 10</span>
+                    {Number(overall?.overallScore ?? 0).toFixed(1)} <span className="text-xl text-gray-500">/ 10</span>
                   </h2>
                   <p className="text-[12px] font-bold text-gray-500 mt-1">Điểm tổng quát</p>
                 </div>
@@ -191,7 +191,7 @@ export default function HistoryDetail() {
                 return (
                   <div key={key} className="bg-gray-50 rounded-lg p-3">
                     <p className="text-[11px] font-bold text-gray-500 uppercase">{key}</p>
-                    <p className="text-[22px] font-bold text-gray-900 mt-1">{item.score} <span className="text-sm text-gray-400">/ 10</span></p>
+                    <p className="text-[22px] font-bold text-gray-900 mt-1">{Number(item.score).toFixed(1)} <span className="text-sm text-gray-400">/ 10</span></p>
                     <p className={`text-[11px] font-semibold mt-0.5 ${getTrendColor(item.status === 'Excellent' ? 'up' : item.status === 'Good' ? 'up' : 'down')}`}>{item.status}</p>
                     {item.feedback && <p className="text-[12px] text-gray-500 mt-2 leading-relaxed">{item.feedback}</p>}
                   </div>
@@ -214,12 +214,12 @@ export default function HistoryDetail() {
                   <div className="flex justify-between items-start">
                     <h4 className="text-[13px] font-bold text-gray-900">Câu {idx + 1}: {q.question}</h4>
                     {q.questionScore > 0 && (
-                      <span className="text-[13px] font-bold text-gray-600 ml-4 shrink-0">{q.questionScore} / 10</span>
+                      <span className="text-[13px] font-bold text-gray-600 ml-4 shrink-0">{Number(q.questionScore).toFixed(1)} / 10</span>
                     )}
                   </div>
                   {q.questionScore > 0 && (
                     <p className="text-[12px] font-bold text-gray-500">
-                      STAR {q.starScore} · Giao tiếp {q.communicationScore} · Tự tin {q.confidenceScore}
+                      STAR {Number(q.starScore).toFixed(1)} · Giao tiếp {Number(q.communicationScore).toFixed(1)} · Tự tin {Number(q.confidenceScore).toFixed(1)}
                     </p>
                   )}
                   {q.strengths?.length > 0 && (

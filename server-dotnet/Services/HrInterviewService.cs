@@ -59,8 +59,11 @@ namespace InterviewPro.API.Services
             if (string.IsNullOrWhiteSpace(request.Difficulty))
                 throw new ArgumentException("Vui lòng chọn mức độ khó.");
 
-            // Áp dụng giới hạn quota phỏng vấn
-            await _quotaService.ConsumeQuotaAsync(userId);
+            // Áp dụng giới hạn quota phỏng vấn nếu không phải fullmock
+            if (!request.IsFullMock)
+            {
+                await _quotaService.ConsumeQuotaAsync(userId);
+            }
 
             using var transactionScope = await _db.Database.BeginTransactionAsync();
             try

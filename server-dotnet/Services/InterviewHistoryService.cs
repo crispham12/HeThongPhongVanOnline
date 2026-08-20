@@ -46,7 +46,9 @@ namespace InterviewPro.API.Services
                 Score = s.FinalResult != null ? (double)s.FinalResult.OverallScore : 0.0,
                 TotalQuestions = s.TotalQuestions,
                 AnsweredQuestions = s.AnsweredQuestions,
-                DurationMinutes = s.DurationMinutes
+                DurationMinutes = s.DurationMinutes,
+                ProblemId = null as string,
+                TechStack = s.TechStackJson
             }).ToListAsync();
 
             var fmQuery = _context.FullMockSessions
@@ -71,10 +73,99 @@ namespace InterviewPro.API.Services
                 Score = (double)_context.CandidateReports.Where(r => r.SessionGuid == s.SessionGuid).Select(r => r.OverallScore).FirstOrDefault(),
                 TotalQuestions = 3,
                 AnsweredQuestions = 3,
-                DurationMinutes = 120
+                DurationMinutes = 120,
+                ProblemId = null as string,
+                TechStack = s.TechStackJson
             }).ToListAsync();
 
-            var combinedSessions = hrSessionsList.Concat(fullMockSessionsList).AsEnumerable();
+            var techQuery = _context.TechnicalInterviewSessions
+                .Include(s => s.Questions)
+                .AsNoTracking()
+                .Where(s => s.Status == "Completed")
+                .AsQueryable();
+
+            if (!isAdmin)
+            {
+                techQuery = techQuery.Where(s => s.UserId == userId);
+            }
+
+            var techSessionsList = await techQuery.Select(s => new {
+                SessionId = s.SessionGuid,
+                UserId = s.UserId,
+                InterviewType = "Technical",
+                Role = s.Role,
+                Difficulty = s.Level,
+                CreatedAt = s.StartedAt,
+                CompletedAt = s.CompletedAt,
+                HasResult = s.FinalFeedbackJson != null,
+                Score = (double)s.OverallScore,
+                TotalQuestions = s.Questions.Count,
+                AnsweredQuestions = s.Questions.Count(q => q.AnsweredAt != null),
+                DurationMinutes = s.Questions.Sum(q => q.DurationSeconds) / 60,
+                ProblemId = null as string,
+                TechStack = s.TechStack
+            }).ToListAsync();
+
+            var practiceQuery = _context.CodingPracticeAttempts
+                .Include(c => c.CodingProblem)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!isAdmin)
+            {
+                practiceQuery = practiceQuery.Where(s => s.UserId == userId);
+            }
+
+            var practiceSessionsList = await practiceQuery.Select(s => new {
+                SessionId = s.CodingProblemId.ToString(), // Navigate to the workspace
+                UserId = s.UserId,
+                InterviewType = "CodingPractice",
+                Role = "Software Engineer",
+                Difficulty = s.CodingProblem != null ? s.CodingProblem.Difficulty : "Medium",
+                CreatedAt = s.CreatedAt,
+                CompletedAt = (DateTime?)s.CreatedAt,
+                HasResult = s.Score.HasValue,
+                Score = (double)(s.Score ?? 0) / 10.0, // scale 100 to 10
+                TotalQuestions = 1,
+                AnsweredQuestions = 1,
+                DurationMinutes = s.RuntimeMs.HasValue ? s.RuntimeMs.Value / 60000 : 0,
+                ProblemId = s.CodingProblemId.ToString(),
+                TechStack = null as string
+            }).ToListAsync();
+
+            var questionPracticeQuery = _context.UserQuestionPracticeHistories
+                .Include(q => q.Question)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!isAdmin)
+            {
+                questionPracticeQuery = questionPracticeQuery.Where(s => s.UserId == userId);
+            }
+
+            var questionPracticeSessionsList = await questionPracticeQuery.Select(s => new {
+                SessionId = s.QuestionId.ToString(), // Navigate to the practice question
+                UserId = s.UserId,
+                InterviewType = s.Question != null && s.Question.Category == "Technical" ? "TechPractice" : "HRPractice",
+                Role = s.Question != null ? s.Question.Role : "General",
+                Difficulty = s.Question != null ? s.Question.Difficulty : "Medium",
+                CreatedAt = s.CreatedAt,
+                CompletedAt = (DateTime?)s.CreatedAt,
+                HasResult = s.AiScore.HasValue,
+                Score = (double)(s.AiScore ?? 0.0f), // Score is already 0-10
+                TotalQuestions = 1,
+                AnsweredQuestions = 1,
+                DurationMinutes = 0,
+                ProblemId = s.QuestionId.ToString(),
+                TechStack = null as string
+            }).ToListAsync();
+
+            var combinedSessions = hrSessionsList
+                .Concat(fullMockSessionsList)
+                .Concat(techSessionsList)
+                .Concat(practiceSessionsList)
+                .Concat(questionPracticeSessionsList)
+                .AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
@@ -92,6 +183,22 @@ namespace InterviewPro.API.Services
                 else if (typeLower == "fullmock")
                 {
                     combinedSessions = combinedSessions.Where(s => s.InterviewType == "FullMock");
+                }
+                else if (typeLower == "technical")
+                {
+                    combinedSessions = combinedSessions.Where(s => s.InterviewType == "Technical");
+                }
+                else if (typeLower == "codingpractice")
+                {
+                    combinedSessions = combinedSessions.Where(s => s.InterviewType == "CodingPractice");
+                }
+                else if (typeLower == "techpractice")
+                {
+                    combinedSessions = combinedSessions.Where(s => s.InterviewType == "TechPractice");
+                }
+                else if (typeLower == "hrpractice")
+                {
+                    combinedSessions = combinedSessions.Where(s => s.InterviewType == "HRPractice");
                 }
                 else
                 {
@@ -199,7 +306,9 @@ namespace InterviewPro.API.Services
                     TotalQuestions = s.TotalQuestions,
                     DurationMinutes = s.DurationMinutes,
                     InterviewDate = s.CompletedAt ?? s.CreatedAt,
-                    HasResult = s.HasResult
+                    HasResult = s.HasResult,
+                    ProblemId = s.ProblemId,
+                    TechStack = s.TechStack
                 };
             }).ToList();
 

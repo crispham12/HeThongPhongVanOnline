@@ -35,7 +35,7 @@ namespace InterviewPro.API.DTOs
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
-        public string Score { get; set; } = string.Empty;
+        public double? Score { get; set; }
         public bool Live { get; set; }
     }
 

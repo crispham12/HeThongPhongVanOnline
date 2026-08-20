@@ -113,14 +113,14 @@ export default function FullMockReport() {
 
   // Radar Chart Calculations for SVG dynamic polygons
   const competencies = [
-    { label: "Giao tiếp", val: report.competencyProfile?.communication || 5 },
-    { label: "Giải quyết vấn đề", val: report.competencyProfile?.problemSolving || 5 },
-    { label: "Kiến thức kỹ thuật", val: report.competencyProfile?.technicalKnowledge || 5 },
-    { label: "Khả năng Code", val: report.competencyProfile?.codingAbility || 5 },
-    { label: "Tư duy hệ thống", val: report.competencyProfile?.systemThinking || 5 },
-    { label: "Chuyên nghiệp", val: report.competencyProfile?.professionalism || 5 },
-    { label: "Làm việc nhóm", val: report.competencyProfile?.teamwork || 5 },
-    { label: "Khả năng học hỏi", val: report.competencyProfile?.learningAbility || 5 }
+    { label: "Giao tiếp", val: report.competencyProfile?.communication ?? 0 },
+    { label: "Giải quyết vấn đề", val: report.competencyProfile?.problemSolving ?? 0 },
+    { label: "Kiến thức kỹ thuật", val: report.competencyProfile?.technicalKnowledge ?? 0 },
+    { label: "Khả năng Code", val: report.competencyProfile?.codingAbility ?? 0 },
+    { label: "Tư duy hệ thống", val: report.competencyProfile?.systemThinking ?? 0 },
+    { label: "Chuyên nghiệp", val: report.competencyProfile?.professionalism ?? 0 },
+    { label: "Làm việc nhóm", val: report.competencyProfile?.teamwork ?? 0 },
+    { label: "Khả năng học hỏi", val: report.competencyProfile?.learningAbility ?? 0 }
   ];
 
   const center = 150;
@@ -339,7 +339,7 @@ export default function FullMockReport() {
                           <span className="font-bold text-slate-800">{comp.v?.toFixed(1)}</span>
                         </div>
                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${(comp.v || 5) * 10}%` }} />
+                          <div className="bg-emerald-600 h-full rounded-full" style={{ width: `${(comp.v ?? 0) * 10}%` }} />
                         </div>
                       </div>
                     ))}
@@ -407,7 +407,7 @@ export default function FullMockReport() {
                           <span className="font-bold text-slate-800">{comp.v?.toFixed(1)}</span>
                         </div>
                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div className="bg-blue-600 h-full rounded-full" style={{ width: `${(comp.v || 5) * 10}%` }} />
+                          <div className="bg-blue-600 h-full rounded-full" style={{ width: `${(comp.v ?? 0) * 10}%` }} />
                         </div>
                       </div>
                     ))}
@@ -488,7 +488,7 @@ export default function FullMockReport() {
                           <span className="font-bold text-slate-800">{comp.v?.toFixed(1)}</span>
                         </div>
                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div className="bg-amber-600 h-full rounded-full" style={{ width: `${(comp.v || 5) * 10}%` }} />
+                          <div className="bg-amber-600 h-full rounded-full" style={{ width: `${(comp.v ?? 0) * 10}%` }} />
                         </div>
                       </div>
                     ))}

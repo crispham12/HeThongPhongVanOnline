@@ -82,7 +82,7 @@ namespace InterviewPro.API.Services
                     Id = $"#IV-{s.Id}",
                     Name = string.IsNullOrEmpty(s.UserName) ? "Unknown" : s.UserName,
                     Role = s.Role,
-                    Score = s.LatestScore > 0 ? $"{s.LatestScore}/100" : "--/100",
+                    Score = s.LatestScore > 0 ? (double?)s.LatestScore : null,
                     Live = s.Status == "Active"
                 })
                 .ToListAsync();

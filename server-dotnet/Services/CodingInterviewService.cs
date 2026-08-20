@@ -342,8 +342,8 @@ namespace InterviewPro.API.Services
             {
                 language = session.Language,
                 code = request.Code,
-                functionName = originalProblem.FunctionName,
-                methodSignature = originalProblem.MethodSignature,
+                functionName = "solution",
+                methodSignature = null as string,
                 returnType = originalProblem.ReturnType,
                 testCases = publicCases.Select(tc => new
                 {
@@ -397,8 +397,8 @@ namespace InterviewPro.API.Services
                 problemDescription = originalProblem.Description,
                 language = session.Language,
                 code = request.Code,
-                functionName = originalProblem.FunctionName,
-                methodSignature = originalProblem.MethodSignature,
+                functionName = "solution",
+                methodSignature = null as string,
                 returnType = originalProblem.ReturnType,
                 testCases = allTestCases
             };

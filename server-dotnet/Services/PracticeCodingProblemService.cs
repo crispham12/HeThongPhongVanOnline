@@ -407,8 +407,8 @@ namespace InterviewPro.API.Services
                 problemDescription = p.Description,
                 language = request.Language,
                 code = request.Code,
-                functionName = p.FunctionName,
-                methodSignature = p.MethodSignature,
+                functionName = "solution",
+                methodSignature = null as string,
                 returnType = p.ReturnType,
                 testCases = allTestCases
             };

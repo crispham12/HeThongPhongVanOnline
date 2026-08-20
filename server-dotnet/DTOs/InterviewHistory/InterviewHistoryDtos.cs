@@ -41,6 +41,9 @@ namespace InterviewPro.API.DTOs.InterviewHistory
         public int DurationMinutes { get; set; }
         public DateTime? InterviewDate { get; set; } // CompletedAt or CreatedAt
         public bool HasResult { get; set; }
+        
+        public string? ProblemId { get; set; }
+        public string? TechStack { get; set; }
     }
 
     public class PaginationDto

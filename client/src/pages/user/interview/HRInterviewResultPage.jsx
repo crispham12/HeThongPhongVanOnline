@@ -167,7 +167,7 @@ const OverallScoreHero = ({ overall }) => (
     <div className="flex-1 space-y-4">
       <div>
         <h2 className="text-xl font-bold text-gray-900">Điểm Tổng Thể</h2>
-        <p className="text-gray-600 font-medium mt-1">{overall.score} / 10</p>
+        <p className="text-gray-600 font-medium mt-1">{Number(overall.score).toFixed(1)} / 10</p>
       </div>
       <p className="text-gray-700">{overall.score === 0 ? "No valid interview data available." : overall.summaryText}</p>
       <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ const CircularScore = ({ score }) => {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-bold text-gray-900">{score}</span>
+        <span className="text-3xl font-bold text-gray-900">{Number(score).toFixed(1)}</span>
       </div>
     </div>
   );
@@ -230,7 +230,7 @@ const ScoreMetricCard = ({ metric }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col justify-between">
     <div className="flex justify-between items-center mb-4">
       <span className="font-bold text-gray-900">{metric.name}</span>
-      <span className="text-gray-600 font-medium">{metric.score}</span>
+      <span className="text-gray-600 font-medium">{Number(metric.score).toFixed(1)}</span>
     </div>
     <div>
       <MiniProgressBar score={metric.score} status={metric.status} />
@@ -307,7 +307,7 @@ const STARCard = ({ item }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col">
     <div className="flex justify-between items-center mb-3">
       <span className="font-bold text-gray-900">{item.name}</span>
-      <span className="text-gray-600 text-sm font-medium">{item.score}</span>
+      <span className="text-gray-600 text-sm font-medium">{Number(item.score).toFixed(1)}</span>
     </div>
     <div className="mb-3">
        <span className={`text-[10px] uppercase font-bold tracking-wide ${

@@ -13,6 +13,9 @@ const TYPE_MAP = {
   HR: { label: 'Nhân sự (HR)', color: 'text-gray-800' },
   Technical: { label: 'Kỹ thuật', color: 'text-blue-600' },
   Coding: { label: 'Lập trình', color: 'text-orange-600' },
+  CodingPractice: { label: 'Thực hành Code', color: 'text-violet-600' },
+  TechPractice: { label: 'Luyện tập Kỹ thuật', color: 'text-indigo-600' },
+  HRPractice: { label: 'Luyện tập HR', color: 'text-pink-600' },
   GitHub: { label: 'GitHub', color: 'text-gray-800' },
 };
 
@@ -38,6 +41,27 @@ export default function History() {
   // Delete modal state
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const handleRetry = (row) => {
+    if (row.interviewType === 'CodingPractice') {
+      navigate(`/coding-practice/${row.problemId}`);
+    } else if (row.interviewType === 'TechPractice' || row.interviewType === 'HRPractice') {
+      navigate(`/question-bank/practice/${row.problemId}`);
+    } else {
+      let stackArray = [];
+      try {
+        if (row.techStack) {
+          if (row.techStack.startsWith('[')) {
+            stackArray = JSON.parse(row.techStack);
+          } else {
+            stackArray = row.techStack.split(',').map(s => s.trim()).filter(s => s);
+          }
+        }
+      } catch(e) {}
+      
+      navigate('/setup', { state: { role: row.role, level: row.level, stack: stackArray } });
+    }
+  };
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -119,13 +143,13 @@ export default function History() {
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">ĐIỂM TRUNG BÌNH</p>
             <h2 className="text-3xl font-bold text-gray-900">
-              {loading ? '—' : (summary?.averageScore ?? 0)} <span className="text-lg font-semibold text-gray-500">/ 10</span>
+              {loading ? '—' : Number(summary?.averageScore ?? 0).toFixed(1)} <span className="text-lg font-semibold text-gray-500">/ 10</span>
             </h2>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">ĐIỂM CAO NHẤT</p>
             <h2 className="text-3xl font-bold text-gray-900">
-              {loading ? '—' : (summary?.highestScore ?? 0)} <span className="text-lg font-semibold text-gray-500">/ 10</span>
+              {loading ? '—' : Number(summary?.highestScore ?? 0).toFixed(1)} <span className="text-lg font-semibold text-gray-500">/ 10</span>
             </h2>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -228,7 +252,7 @@ export default function History() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {row.hasResult ? (
                           <>
-                            <span className="text-[14px] font-bold text-gray-900">{row.score}</span>
+                            <span className="text-[14px] font-bold text-gray-900">{Number(row.score).toFixed(1)}</span>
                             <span className="text-[13px] text-gray-500"> / 10</span>
                           </>
                         ) : (
@@ -243,11 +267,9 @@ export default function History() {
                       <td className="px-6 py-4 text-[14px] text-gray-600">{formatDate(row.interviewDate)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-[13px] text-gray-500 whitespace-nowrap">
-                          <button onClick={() => navigate(`/history/${row.sessionId}`)} className="font-medium hover:text-gray-900 transition-colors">Xem</button>
+                          <button onClick={() => handleRetry(row)} className="font-medium hover:text-gray-900 transition-colors">Làm lại</button>
                           <span>·</span>
-                          <button onClick={() => navigate(`/history/compare?a=${row.sessionId}`)} className="font-medium hover:text-gray-900 transition-colors">So sánh</button>
-                          <span>·</span>
-                          <button onClick={() => setDeleteItem(row)} className="font-medium hover:text-blue-600 text-gray-400 transition-colors">Xoá</button>
+                          <button onClick={() => setDeleteItem(row)} className="font-medium hover:text-red-600 text-gray-400 transition-colors">Xoá</button>
                         </div>
                       </td>
                     </tr>
@@ -305,7 +327,7 @@ export default function History() {
               <div className="bg-[#fcfcfd] border border-gray-200 rounded-xl p-4 mt-5">
                 <p className="text-[12px] font-bold text-gray-900">Phiên đã chọn</p>
                 <p className="text-[13px] text-gray-600 mt-1">
-                  {getType(deleteItem.interviewType).label} · {deleteItem.role} · {deleteItem.hasResult ? `${deleteItem.score} / 10` : 'Chưa chấm'} · {formatDate(deleteItem.interviewDate)}
+                  {getType(deleteItem.interviewType).label} · {deleteItem.role} · {deleteItem.hasResult ? `${Number(deleteItem.score).toFixed(1)} / 10` : 'Chưa chấm'} · {formatDate(deleteItem.interviewDate)}
                 </p>
               </div>
 

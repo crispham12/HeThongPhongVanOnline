@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -63,6 +64,8 @@ function StatusBadge({ status }) {
 }
 
 export default function AdminInterviewData() {
+  const location = useLocation();
+  const autoOpenDone = useRef(false);
   const [role, setRole] = useState('');
   const [skillType, setSkillType] = useState('');
   const [scoreMin, setScoreMin] = useState('');
@@ -130,6 +133,17 @@ export default function AdminInterviewData() {
     const timer = setTimeout(() => fetchSessions(), 0);
     return () => clearTimeout(timer);
   }, [fetchSessions]);
+
+  // Auto-open session khi navigate từ AdminDashboard
+  useEffect(() => {
+    const targetId = location.state?.sessionId;
+    if (!targetId || autoOpenDone.current || sessions.length === 0) return;
+    const found = sessions.find(s => String(s.id) === String(targetId));
+    if (found) {
+      autoOpenDone.current = true;
+      handleViewSessionDetails(found);
+    }
+  }, [sessions, location.state]);
 
   const handleApplyFilter = (event) => {
     event.preventDefault();
@@ -249,8 +263,8 @@ export default function AdminInterviewData() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between border-b border-[#eeeeee] py-3"><span className="font-bold text-[#8d8a91]">Loại</span><span className="font-extrabold text-[#333333]">{selectedSession.skillType}</span></div>
                 <div className="flex justify-between border-b border-[#eeeeee] py-3"><span className="font-bold text-[#8d8a91]">Số lượt</span><span className="font-extrabold text-[#333333]">{selectedSession.attemptCount}</span></div>
-                <div className="flex justify-between border-b border-[#eeeeee] py-3"><span className="font-bold text-[#8d8a91]">Mới nhất</span><span className="font-extrabold text-[#333333]">{selectedSession.latestScore}/100</span></div>
-                <div className="flex justify-between border-b border-[#eeeeee] py-3"><span className="font-bold text-[#8d8a91]">Cao nhất</span><span className="font-extrabold text-[#77c486]">{selectedSession.bestScore}/100</span></div>
+                <div className="flex justify-between border-b border-[#eeeeee] py-3"><span className="font-bold text-[#8d8a91]">Mới nhất</span><span className="font-extrabold text-[#333333]">{Number(selectedSession.latestScore).toFixed(1)}/100</span></div>
+                <div className="flex justify-between border-b border-[#eeeeee] py-3"><span className="font-bold text-[#8d8a91]">Cao nhất</span><span className="font-extrabold text-[#77c486]">{Number(selectedSession.bestScore).toFixed(1)}/100</span></div>
               </div>
 
               <h3 className="mb-3 mt-7 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Lịch sử lượt làm</h3>
@@ -263,7 +277,7 @@ export default function AdminInterviewData() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-extrabold text-[#333333]">#{attempt.attemptNumber}</span>
-                      <span className="text-sm font-bold text-[#333333]">{attempt.score}/100</span>
+                      <span className="text-sm font-bold text-[#333333]">{Number(attempt.score).toFixed(1)}/100</span>
                     </div>
                     <p className="mt-1 text-xs font-semibold text-[#8d8a91]">{formatDate(attempt.createdAt)}</p>
                   </button>
@@ -276,14 +290,14 @@ export default function AdminInterviewData() {
                 <div>
                   <div className="mb-6 border-b border-[#eeeeee] pb-5">
                     <h3 className="text-lg font-extrabold text-[#333333]">Chi tiết lượt làm #{selectedAttempt.attemptNumber}</h3>
-                    <p className="mt-1 text-sm font-semibold text-[#8d8a91]">Điểm: {selectedAttempt.score}/100</p>
+                    <p className="mt-1 text-sm font-semibold text-[#8d8a91]">Điểm: {Number(selectedAttempt.score).toFixed(1)}/100</p>
                   </div>
                   <div className="space-y-4">
                     {attemptQuestions.map((question, index) => (
                       <article key={question.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <span className="rounded-md bg-[#f1f1f1] px-2.5 py-1 text-[10px] font-extrabold uppercase text-[#333333]">Câu {index + 1}</span>
-                          <span className="text-sm font-extrabold text-[#333333]">{question.score}/10</span>
+                          <span className="text-sm font-extrabold text-[#333333]">{Number(question.score).toFixed(1)}/10</span>
                         </div>
                         <h4 className="text-sm font-extrabold leading-relaxed text-[#333333]">{question.question}</h4>
                         <div className="mt-4 rounded-lg bg-[#fafafa] p-4 text-sm font-medium leading-relaxed text-[#6f6a72]">
@@ -406,8 +420,8 @@ export default function AdminInterviewData() {
                     <td className="px-5 py-5 text-[14px] font-semibold leading-tight text-[#333333]">{item.role}</td>
                     <td className="px-5 py-5"><span className="inline-flex rounded-md bg-[#f1f1f1] px-2.5 py-1 text-[10px] font-extrabold uppercase text-[#333333]">{item.skillType}</span></td>
                     <td className="px-5 py-5 text-center text-[15px] font-extrabold text-[#333333] tabular-nums">{item.attemptCount}</td>
-                    <td className="px-5 py-5 text-center text-[15px] font-extrabold text-[#333333] tabular-nums">{item.latestScore}</td>
-                    <td className="px-5 py-5 text-center text-[15px] font-extrabold text-[#77c486] tabular-nums">{item.bestScore}</td>
+                    <td className="px-5 py-5 text-center text-[15px] font-extrabold text-[#333333] tabular-nums">{item.latestScore != null ? Number(item.latestScore).toFixed(1) : '—'}</td>
+                    <td className="px-5 py-5 text-center text-[15px] font-extrabold text-[#77c486] tabular-nums">{item.bestScore != null ? Number(item.bestScore).toFixed(1) : '—'}</td>
                     <td className="px-5 py-5 text-center"><StatusBadge status={item.status} /></td>
                     <td className="px-5 py-5 text-right"><ChevronRight className="inline-block h-4 w-4 text-[#c8c5ca] transition-colors group-hover:text-[#333333]" /></td>
                   </tr>
