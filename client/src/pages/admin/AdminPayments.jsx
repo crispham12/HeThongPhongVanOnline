@@ -4,11 +4,10 @@ import {
   CheckCircle2, XCircle, Clock, Loader2, ToggleLeft, ToggleRight, Edit3, Plus, Shield, Eye
 } from 'lucide-react';
 import { adminPaymentsApi } from '../../services/adminPaymentsApi';
+import html2pdf from 'html2pdf.js';
 
 function StatusIcon({ status }) {
-  if (status === 'Success' || status === 'Thành công') return <CheckCircle2 className="w-3.5 h-3.5" />;
-  if (status === 'Failed' || status === 'Thất bại') return <XCircle className="w-3.5 h-3.5" />;
-  return <Clock className="w-3.5 h-3.5" />;
+  return null;
 }
 
 function StatCard({ title, value, trend, trendUp, sub }) {
@@ -55,6 +54,7 @@ export default function AdminPayments() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Edit / Create Package States
   const [showPackageModal, setShowPackageModal] = useState(false);
@@ -89,7 +89,7 @@ export default function AdminPayments() {
         page,
         pageSize: 10,
         status: txFilter || undefined,
-        userId: searchUserId ? parseInt(searchUserId) : undefined
+        search: searchUserId || undefined,  // backend dùng search, không phải userId
       };
       const res = await adminPaymentsApi.getTransactions(params);
       setTransactions(res.items);
@@ -109,6 +109,97 @@ export default function AdminPayments() {
   useEffect(() => {
     fetchTransactions();
   }, [txFilter, page, searchUserId]);
+
+  // ─── EXPORT PDF ──────────────────────────────────────────────────
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const res = await adminPaymentsApi.getTransactions({ page: 1, pageSize: 9999 });
+      const allTx = res.items || [];
+
+      const statusLabel = (s) =>
+        s === 'Success' ? 'Thành công' :
+        s === 'Pending' ? 'Chờ xử lý' :
+        s === 'Failed' ? 'Thất bại' : 'Hết hạn';
+
+      const formatDate = (iso) => {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      };
+
+      const now = new Date();
+      const reportDate = formatDate(now.toISOString());
+
+      const printableContainer = document.createElement('div');
+      printableContainer.className = 'p-8 bg-white font-sans text-gray-800';
+      printableContainer.style.width = '800px';
+      
+      printableContainer.innerHTML = `
+        <div style="border-bottom:2px solid #333333;padding-bottom:15px;margin-bottom:25px;">
+          <h1 style="font-size:24px;font-weight:900;color:#333333;margin:0;">BÁO CÁO THANH TOÁN</h1>
+          <p style="font-size:12px;color:#6b7280;margin:5px 0 0 0;">Ngày xuất: ${reportDate}</p>
+        </div>
+        
+        <h3 style="font-size:16px;font-weight:800;color:#1f2937;margin:0 0 15px 0;">Tổng quan</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:25px;font-size:12px;">
+          <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">Tổng doanh thu (VNĐ)</td><td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${overview.totalRevenue.toLocaleString('vi-VN')}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">Giao dịch thành công</td><td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${overview.successfulTransactions}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">Giao dịch chờ xử lý</td><td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${overview.pendingTransactions}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;">Giao dịch thất bại</td><td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${overview.failedTransactions}</td></tr>
+        </table>
+        
+        <h3 style="font-size:16px;font-weight:800;color:#1f2937;margin:0 0 15px 0;">Chi tiết giao dịch</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+          <thead>
+            <tr style="background:#f3f4f6;">
+              <th style="padding:6px;border:1px solid #e5e7eb;text-align:left;">Mã ĐH</th>
+              <th style="padding:6px;border:1px solid #e5e7eb;text-align:left;">Người dùng</th>
+              <th style="padding:6px;border:1px solid #e5e7eb;text-align:left;">Gói</th>
+              <th style="padding:6px;border:1px solid #e5e7eb;text-align:right;">Số tiền</th>
+              <th style="padding:6px;border:1px solid #e5e7eb;text-align:center;">Trạng thái</th>
+              <th style="padding:6px;border:1px solid #e5e7eb;text-align:center;">Ngày tạo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allTx.map(tx => `
+              <tr>
+                <td style="padding:6px;border:1px solid #e5e7eb;">${tx.paymentCode || ''}</td>
+                <td style="padding:6px;border:1px solid #e5e7eb;">${tx.userName || tx.userEmail || ''}</td>
+                <td style="padding:6px;border:1px solid #e5e7eb;">${tx.packageName || ''}</td>
+                <td style="padding:6px;border:1px solid #e5e7eb;text-align:right;">${(tx.amount || 0).toLocaleString('vi-VN')} đ</td>
+                <td style="padding:6px;border:1px solid #e5e7eb;text-align:center;">${statusLabel(tx.status)}</td>
+                <td style="padding:6px;border:1px solid #e5e7eb;text-align:center;">${formatDate(tx.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      const hiddenWrapper = document.createElement('div');
+      hiddenWrapper.style.position = 'absolute';
+      hiddenWrapper.style.left = '-9999px';
+      hiddenWrapper.appendChild(printableContainer);
+      document.body.appendChild(hiddenWrapper);
+
+      await html2pdf().set({
+        margin: [10, 10, 10, 10],
+        filename: `BaoCaoThanhToan_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, width: 800 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(printableContainer).save();
+
+      document.body.removeChild(hiddenWrapper);
+      alert('Xuất báo cáo PDF thành công.');
+    } catch (err) {
+      console.error('Lỗi khi xuất báo cáo:', err);
+      alert('Xuất báo cáo thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  // ─────────────────────────────────────────────────────────────────
 
   const handleToggleActive = async (id) => {
     try {
@@ -158,9 +249,13 @@ export default function AdminPayments() {
           <p className="mt-2 text-[15px] font-semibold text-[#96939a]">Quản lý doanh thu chuyển khoản SePay, lịch sử giao dịch và cấu hình gói lượt phỏng vấn.</p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] hover:bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm">
-            <Download className="w-3.5 h-3.5" />
-            Xuất báo cáo
+          <button
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B4F290] text-[#111827] text-xs font-semibold rounded-lg transition-all shadow-sm hover:bg-[#9de675] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            {isExporting ? 'Đang xuất...' : 'Xuất báo cáo PDF'}
           </button>
         </div>
       </div>
@@ -281,7 +376,7 @@ export default function AdminPayments() {
                 <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Người Dùng</th>
                 <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Gói</th>
                 <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Số Tiền</th>
-                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Trạng Thế</th>
+                <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Trạng Thái</th>
                 <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91]">Ngày Tạo</th>
                 <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8d8a91] text-right">Chi Tiết</th>
               </tr>
@@ -301,7 +396,7 @@ export default function AdminPayments() {
                     </td>
                     <td className="px-5 py-5 text-[13px] font-medium text-gray-700">
                       <span className="text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50 mr-1">{tx.paymentCode}</span>
-                      {tx.transferContent || "Chưa chuyển khoản"}
+                      {tx.transferContent}
                     </td>
                     <td className="px-5 py-5">
                       <div className="flex items-center gap-3">
@@ -316,11 +411,10 @@ export default function AdminPayments() {
                     </td>
                     <td className="px-5 py-5">
                       <span className="text-[13px] font-extrabold text-blue-600">{tx.packageName}</span>
-                      <p className="text-[10px] text-gray-400 font-semibold mt-0.5">+{tx.credits} lượt</p>
                     </td>
                     <td className="px-5 py-5 text-[14px] font-extrabold text-[#333333] tabular-nums">{tx.amount.toLocaleString('vi-VN')} đ</td>
                     <td className="px-5 py-5">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-extrabold uppercase ${
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-extrabold uppercase whitespace-nowrap ${
                         tx.status === 'Success' 
                           ? 'text-green-700 bg-green-100 border border-green-200' 
                           : tx.status === 'Failed' 
@@ -447,7 +541,7 @@ export default function AdminPayments() {
                   {selectedTx.paymentCode}
                 </h3>
               </div>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-extrabold uppercase ${
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-extrabold uppercase whitespace-nowrap ${
                 selectedTx.status === 'Success' 
                   ? 'text-green-700 bg-green-100 border border-green-200' 
                   : selectedTx.status === 'Failed' 
@@ -472,7 +566,7 @@ export default function AdminPayments() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-gray-500">Gói lượt tập:</span>
-                <span className="font-bold text-purple-600">{selectedTx.packageName} (+{selectedTx.credits} lượt)</span>
+                <span className="font-bold text-purple-600">{selectedTx.packageName}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-gray-500">Số tiền:</span>

@@ -5,10 +5,44 @@ export const adminPaymentsApi = {
         const response = await api.get('/admin/payments/overview');
         return response.data;
     },
+    // Backend: GET /api/admin/payments?status=&search=&page=&pageSize=
     getTransactions: async (params = {}) => {
-        // params: status, userId, dateFrom, dateTo, page, pageSize
-        const response = await api.get('/admin/payments/transactions', { params });
-        return response.data;
+    // Map frontend params to backend params
+    const statusMap = { 'Success': 'Completed', 'Failed': 'Failed', 'Pending': 'Pending', 'Expired': 'Expired' };
+    const backendParams = {
+        page: params.page,
+        pageSize: params.pageSize,
+        status: params.status ? (statusMap[params.status] || params.status) : undefined,
+        search: params.search,
+    };
+        const response = await api.get('/admin/payments', { params: backendParams });
+        console.log("AdminPayments API response:", response.data);
+        const data = response.data;
+        // Normalize response to match what frontend expects
+        const items = (data.items || []).map(o => ({
+            id: o.id,
+            paymentCode: o.orderCode,
+            sePayTransactionId: o.orderCode,
+            userName: o.user?.fullName || o.user?.email || 'N/A',
+            userEmail: o.user?.email || '',
+            userId: o.user?.id || '',
+            packageName: o.planType || '',
+            credits: o.planType === 'Yearly' ? 365 : 30,
+            amount: o.amount || 0,
+            status: normalizeStatus(o.status),
+            createdAt: o.createdAt,
+            paidAt: o.paidAt || null,
+            bankCode: '',
+            bankAccountNumber: '',
+            transferContent: '',
+            paymentMethod: 'SePay',
+        }));
+        return {
+            items,
+            total: data.total || 0,
+            page: data.page || 1,
+            pageSize: data.pageSize || 10,
+        };
     },
     getPackages: async () => {
         const response = await api.get('/admin/payments/packages');
@@ -27,3 +61,12 @@ export const adminPaymentsApi = {
         return response.data;
     }
 };
+
+// Map backend status to frontend status
+function normalizeStatus(status) {
+    if (!status) return 'Pending';
+    if (status === 'Completed') return 'Success';
+    if (status === 'Failed' || status === 'WrongAmount') return 'Failed';
+    if (status === 'Expired') return 'Expired';
+    return 'Pending';
+}
