@@ -124,11 +124,13 @@ namespace InterviewPro.API.Controllers
             if (q == null) return NotFound(new { message = "Câu hỏi không tồn tại hoặc chưa được publish." });
 
             var latestHistory = await _db.UserQuestionPracticeHistories
+                .AsNoTracking()
                 .Where(h => h.UserId == userId && h.QuestionId == id)
                 .OrderByDescending(h => h.CreatedAt)
                 .FirstOrDefaultAsync();
 
             var maxScoreQuery = await _db.UserQuestionPracticeHistories
+                .AsNoTracking()
                 .Where(h => h.UserId == userId && h.QuestionId == id)
                 .Select(h => (float?)h.AiScore)
                 .ToListAsync();
@@ -185,7 +187,7 @@ namespace InterviewPro.API.Controllers
                 catch {}
             }
 
-            if (q.Category == "Technical")
+            if (q.Category == "Technical" || q.Category == "Kỹ thuật")
             {
                 var techEvalReq = new AiEvaluateAnswerRequest
                 {

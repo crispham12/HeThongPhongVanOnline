@@ -79,6 +79,57 @@ namespace InterviewPro.API.Controllers
             });
         }
 
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", request.TokenId);
+            var response = await client.GetAsync("https://www.googleapis.com/oauth2/v3/userinfo");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                return BadRequest(new { message = "Token không hợp lệ hoặc đã hết hạn." });
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var payload = System.Text.Json.JsonSerializer.Deserialize<GoogleUserInfo>(content, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (payload == null || string.IsNullOrEmpty(payload.Email))
+            {
+                return BadRequest(new { message = "Không thể lấy thông tin email từ Google." });
+            }
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
+
+            if (request.IsRegister && user != null)
+            {
+                return BadRequest(new { message = "Email này đã được sử dụng. Vui lòng trở lại trang Đăng nhập." });
+            }
+
+            if (user == null)
+            {
+                // Register new user
+                var newUser = new User
+                {
+                    Name = payload.Name ?? payload.Email.Split('@')[0],
+                    Email = payload.Email,
+                    PasswordHash = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")
+                };
+                user = await _repo.Register(newUser, newUser.PasswordHash);
+            }
+            
+            if (user.IsLocked)
+                return BadRequest(new { message = $"Tài khoản bị khóa. Lý do: {user.LockReason ?? "Vi phạm chính sách"}" });
+
+            var token = CreateToken(user);
+
+            return Ok(new
+            {
+                token = token,
+                user = new { user.Id, user.Name, user.Email, user.Role }
+            });
+        }
+
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
@@ -171,4 +222,12 @@ namespace InterviewPro.API.Controllers
     public record LoginRequest(string Email, string Password);
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+    public record GoogleLoginRequest(string TokenId, bool IsRegister = false);
+
+    public class GoogleUserInfo 
+    {
+        public string Email { get; set; }
+        public string Name { get; set; }
+        public string Picture { get; set; }
+    }
 }

@@ -68,6 +68,19 @@ export default function Dashboard() {
 
   return (
     <div className="animate-fade-in pb-16 bg-white min-h-screen text-neutral-800">
+      {(() => {
+        const hasInterviews = stats.totalInterviews > 0;
+        
+        const topSkill = hasInterviews && stats.skillProgress?.length > 0 
+          ? stats.skillProgress.reduce((max, skill) => (skill.score > max.score ? skill : max), stats.skillProgress[0])
+          : { name: 'Chưa có', score: 0 };
+          
+        const lowestSkill = hasInterviews && stats.skillProgress?.length > 0 
+          ? stats.skillProgress.reduce((min, skill) => (skill.score < min.score ? skill : min), stats.skillProgress[0])
+          : { name: 'Chưa có dữ liệu', score: 0 };
+
+        return (
+          <>
       {/* Header section with command feel */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-100 pb-6 mb-8">
         <div>
@@ -155,10 +168,10 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Tổng số buổi" value={stats.totalInterviews} icon={Trophy} trend="+2 tuần này" />
-        <StatCard title="Điểm trung bình" value={`${stats.averageScore}%`} icon={Target} trend="+5.4% tháng này" />
-        <StatCard title="Chuỗi ngày" value={`${stats.streak} ngày`} icon={Zap} trend="Duy trì tốt!" />
-        <StatCard title="Kỹ năng cao nhất" value="React" icon={Star} trend="Backend cần cải thiện" />
+        <StatCard title="Tổng số buổi" value={stats.totalInterviews} icon={Trophy} trend={stats.totalInterviews > 0 ? "Tiếp tục phát huy!" : "Hãy bắt đầu luyện tập"} />
+        <StatCard title="Điểm trung bình" value={`${stats.averageScore}%`} icon={Target} trend={stats.averageScore >= 80 ? "Rất xuất sắc!" : stats.averageScore >= 50 ? "Khá tốt" : "Cần cố gắng thêm"} />
+        <StatCard title="Chuỗi ngày" value={`${stats.streak} ngày`} icon={Zap} trend={stats.streak > 0 ? "Duy trì tốt!" : "Chưa có chuỗi"} />
+        <StatCard title="Kỹ năng cao nhất" value={topSkill.name} icon={Star} trend={`${lowestSkill.name} cần cải thiện`} />
       </div>
 
       {/* Analytics & Content Layout */}
@@ -250,12 +263,17 @@ export default function Dashboard() {
                 AI
               </div>
               <p className="text-xs text-neutral-600 leading-relaxed">
-                Dựa trên phân tích AI, kỹ năng <strong>Frontend</strong> của bạn rất tốt. Bạn nên tập trung vào <strong>System Design</strong> để nâng cấp lên vị trí Senior.
+                {hasInterviews 
+                  ? `Dựa trên phân tích AI, kỹ năng ${topSkill.name} của bạn rất tốt. Bạn nên tập trung cải thiện ${lowestSkill.name} để đạt kết quả cao hơn trong các buổi phỏng vấn tới.`
+                  : "Chưa có đủ dữ liệu. Hãy tham gia thêm các buổi phỏng vấn luyện tập để AI có thể phân tích và đưa ra lộ trình cải thiện tốt nhất cho bạn."}
               </p>
             </div>
           </div>
         </div>
       </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

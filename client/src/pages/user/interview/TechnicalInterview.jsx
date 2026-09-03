@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { BrainCircuit, Timer, ChevronRight, Loader2, CheckCircle, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../../lib/axios';
-
+import { practiceQuestionApi } from '../../../services/questionBankApi';
 const renderFormattedQuestion = (text) => {
   if (!text) return 'Đang tải câu hỏi...';
 
@@ -72,8 +72,9 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
   const [qCount, setQCount] = useState(1);
   const [totalQuestions, setTotalQuestions] = useState(3);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef(null);
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const [answerTime, setAnswerTime] = useState(0);
   const answerTimerRef = useRef(null);
@@ -106,31 +107,46 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
     return () => stopAnswerTimer();
   }, [question]);
 
-  const toggleVoiceInput = () => {
-    if (!SpeechRecognition) {
-      alert('Trình duyệt không hỗ trợ ghi âm. Vui lòng dùng Chrome.');
-      return;
-    }
+  const toggleVoiceInput = async () => {
     if (isRecording) {
-      recognitionRef.current?.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
     } else {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'vi-VN';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.onresult = (event) => {
-        let text = '';
-        for (let i = 0; i < event.results.length; i++) {
-          text += event.results[i][0].transcript;
-        }
-        setAnswer(text); // Điền thẳng vào answer textarea
-      };
-      recognition.onerror = () => setIsRecording(false);
-      recognition.onend = () => setIsRecording(false);
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsRecording(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(track => track.stop());
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          
+          setIsTranscribing(true);
+          try {
+            const transcribedText = await practiceQuestionApi.transcribeAudio(audioBlob);
+            setAnswer((prev) => (prev ? prev + ' ' + transcribedText : transcribedText));
+          } catch (error) {
+            console.error("Transcription error:", error);
+            alert("Lỗi khi nhận diện giọng nói. Vui lòng thử lại.");
+          } finally {
+            setIsTranscribing(false);
+          }
+        };
+
+        mediaRecorder.start();
+        mediaRecorderRef.current = mediaRecorder;
+        setIsRecording(true);
+      } catch (err) {
+        alert("Không thể truy cập microphone. Vui lòng cấp quyền trong trình duyệt.");
+      }
     }
   };
 
@@ -162,7 +178,9 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
       fetchNextQuestion(sessionId);
     }
     return () => {
-      recognitionRef.current?.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, [sessionId]);
 
@@ -261,13 +279,16 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
             <button
               type="button"
               onClick={toggleVoiceInput}
+              disabled={isTranscribing}
               className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                isRecording
+                isTranscribing
+                  ? 'bg-amber-100 text-amber-600 border border-amber-300'
+                  : isRecording
                   ? 'bg-red-500  animate-pulse border border-red-500'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
               }`}
             >
-              <Mic className="w-5 h-5 md:w-6 md:h-6" />
+              {isTranscribing ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <Mic className="w-5 h-5 md:w-6 md:h-6" />}
             </button>
           </div>
         </div>
@@ -276,7 +297,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
         <div className="flex justify-end shrink-0">
           <button
             onClick={handleSubmit}
-            disabled={!answer.trim() || submitting}
+            disabled={!answer.trim() || submitting || isTranscribing}
             className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm flex items-center gap-2"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hoàn thành'}

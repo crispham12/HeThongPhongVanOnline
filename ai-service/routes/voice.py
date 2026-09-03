@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 from typing import List
+import os
+from openai import AsyncOpenAI
 
 router = APIRouter(prefix="/ai/voice", tags=["Voice Analysis"])
 
@@ -113,3 +115,59 @@ async def analyze_voice(request: VoiceAnalysisRequest):
         pause_analysis=pause_analysis,
         feedback=feedback
     )
+
+class TranscribeResponse(BaseModel):
+    text: str
+
+@router.post("/transcribe", response_model=TranscribeResponse)
+async def transcribe_audio(file: UploadFile = File(...)):
+    if not file:
+        raise HTTPException(status_code=400, detail="Không tìm thấy file âm thanh")
+
+    # Tải key từ file .env.speech riêng biệt
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=".env.speech", override=True)
+
+    # Ưu tiên dùng GROQ_API_KEY
+    api_key = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_WHISPER_KEY") or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Không tìm thấy cấu hình API Key.")
+
+    # Khởi tạo client OpenAI nhưng trỏ base_url về server của Groq
+    client = AsyncOpenAI(
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1"
+    )
+
+    # Lưu tạm file để OpenAI đọc
+    temp_file_path = f"temp_{file.filename}"
+    try:
+        content = await file.read()
+        with open(temp_file_path, 'wb') as out_file:
+            out_file.write(content)
+
+        # Gọi Groq Whisper API
+        with open(temp_file_path, "rb") as audio_file:
+            transcript = await client.audio.transcriptions.create(
+                model="whisper-large-v3", # Groq hỗ trợ whisper-large-v3
+                file=audio_file,
+                prompt="React, Node.js, C#, ASP.NET, OOP, CI/CD, Frontend, Backend, Database, SQL, MongoDB" # Gợi ý từ khóa
+            )
+            
+        return TranscribeResponse(text=transcript.text)
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[Error in whisper transcribe]: {error_msg}")
+        
+        # Nếu lỗi liên quan đến API Key hoặc hết tiền (429, 401)
+        if "429" in error_msg or "401" in error_msg or "insufficient_quota" in error_msg:
+            # Trả về câu giả lập thay vì lỗi sập hệ thống
+            return TranscribeResponse(
+                text="[ĐÂY LÀ ĐOẠN GHI ÂM MẪU VÌ TÀI KHOẢN OPENAI CỦA BẠN ĐANG HẾT TIỀN HOẶC KEY LỖI] Xin chào, tôi có kinh nghiệm làm việc với ReactJS, Node.js và hệ quản trị cơ sở dữ liệu MongoDB. Tôi đã từng triển khai hệ thống CI/CD cho dự án trước đó."
+            )
+            
+        raise HTTPException(status_code=500, detail=f"Lỗi OpenAI: {error_msg}")
+    finally:
+        # Dọn dẹp file tạm
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)

@@ -142,20 +142,20 @@ namespace InterviewPro.API.Controllers
 
                 var skillProgress = new List<ChartDataDto>
                 {
-                    new("Thái độ", (int)Math.Round((motivationScore > 0 ? motivationScore : 7) * 10)),
-                    new("Kỹ thuật", (int)Math.Round((techKnowledge > 0 ? techKnowledge : 6) * 10)),
-                    new("Tư duy", (int)Math.Round((problemSolving > 0 ? problemSolving : 6) * 10)),
-                    new("Giao tiếp", (int)Math.Round((hrCommunication > 0 ? hrCommunication : 7) * 10)),
-                    new("Code", (int)Math.Round((codingScore > 0 ? codingScore : 5) * 10))
+                    new("Thái độ", (int)Math.Round((motivationScore > 0 ? motivationScore : 0) * 10)),
+                    new("Kỹ thuật", (int)Math.Round((techKnowledge > 0 ? techKnowledge : 0) * 10)),
+                    new("Tư duy", (int)Math.Round((problemSolving > 0 ? problemSolving : 0) * 10)),
+                    new("Giao tiếp", (int)Math.Round((hrCommunication > 0 ? hrCommunication : 0) * 10)),
+                    new("Code", (int)Math.Round((codingScore > 0 ? codingScore : 0) * 10))
                 };
 
                 var radarData = new List<RadarDataDto>
                 {
-                    new("Kỹ thuật", (int)Math.Round((techKnowledge > 0 ? techKnowledge : 6) * 10), 100),
-                    new("Giải thuật", (int)Math.Round((problemSolving > 0 ? problemSolving : 6) * 10), 100),
-                    new("Hệ thống", (int)Math.Round((systemThinking > 0 ? systemThinking : 5) * 10), 100),
-                    new("Clean Code", (int)Math.Round((bestPractices > 0 ? bestPractices : 6) * 10), 100),
-                    new("Soft Skills", (int)Math.Round((hrCommunication > 0 ? hrCommunication : 7) * 10), 100)
+                    new("Kỹ thuật", (int)Math.Round((techKnowledge > 0 ? techKnowledge : 0) * 10), 100),
+                    new("Giải thuật", (int)Math.Round((problemSolving > 0 ? problemSolving : 0) * 10), 100),
+                    new("Hệ thống", (int)Math.Round((systemThinking > 0 ? systemThinking : 0) * 10), 100),
+                    new("Clean Code", (int)Math.Round((bestPractices > 0 ? bestPractices : 0) * 10), 100),
+                    new("Soft Skills", (int)Math.Round((hrCommunication > 0 ? hrCommunication : 0) * 10), 100)
                 };
                 
                 return Ok(new DashboardStatsDto(totalInterviews, finalAvgScore, streak, recentHistory, skillProgress, radarData));

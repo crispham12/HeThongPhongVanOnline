@@ -4,20 +4,21 @@ from typing import Tuple
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 api_key = os.getenv("OPENAI_API_KEY")
 
-# Force Gemini mode because the API key might not start with AIza
-is_gemini = True
+# Tự động nhận diện: Nếu key bắt đầu bằng "sk-" thì dùng OpenAI, ngược lại dùng Gemini
+is_gemini = api_key and not api_key.startswith("sk-")
 
 if is_gemini:
-    print("[AI Service] Google Gemini API Key detected. Using Gemini compatibility layer.")
+    print("[AI Service] Gemini API Key detected. Using Gemini compatibility layer.")
     client = AsyncOpenAI(
         api_key=api_key,
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         max_retries=0
     )
 else:
+    print("[AI Service] Standard OpenAI Key detected.")
     client = AsyncOpenAI(api_key=api_key, max_retries=0)
 
 
@@ -26,15 +27,14 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
     Call OpenAI/Gemini and parse JSON response.
     Returns the parsed result dict. Usage data is stored in result["usage"] and result["model"].
     """
-    # gemini-3.6-flash: confirmed working via 17 live tests - supports OpenAI compat endpoint + JSON format
-    actual_model = "gemini-3.6-flash" if is_gemini else model
+    # Chuyển sang gemini-3.5-flash vì 3.6 đang bị quá tải (503 High Demand)
+    actual_model = "gemini-3.5-flash" if is_gemini else model
 
     try:
         response = await client.chat.completions.create(
             model=actual_model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            response_format={"type": "json_object"},
+            temperature=0.7
         )
         
         usage = response.usage if hasattr(response, "usage") else None
@@ -43,7 +43,14 @@ async def call_openai(prompt: str, model: str = "gpt-4o-mini") -> dict:
         else:
             print(f"\n[AI Success] Connected successfully! Model: {actual_model}")
 
-        content_str = response.choices[0].message.content
+        content_str = response.choices[0].message.content.strip()
+        
+        # Remove markdown code block fences if AI returns them
+        import re
+        match = re.search(r"```(?:json)?\s*(.*?)\s*```", content_str, re.DOTALL)
+        if match:
+            content_str = match.group(1)
+            
         result = json.loads(content_str)
 
         # Always inject usage metadata so callers can extract it

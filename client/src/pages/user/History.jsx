@@ -42,26 +42,7 @@ export default function History() {
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const handleRetry = (row) => {
-    if (row.interviewType === 'CodingPractice') {
-      navigate(`/coding-practice/${row.problemId}`);
-    } else if (row.interviewType === 'TechPractice' || row.interviewType === 'HRPractice') {
-      navigate(`/question-bank/practice/${row.problemId}`);
-    } else {
-      let stackArray = [];
-      try {
-        if (row.techStack) {
-          if (row.techStack.startsWith('[')) {
-            stackArray = JSON.parse(row.techStack);
-          } else {
-            stackArray = row.techStack.split(',').map(s => s.trim()).filter(s => s);
-          }
-        }
-      } catch(e) {}
-      
-      navigate('/setup', { state: { role: row.role, level: row.level, stack: stackArray } });
-    }
-  };
+
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -267,8 +248,14 @@ export default function History() {
                       <td className="px-6 py-4 text-[14px] text-gray-600">{formatDate(row.interviewDate)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-[13px] text-gray-500 whitespace-nowrap">
-                          <button onClick={() => handleRetry(row)} className="font-medium hover:text-gray-900 transition-colors">Làm lại</button>
-                          <span>·</span>
+                          {row.hasResult && (
+                            <>
+                              <button onClick={() => navigate(`/history/${row.sessionId}`)} className="font-medium hover:text-blue-600 transition-colors">Xem</button>
+                              <span>·</span>
+                              <button onClick={() => navigate(`/history/compare?a=${row.sessionId}`)} className="font-medium hover:text-green-600 transition-colors">So sánh</button>
+                              <span>·</span>
+                            </>
+                          )}
                           <button onClick={() => setDeleteItem(row)} className="font-medium hover:text-red-600 text-gray-400 transition-colors">Xoá</button>
                         </div>
                       </td>

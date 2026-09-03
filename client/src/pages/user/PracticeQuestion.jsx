@@ -7,7 +7,6 @@ import {
   TrendingUp, Users, History, Shield, Mic, Square
 } from 'lucide-react';
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 import { practiceQuestionApi } from '../../services/questionBankApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,43 +25,61 @@ export default function PracticeQuestion() {
 
   // Voice Recording States
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => {
     return () => {
-      if (recognitionRef.current && SpeechRecognition) {
-        recognitionRef.current.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
       }
     };
   }, []);
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (isRecording) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
       }
       setIsRecording(false);
     } else {
-      if (!SpeechRecognition) {
-        alert("Trình duyệt của bạn không hỗ trợ tính năng nhận diện giọng nói. Vui lòng dùng Chrome hoặc Edge.");
-        return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          // Stop all tracks to release microphone
+          stream.getTracks().forEach(track => track.stop());
+
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          
+          setIsTranscribing(true);
+          try {
+            const transcribedText = await practiceQuestionApi.transcribeAudio(audioBlob);
+            setAnswer((prev) => (prev ? prev + ' ' + transcribedText : transcribedText));
+          } catch (error) {
+            console.error("Transcription error:", error);
+            alert("Lỗi khi nhận diện giọng nói. Vui lòng thử lại.");
+          } finally {
+            setIsTranscribing(false);
+          }
+        };
+
+        mediaRecorder.start();
+        mediaRecorderRef.current = mediaRecorder;
+        setIsRecording(true);
+      } catch (err) {
+        alert("Không thể truy cập microphone. Vui lòng cấp quyền trong trình duyệt.");
+        console.error("Mic error:", err);
       }
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'vi-VN';
-
-      recognition.onresult = (event) => {
-        let currentTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript + ' ';
-        }
-        setAnswer(currentTranscript);
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsRecording(true);
     }
   };
 
@@ -93,34 +110,37 @@ export default function PracticeQuestion() {
   }, [id]);
 
   useEffect(() => {
-    const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+    const words = answer && answer.trim() ? answer.trim().split(/\s+/).length : 0;
     setWordCount(words);
   }, [answer]);
 
   const handleSubmit = async () => {
-    if (!answer.trim()) return;
+    if (!answer || !answer.trim()) return;
     setSubmitting(true);
     try {
       const res = await practiceQuestionApi.submitAnswer(id, answer);
-      
+
       // Parse strengths, weaknesses, suggestions if they are JSON strings
       let strengths = [];
       let weaknesses = [];
       let improvements = [];
       try {
-        strengths = res.strengthsJson ? JSON.parse(res.strengthsJson) : [];
+        const parsed = JSON.parse(res.strengthsJson);
+        strengths = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
-        strengths = typeof res.strengthsJson === 'object' ? res.strengthsJson : [];
+        strengths = Array.isArray(res.strengthsJson) ? res.strengthsJson : [];
       }
       try {
-        weaknesses = res.weaknessesJson ? JSON.parse(res.weaknessesJson) : [];
+        const parsed = JSON.parse(res.weaknessesJson);
+        weaknesses = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
-        weaknesses = typeof res.weaknessesJson === 'object' ? res.weaknessesJson : [];
+        weaknesses = Array.isArray(res.weaknessesJson) ? res.weaknessesJson : [];
       }
       try {
-        improvements = res.improvementSuggestionsJson ? JSON.parse(res.improvementSuggestionsJson) : [];
+        const parsed = JSON.parse(res.improvementSuggestionsJson);
+        improvements = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
-        improvements = typeof res.improvementSuggestionsJson === 'object' ? res.improvementSuggestionsJson : [];
+        improvements = Array.isArray(res.improvementSuggestionsJson) ? res.improvementSuggestionsJson : [];
       }
 
       setResult({
@@ -138,6 +158,7 @@ export default function PracticeQuestion() {
       });
     } catch (error) {
       console.error('Error submitting answer', error);
+      alert(error?.response?.data?.message || 'Có lỗi xảy ra khi chấm điểm AI. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +169,7 @@ export default function PracticeQuestion() {
       case 'dễ':
       case 'easy':
       case 'intern':
-      case 'fresher': 
+      case 'fresher':
         return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'trung bình':
       case 'medium':
@@ -162,6 +183,8 @@ export default function PracticeQuestion() {
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
+
+  const isTechnical = question?.category === 'Technical' || question?.category === 'Kỹ thuật';
 
   if (loading) {
     return (
@@ -208,10 +231,10 @@ export default function PracticeQuestion() {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start pb-20">
-        
+
         {/* Left Column */}
         <div className="space-y-6">
-          
+
           {/* Question Info Card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
@@ -231,14 +254,14 @@ export default function PracticeQuestion() {
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-snug mb-3">
               {question.title}
             </h1>
-            
+
             <p className="text-sm font-medium text-gray-500 leading-relaxed">
               {question.content}
             </p>
           </div>
 
           {/* Method Card */}
-          {question.category === 'Technical' ? (
+          {isTechnical ? (
             <div className="bg-emerald-50/40 rounded-2xl border border-emerald-100 p-6 shadow-sm">
               <h3 className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Lightbulb className="w-4.5 h-4.5 text-emerald-600" />
@@ -248,27 +271,27 @@ export default function PracticeQuestion() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">1</div>
-                  <span className="text-xs font-bold text-gray-700">Technical Knowledge</span>
+                  <span className="text-xs font-bold text-gray-700">Kiến thức kỹ thuật</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">2</div>
-                  <span className="text-xs font-bold text-gray-700">Problem Solving</span>
+                  <span className="text-xs font-bold text-gray-700">Giải quyết vấn đề</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">3</div>
-                  <span className="text-xs font-bold text-gray-700">Practical Experience</span>
+                  <span className="text-xs font-bold text-gray-700">Kinh nghiệm thực tế</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">4</div>
-                  <span className="text-xs font-bold text-gray-700">System Design</span>
+                  <span className="text-xs font-bold text-gray-700">Thiết kế hệ thống</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">5</div>
-                  <span className="text-xs font-bold text-gray-700">Communication</span>
+                  <span className="text-xs font-bold text-gray-700">Giao tiếp</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-emerald-50 shadow-sm flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">6</div>
-                  <span className="text-xs font-bold text-gray-700">Best Practices</span>
+                  <span className="text-xs font-bold text-gray-700">Thực hành tốt</span>
                 </div>
               </div>
             </div>
@@ -322,10 +345,11 @@ export default function PracticeQuestion() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={toggleRecording}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wider font-bold transition-all ${isRecording ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse shadow-sm shadow-red-100' : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 shadow-sm'}`}
+                  disabled={isTranscribing}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wider font-bold transition-all ${isTranscribing ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-sm' : isRecording ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse shadow-sm shadow-red-100' : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 shadow-sm'}`}
                 >
-                  {isRecording ? <Square className="w-3.5 h-3.5 fill-red-600 text-red-600" /> : <Mic className="w-3.5 h-3.5" />}
-                  {isRecording ? 'Dừng ghi âm' : 'Ghi âm trả lời'}
+                  {isTranscribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isRecording ? <Square className="w-3.5 h-3.5 fill-red-600 text-red-600" /> : <Mic className="w-3.5 h-3.5" />}
+                  {isTranscribing ? 'Đang nhận diện...' : isRecording ? 'Dừng ghi âm' : 'Ghi âm trả lời'}
                 </button>
                 <span className={`text-xs font-semibold ${wordCount >= 200 && wordCount <= 500 ? 'text-emerald-500' : 'text-gray-400'}`}>
                   Gợi ý: 200 - 500 từ ({wordCount} từ)
@@ -336,22 +360,16 @@ export default function PracticeQuestion() {
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              readOnly={question.category !== 'Technical'}
-              placeholder={question.category === 'Technical' 
-                ? "Nhập câu trả lời của bạn vào đây (tạm thời hỗ trợ nhập text cho phần Kỹ thuật)..."
-                : "Vui lòng nhấn nút 'Ghi âm trả lời' ở trên. (Hệ thống yêu cầu trả lời bằng giọng nói thay vì nhập văn bản)..."}
-              className={`w-full min-h-[220px] p-4 border rounded-xl text-sm font-medium outline-none transition-all resize-y ${
-                question.category === 'Technical' 
-                  ? 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500' 
-                  : 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed'
-              }`}
+              readOnly={true}
+              placeholder="Vui lòng nhấn nút 'Ghi âm trả lời' ở trên. (Hệ thống yêu cầu trả lời bằng giọng nói thay vì nhập văn bản)..."
+              className="w-full min-h-[220px] p-4 border rounded-xl text-sm font-medium outline-none transition-all resize-y bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed"
             />
 
             {/* Sparkle submission button */}
             <div className="flex justify-center mt-6">
               <button
                 onClick={handleSubmit}
-                disabled={submitting || !answer.trim()}
+                disabled={submitting || !answer || !answer.trim()}
                 className="flex items-center gap-2 px-6 py-3 bg-[#B4F290] text-[#111827] hover:bg-[#9de675] disabled:opacity-50 disabled:hover:bg-[#B4F290] disabled:hover:translate-y-0 font-bold text-sm rounded-xl shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
                 {submitting ? (
@@ -433,7 +451,7 @@ export default function PracticeQuestion() {
                 </ul>
               </div>
 
-              {result.improvedAnswer && (result.improvedAnswer.situation || result.improvedAnswer.task || result.improvedAnswer.action || result.improvedAnswer.result) && question.category !== 'Technical' && (
+              {result.improvedAnswer && (result.improvedAnswer.situation || result.improvedAnswer.task || result.improvedAnswer.action || result.improvedAnswer.result) && !isTechnical && (
                 <div className="border-t border-gray-100 pt-4 space-y-3">
                   <h5 className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-blue-600" />
@@ -474,13 +492,13 @@ export default function PracticeQuestion() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          
+
           {/* Practice Progress Card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-4 animate-fade-in">
             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest border-b border-gray-100 pb-2">
               Tiến độ luyện tập
             </h3>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-gray-400">Trạng thái</span>
@@ -517,9 +535,9 @@ export default function PracticeQuestion() {
           {/* Progress Card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest border-b border-gray-100 pb-2 flex items-center gap-1.5">
-              <Star className={`w-3.5 h-3.5 ${question.category === 'Technical' ? 'text-emerald-400 fill-emerald-400' : 'text-amber-400 fill-amber-400'}`} />
-              {question.category === 'Technical' ? 'Technical Evaluation' : 'Star Progress'}
-              {result && typeof result.starCompletion === 'number' && question.category !== 'Technical' && (
+              <Star className={`w-3.5 h-3.5 ${isTechnical ? 'text-emerald-400 fill-emerald-400' : 'text-amber-400 fill-amber-400'}`} />
+              {isTechnical ? 'Đánh giá kỹ thuật' : 'Star Progress'}
+              {result && typeof result.starCompletion === 'number' && !isTechnical && (
                 <span className="ml-auto text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-extrabold">
                   Đạt {result.starCompletion}%
                 </span>
@@ -527,44 +545,44 @@ export default function PracticeQuestion() {
             </h3>
 
             <div className="space-y-3">
-              {(question.category === 'Technical' ? [
+              {(isTechnical ? [
                 {
-                  label: 'Technical Knowledge',
+                  label: 'Kiến thức kỹ thuật',
                   value: result?.technicalScores?.technicalKnowledge ? Math.round(result.technicalScores.technicalKnowledge * 10) : 0,
                   color: 'bg-emerald-500',
                   trackColor: 'bg-emerald-100',
                   textColor: 'text-emerald-600',
                 },
                 {
-                  label: 'Problem Solving',
+                  label: 'Giải quyết vấn đề',
                   value: result?.technicalScores?.problemSolving ? Math.round(result.technicalScores.problemSolving * 10) : 0,
                   color: 'bg-amber-400',
                   trackColor: 'bg-amber-100',
                   textColor: 'text-amber-600',
                 },
                 {
-                  label: 'Practical Experience',
+                  label: 'Kinh nghiệm thực tế',
                   value: result?.technicalScores?.practicalExperience ? Math.round(result.technicalScores.practicalExperience * 10) : 0,
                   color: 'bg-blue-500',
                   trackColor: 'bg-blue-100',
                   textColor: 'text-blue-600',
                 },
                 {
-                  label: 'System Design',
+                  label: 'Thiết kế hệ thống',
                   value: result?.technicalScores?.systemDesign ? Math.round(result.technicalScores.systemDesign * 10) : 0,
                   color: 'bg-indigo-500',
                   trackColor: 'bg-indigo-100',
                   textColor: 'text-indigo-600',
                 },
                 {
-                  label: 'Communication',
+                  label: 'Giao tiếp',
                   value: result?.technicalScores?.communication ? Math.round(result.technicalScores.communication * 10) : 0,
                   color: 'bg-purple-500',
                   trackColor: 'bg-purple-100',
                   textColor: 'text-purple-600',
                 },
                 {
-                  label: 'Best Practices',
+                  label: 'Thực hành chuẩn',
                   value: result?.technicalScores?.bestPractices ? Math.round(result.technicalScores.bestPractices * 10) : 0,
                   color: 'bg-rose-500',
                   trackColor: 'bg-rose-100',
@@ -611,7 +629,7 @@ export default function PracticeQuestion() {
                 <div key={label} className="space-y-1.5 border-b border-gray-50 pb-2 last:border-0 last:pb-0 animate-fade-in">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
-                      {result && question.category !== 'Technical' && (
+                      {result && !isTechnical && (
                         checked ? (
                           <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3]" />
                         ) : (
@@ -628,7 +646,7 @@ export default function PracticeQuestion() {
                       style={{ width: `${value}%` }}
                     />
                   </div>
-                  {result && feedback && question.category !== 'Technical' && (
+                  {result && feedback && !isTechnical && (
                     <p className="text-[10px] text-gray-400 font-medium italic pl-1 leading-normal">
                       {feedback}
                     </p>
@@ -649,7 +667,7 @@ export default function PracticeQuestion() {
             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest border-b border-gray-100 pb-2">
               Mẹo trả lời tốt
             </h3>
-            
+
             <ul className="space-y-3.5">
               <li className="flex gap-2.5 items-start">
                 <div className="w-4.5 h-4.5 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">

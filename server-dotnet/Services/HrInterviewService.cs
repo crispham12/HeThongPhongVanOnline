@@ -65,11 +65,8 @@ namespace InterviewPro.API.Services
                 await _quotaService.ConsumeQuotaAsync(userId);
             }
 
-            using var transactionScope = await _db.Database.BeginTransactionAsync();
             try
             {
-
-
                 // Tạo session mới trong DB
                 var session = new HrInterviewSession
                 {
@@ -81,35 +78,32 @@ namespace InterviewPro.API.Services
                     Status = "InProgress"
                 };
                 _db.HrInterviewSessions.Add(session);
-                await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync(); // Lưu ngay session để nhả kết nối SQL Server
 
-                // Gọi Selection Service tạo 10 câu hỏi theo Blueprint
+                // Gọi Selection Service tạo 10 câu hỏi theo Blueprint (Thoải mái chờ AI mà không sợ treo DB)
                 var questions = await _questionBankService.GenerateSessionQuestionsAsync(
                     session.Id, request.Role, request.Difficulty, request.QuestionMode, request.TechStack);
 
                 _db.HrInterviewQuestions.AddRange(questions);
                 await _db.SaveChangesAsync();
 
-                await transactionScope.CommitAsync();
-
-            // Trả về cho frontend
-            return new StartHrInterviewResponse
-            {
-                SessionId = session.SessionGuid,
-                TotalQuestions = TotalQuestions,
-                Questions = questions.Select(q => new HrQuestionDto
+                // Trả về cho frontend
+                return new StartHrInterviewResponse
                 {
-                    QuestionId = q.QuestionGuid,
-                    QuestionIndex = q.QuestionIndex,
-                    Category = q.Category,
-                    QuestionText = q.QuestionText,
-                    ExpectedAnswerGuide = q.ExpectedAnswerGuide
-                }).ToList()
-            };
+                    SessionId = session.SessionGuid,
+                    TotalQuestions = TotalQuestions,
+                    Questions = questions.Select(q => new HrQuestionDto
+                    {
+                        QuestionId = q.QuestionGuid,
+                        QuestionIndex = q.QuestionIndex,
+                        Category = q.Category,
+                        QuestionText = q.QuestionText,
+                        ExpectedAnswerGuide = q.ExpectedAnswerGuide
+                    }).ToList()
+                };
             }
             catch (Exception)
             {
-                await transactionScope.RollbackAsync();
                 throw;
             }
         }

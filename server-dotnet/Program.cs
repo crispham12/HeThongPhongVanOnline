@@ -16,8 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ──────────────── Database ────────────────
 builder.Services.AddDbContext<AppDbContext>(opts =>
     opts.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.CommandTimeout(15) // Kill any query running > 15s to prevent lock exhaustion
+        builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
 builder.Services.AddHttpContextAccessor();

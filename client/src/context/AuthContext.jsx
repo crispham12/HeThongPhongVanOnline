@@ -40,6 +40,18 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async (tokenId, isRegister = false) => {
+    try {
+      const { data } = await api.post('/auth/google', { tokenId, isRegister });
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      return data;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Lỗi xử lý với Google.');
+    }
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -47,7 +59,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

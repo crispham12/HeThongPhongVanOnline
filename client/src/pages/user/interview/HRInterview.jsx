@@ -4,8 +4,7 @@ import { Video, VideoOff, Mic, MicOff, Check, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import api from '../../../lib/axios';
 
-// Giả lập Web Speech API cho Transcript
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+import { practiceQuestionApi } from '../../../services/questionBankApi';
 
 export default function HRInterview({ fullMockMode = false, role, difficulty, stack = [], onComplete, onQuestionChange }) {
   const { state } = useLocation();
@@ -39,9 +38,12 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
   // Audio / Video
   const videoRef = useRef(null);
   const mediaStreamRef = useRef(null);
-  const recognitionRef = useRef(null);
   const prepTimerRef = useRef(null);
   const answerTimerRef = useRef(null);
+
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   // Answer data
   const [transcript, setTranscript] = useState('');
@@ -241,7 +243,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
     }, 1000);
   };
 
-  const startAnswer = () => {
+  const startAnswer = async () => {
     if (prepTimerRef.current) clearInterval(prepTimerRef.current);
     if (cameraStatus !== 'enabled') {
       alert("Vui lòng Enable Camera");
@@ -261,47 +263,60 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
     }, 1000);
 
     // Bật STT (Speech To Text)
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'vi-VN';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
 
-      recognition.onresult = (event) => {
-        let currentTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript + ' ';
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-        setTranscript(currentTranscript);
-        // Fake logic đếm từ
-        const words = currentTranscript.trim().split(/\s+/);
-        setWordCount(words.length);
-        setFillerWords(Math.floor(words.length * 0.05)); // 5% là filler words (mock)
       };
 
-      recognition.start();
-      recognitionRef.current = recognition;
-    } else {
-      // Mock nếu ko support
-      let mockWords = 0;
-      recognitionRef.current = setInterval(() => {
-        mockWords++;
-        setTranscript(prev => prev + " mock_word");
-        setWordCount(mockWords);
-      }, 2000);
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        setIsTranscribing(true);
+        try {
+          const transcribedText = await practiceQuestionApi.transcribeAudio(audioBlob);
+          setTranscript(transcribedText);
+          
+          const words = transcribedText.trim().split(/\s+/);
+          setWordCount(words.length);
+          setFillerWords(Math.floor(words.length * 0.05));
+          
+          // Fetch analyze voice with current duration
+          setAnswerTime(currentTime => {
+             analyzeVoice(transcribedText, currentTime);
+             return currentTime;
+          });
+          
+        } catch (error) {
+          console.error("Transcription error:", error);
+          alert("Lỗi khi nhận diện giọng nói. Vui lòng thử lại.");
+        } finally {
+          setIsTranscribing(false);
+          setAnswerState('stopped');
+          saveDraft(true);
+        }
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+    } catch (err) {
+      alert("Không thể truy cập microphone.");
+      setAnswerState('stopped');
     }
   };
 
   const stopAnswer = () => {
     if (answerTimerRef.current) clearInterval(answerTimerRef.current);
-    if (SpeechRecognition && recognitionRef.current) {
-      recognitionRef.current.stop();
-    } else {
-      clearInterval(recognitionRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
     }
-    setAnswerState('stopped');
-    saveDraft(true); // Save force khi stop
-    analyzeVoice(transcript, answerTime);
+    // Trạng thái sẽ được cập nhật trong onstop của mediaRecorder
   };
 
   // ────────────────────────────────────────────────────────
@@ -391,8 +406,8 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
       }
-      if (recognitionRef.current && SpeechRecognition) {
-        recognitionRef.current.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
       }
     };
   }, []);
@@ -460,12 +475,17 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
 
               <button
                 onClick={answerState === 'recording' ? stopAnswer : startAnswer}
+                disabled={isTranscribing}
                 className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${answerState === 'recording'
                   ? 'bg-red-500  animate-pulse border border-red-500'
+                  : isTranscribing
+                  ? 'bg-amber-100 text-amber-600 border border-amber-300'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
                   }`}
               >
-                {answerState === 'recording' ? (
+                {isTranscribing ? (
+                  <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin text-amber-600" />
+                ) : answerState === 'recording' ? (
                   <Mic className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 ) : (
                   <Mic className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
@@ -477,7 +497,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
           <div className="flex justify-end shrink-0">
             <button
               onClick={submitAnswer}
-              disabled={answerState !== 'stopped' && answerState !== 'submitted' || transcript.trim().length < 20 || submitting}
+              disabled={answerState !== 'stopped' && answerState !== 'submitted' || transcript.trim().length < 20 || submitting || isTranscribing}
               className="px-10 py-3.5 bg-[#b2f396] hover:bg-[#9de080] text-slate-900 font-extrabold rounded-2xl transition-all shadow-sm disabled:opacity-50 text-sm flex items-center gap-2"
               title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
             >
@@ -485,6 +505,10 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {currentQIndex === (session?.totalQuestions - 1) ? 'Đang chuyển vòng...' : 'Đang gửi...'}
+                </>
+              ) : isTranscribing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Đang dịch giọng nói...
                 </>
               ) : (
                 'Hoàn thành'
@@ -579,12 +603,12 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
                   Recording duration: {formatTime(answerTime)}
                 </div>
                 {answerState === 'recording' ? (
-                  <button onClick={stopAnswer} className="px-5 py-2 bg-red-600  text-sm font-medium rounded-md hover:bg-red-700">
-                    Stop Recording
+                  <button onClick={stopAnswer} disabled={isTranscribing} className="px-5 py-2 bg-red-600  text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50 text-white flex items-center gap-2">
+                    {isTranscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Stop Recording
                   </button>
                 ) : (
-                  <button onClick={startAnswer} disabled={cameraStatus !== 'enabled' || answerState === 'stopped'} className="px-5 py-2 bg-[#B4F290] text-[#111827] text-sm font-medium rounded-md hover:bg-[#9de675] disabled:opacity-50">
-                    {answerState === 'stopped' ? 'Finished Recording' : 'Start Recording'}
+                  <button onClick={startAnswer} disabled={cameraStatus !== 'enabled' || answerState === 'stopped' || isTranscribing} className="px-5 py-2 bg-[#B4F290] text-[#111827] text-sm font-medium rounded-md hover:bg-[#9de675] disabled:opacity-50">
+                    {answerState === 'stopped' ? 'Finished Recording' : isTranscribing ? 'Transcribing...' : 'Start Recording'}
                   </button>
                 )}
               </div>
@@ -594,7 +618,9 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
             <div className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white">
               <h2 className="text-xl font-semibold mb-4 text-gray-800">Your Answer Transcript</h2>
               <div className="border border-gray-200 rounded-lg p-4 min-h-[120px] mb-4 bg-gray-50/50">
-                <p className="text-gray-700 text-[15px]">{transcript || "Your answer transcript will appear here after recording starts."}</p>
+                <p className="text-gray-700 text-[15px]">
+                  {isTranscribing ? <span className="text-gray-400 animate-pulse">Đang dịch giọng nói...</span> : transcript || "Your answer transcript will appear here after recording starts."}
+                </p>
               </div>
               <div className="flex gap-4 text-sm text-gray-500">
                 <span>Word count: {wordCount}</span>
@@ -725,7 +751,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
           </button>
           <button
             onClick={submitAnswer}
-            disabled={answerState !== 'stopped' || transcript.trim().length < 20 || submitting}
+            disabled={answerState !== 'stopped' || transcript.trim().length < 20 || submitting || isTranscribing}
             className="px-6 py-2 bg-[#B4F290] text-[#111827] rounded-full text-[14px] font-medium hover:bg-[#9de675] disabled:opacity-50 flex items-center gap-1.5"
             title={transcript.trim().length < 20 ? "Vui lòng trả lời ít nhất 20 ký tự" : ""}
           >
@@ -733,6 +759,11 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 {currentQIndex === (session?.totalQuestions - 1) ? 'Đang hoàn thành...' : 'Đang gửi...'}
+              </>
+            ) : isTranscribing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Đang dịch...
               </>
             ) : (
               'Submit Answer & Next'

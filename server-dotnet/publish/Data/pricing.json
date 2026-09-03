@@ -1,0 +1,10 @@
+{
+  "Monthly": {
+    "Amount": 11000,
+    "Days": 30
+  },
+  "Yearly": {
+    "Amount": 1000000,
+    "Days": 365
+  }
+}

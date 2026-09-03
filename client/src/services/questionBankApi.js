@@ -59,5 +59,29 @@ export const practiceQuestionApi = {
     submitAnswer: async (id, answer) => {
         const response = await api.post(`/practice/questions/${id}/submit`, { answer });
         return response.data;
+    },
+
+    transcribeAudio: async (audioBlob) => {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'recording.webm');
+        
+        // Gọi thẳng tới ai-service backend (mặc định port 8000)
+        // Vì client chạy trên axios instance hướng tới C# backend, ta dùng fetch hoặc truyền full URL.
+        const response = await fetch('http://localhost:8000/ai/voice/transcribe', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!response.ok) {
+            let errorMsg = 'Lỗi khi chuyển đổi giọng nói thành văn bản';
+            try {
+                const errorData = await response.json();
+                if (errorData.detail) errorMsg = errorData.detail;
+            } catch (e) {}
+            throw new Error(errorMsg);
+        }
+        
+        const data = await response.json();
+        return data.text;
     }
 };
