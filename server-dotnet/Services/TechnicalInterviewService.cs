@@ -23,11 +23,13 @@ namespace InterviewPro.API.Services
 
         private string GetStage(int questionIndex)
         {
-            if (questionIndex == 1) return "Warm-up";
-            if (questionIndex <= 4) return "Core Knowledge";
-            if (questionIndex <= 6) return "Applied Knowledge";
-            if (questionIndex <= 9) return "Project Deep Dive";
-            return "System Thinking";
+            return questionIndex switch
+            {
+                1 => "Core Technical Knowledge",
+                2 => "Applied Problem Solving",
+                3 => "Project & System Thinking",
+                _ => throw new ArgumentOutOfRangeException(nameof(questionIndex), "Technical Interview chỉ có tối đa 3 câu hỏi.")
+            };
         }
 
         public async Task<TechnicalInterviewSessionResponse> StartInterviewAsync(int userId, StartTechnicalInterviewRequest request)
@@ -142,15 +144,42 @@ namespace InterviewPro.API.Services
                 tech_stack = session.TechStack,
                 stage = currentQuestion.Stage,
                 question = currentQuestion.Content,
-                answer = request.Answer
+                answer = request.Answer,
+                expected_answer_guide = currentQuestion.ExpectedAnswer ?? ""
             };
 
             var evalRes = await _aiClient.EvaluateAnswerAsync(evalReq);
             if (evalRes != null)
             {
-                currentQuestion.Score = evalRes.scores.technicalKnowledge + evalRes.scores.problemSolving + 
-                    evalRes.scores.practicalExperience + evalRes.scores.systemDesign + 
-                    evalRes.scores.communication + evalRes.scores.bestPractices;
+                float calculatedScore = 0f;
+                var criteria = evalRes.criteriaAnalysis ?? new List<AiCriterionAnalysis>();
+
+                if (currentQuestion.Stage == "Core Technical Knowledge")
+                {
+                    float tk = criteria.FirstOrDefault(c => c.criterion == "Technical Knowledge")?.score ?? 0f;
+                    float cu = criteria.FirstOrDefault(c => c.criterion == "Concept Understanding")?.score ?? 0f;
+                    float tr = criteria.FirstOrDefault(c => c.criterion == "Technical Reasoning")?.score ?? 0f;
+                    float comm = criteria.FirstOrDefault(c => c.criterion == "Communication")?.score ?? 0f;
+                    calculatedScore = (tk * 0.35f) + (cu * 0.30f) + (tr * 0.20f) + (comm * 0.15f);
+                }
+                else if (currentQuestion.Stage == "Applied Problem Solving")
+                {
+                    float pa = criteria.FirstOrDefault(c => c.criterion == "Problem Analysis")?.score ?? 0f;
+                    float sa = criteria.FirstOrDefault(c => c.criterion == "Solution Approach")?.score ?? 0f;
+                    float tr = criteria.FirstOrDefault(c => c.criterion == "Technical Reasoning")?.score ?? 0f;
+                    float bp = criteria.FirstOrDefault(c => c.criterion == "Best Practices")?.score ?? 0f;
+                    calculatedScore = (pa * 0.30f) + (sa * 0.30f) + (tr * 0.25f) + (bp * 0.15f);
+                }
+                else if (currentQuestion.Stage == "Project & System Thinking")
+                {
+                    float pe = criteria.FirstOrDefault(c => c.criterion == "Practical Experience & Ownership")?.score ?? 0f;
+                    float au = criteria.FirstOrDefault(c => c.criterion == "Architecture Understanding")?.score ?? 0f;
+                    float tdm = criteria.FirstOrDefault(c => c.criterion == "Technical Decision Making")?.score ?? 0f;
+                    float st = criteria.FirstOrDefault(c => c.criterion == "System Thinking & Trade-offs")?.score ?? 0f;
+                    calculatedScore = (pe * 0.30f) + (au * 0.25f) + (tdm * 0.25f) + (st * 0.20f);
+                }
+
+                currentQuestion.Score = calculatedScore;
                 currentQuestion.FeedbackJson = JsonSerializer.Serialize(evalRes);
             }
 
@@ -161,7 +190,7 @@ namespace InterviewPro.API.Services
             await _db.SaveChangesAsync();
 
             // 2. Determine Next Step
-            if (currentQuestion.QuestionIndex < 10)
+            if (currentQuestion.QuestionIndex < 3)
             {
                 int nextIndex = currentQuestion.QuestionIndex + 1;
                 string nextStage = GetStage(nextIndex);
@@ -229,7 +258,7 @@ namespace InterviewPro.API.Services
                 // Return a dummy object or null since no more questions
                 return new TechnicalQuestionDto
                 {
-                    QuestionIndex = 11,
+                    QuestionIndex = 4,
                     Stage = "Completed",
                     Content = "Interview Completed"
                 };
@@ -260,7 +289,7 @@ namespace InterviewPro.API.Services
                 if (!string.IsNullOrEmpty(q.FeedbackJson))
                 {
                     var fb = JsonSerializer.Deserialize<AiEvaluateAnswerResponse>(q.FeedbackJson);
-                    transcriptBuilder.AppendLine($"AI Feedback: {fb?.feedback}");
+                    transcriptBuilder.AppendLine($"AI Feedback: {fb?.summary}");
                 }
                 transcriptBuilder.AppendLine("---");
             }
@@ -275,7 +304,14 @@ namespace InterviewPro.API.Services
             var finalRes = await _aiClient.FinalEvaluationAsync(aiReq);
             if (finalRes != null)
             {
-                session.OverallScore = finalRes.overallScore;
+                // Authoritative calculation of OverallScore
+                float q1Score = answeredQs.FirstOrDefault(q => q.QuestionIndex == 1)?.Score ?? 0f;
+                float q2Score = answeredQs.FirstOrDefault(q => q.QuestionIndex == 2)?.Score ?? 0f;
+                float q3Score = answeredQs.FirstOrDefault(q => q.QuestionIndex == 3)?.Score ?? 0f;
+                
+                float calculatedOverall = (q1Score * 0.30f) + (q2Score * 0.35f) + (q3Score * 0.35f);
+                session.OverallScore = (float)Math.Round(calculatedOverall, 2);
+                
                 session.FinalFeedbackJson = JsonSerializer.Serialize(finalRes);
                 await _db.SaveChangesAsync();
                 return finalRes;

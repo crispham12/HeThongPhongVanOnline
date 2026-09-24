@@ -21,7 +21,7 @@ namespace InterviewPro.API.Interfaces
         /// </summary>
         Task<AiEvaluationResult> EvaluateHrAnswerAsync(
             string role, string difficulty, List<string> techStack,
-            string question, string answer);
+            string category, string expectedAnswerGuide, string question, string answer);
 
         /// <summary>
         /// Gọi AI tổng hợp kết quả cuối sau khi hoàn thành 10 câu.

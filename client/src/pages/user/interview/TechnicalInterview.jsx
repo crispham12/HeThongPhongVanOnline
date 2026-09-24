@@ -76,6 +76,17 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // Silence detection
+  const [silenceWarning, setSilenceWarning] = useState(false);
+  const silenceTimerRef = useRef(null);
+  const silenceWarnRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const silenceCheckRef = useRef(null);
+  const speechRecognitionRef = useRef(null);
+  const SILENCE_TIMEOUT_MS = 60000;  // 1 phút
+  const SILENCE_WARN_MS = 30000;     // 30 giây
+  const SILENCE_THRESHOLD = 0.01;
+
   const [answerTime, setAnswerTime] = useState(0);
   const answerTimerRef = useRef(null);
 
@@ -107,8 +118,24 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
     return () => stopAnswerTimer();
   }, [question]);
 
+  const clearSilenceDetection = () => {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    if (silenceWarnRef.current) { clearTimeout(silenceWarnRef.current); silenceWarnRef.current = null; }
+    if (silenceCheckRef.current) { clearInterval(silenceCheckRef.current); silenceCheckRef.current = null; }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+      speechRecognitionRef.current = null;
+    }
+    setSilenceWarning(false);
+  };
+
   const toggleVoiceInput = async () => {
     if (isRecording) {
+      clearSilenceDetection();
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -126,6 +153,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
         };
 
         mediaRecorder.onstop = async () => {
+          clearSilenceDetection();
           stream.getTracks().forEach(track => track.stop());
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           
@@ -144,6 +172,71 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
         mediaRecorder.start();
         mediaRecorderRef.current = mediaRecorder;
         setIsRecording(true);
+        setSilenceWarning(false);
+
+        // ── Silence & Real Speech detection ──────────────────────────────────
+        try {
+          const resetTimers = () => {
+            if (silenceWarnRef.current) { clearTimeout(silenceWarnRef.current); silenceWarnRef.current = null; }
+            if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+            setSilenceWarning(false);
+            
+            silenceWarnRef.current = setTimeout(() => setSilenceWarning(true), SILENCE_WARN_MS);
+            silenceTimerRef.current = setTimeout(() => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                console.info('[Technical] Không có tiếng người nói 1 phút → tự tắt mic');
+                mediaRecorderRef.current.stop();
+                setIsRecording(false);
+              }
+            }, SILENCE_TIMEOUT_MS);
+          };
+
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'vi-VN';
+
+            recognition.onresult = (event) => {
+              resetTimers();
+            };
+            
+            recognition.onend = () => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                try { recognition.start(); } catch(e){}
+              }
+            };
+
+            recognition.start();
+            speechRecognitionRef.current = recognition;
+          }
+
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          audioContextRef.current = audioCtx;
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+          silenceCheckRef.current = setInterval(() => {
+            analyser.getByteFrequencyData(dataArray);
+            const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
+            if (avg > SILENCE_THRESHOLD) {
+               if (!SpeechRecognition) {
+                   resetTimers();
+               }
+            }
+          }, 500);
+
+          // Khởi động lần đầu
+          resetTimers();
+        } catch (audioErr) {
+          console.warn('Silence/Speech detection không khả dụng:', audioErr);
+        }
+        // ──────────────────────────────────────────────────────
+
       } catch (err) {
         alert("Không thể truy cập microphone. Vui lòng cấp quyền trong trình duyệt.");
       }
@@ -159,7 +252,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
         level: difficulty
       });
       setSessionId(data.sessionId);
-      setTotalQuestions(10);
+      setTotalQuestions(3);
       if (data.currentQuestion) {
         setQuestion(data.currentQuestion.content);
         setQCount(data.currentQuestion.questionIndex);
@@ -178,6 +271,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
       fetchNextQuestion(sessionId);
     }
     return () => {
+      clearSilenceDetection();
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -196,7 +290,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
     setLoading(true);
     try {
       const { data } = await api.get(`/technical-interviews/${activeSid}`);
-      setTotalQuestions(10);
+      setTotalQuestions(3);
       if (data.status === 'Completed' || !data.currentQuestion) {
         handleInterviewComplete(activeSid);
       } else {
@@ -211,9 +305,17 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
     }
   };
 
-  const handleInterviewComplete = (completedSessionId) => {
+  const handleInterviewComplete = async (completedSessionId) => {
     if (fullMockMode && onComplete) {
-      onComplete(String(completedSessionId));
+      setSubmitting(true);
+      try {
+        await api.get(`/technical-interviews/${completedSessionId}/result`);
+      } catch (err) {
+        console.error("Lỗi tạo báo cáo technical", err);
+      } finally {
+        setSubmitting(false);
+        onComplete(String(completedSessionId));
+      }
     } else {
       navigate(`/interview/technical/${completedSessionId}/result`);
     }
@@ -227,7 +329,7 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
         durationSeconds: answerTime
       });
 
-      if (data.questionIndex > 10 || data.stage === 'Completed') {
+      if (data.questionIndex > 3 || data.stage === 'Completed') {
         handleInterviewComplete(sessionId);
       } else {
         setQCount(data.questionIndex);
@@ -273,8 +375,15 @@ export default function TechnicalInterview({ fullMockMode = false, role, difficu
 
           {/* Bottom Controls */}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-            <div className="text-sm font-bold text-slate-800 tracking-wider">
-              thời gian: {formatTime(answerTime)}
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-bold text-slate-800 tracking-wider">
+                thời gian: {formatTime(answerTime)}
+              </div>
+              {silenceWarning && isRecording && (
+                <div className="flex items-center gap-1.5 text-amber-600 font-bold text-xs bg-amber-50 border border-amber-200 px-3 py-1 rounded-full animate-pulse">
+                  ⚠️ Không phát hiện giọng nói — mic sẽ tắt sau 30s
+                </div>
+              )}
             </div>
             <button
               type="button"

@@ -95,6 +95,7 @@ namespace InterviewPro.API.Controllers
                     Difficulty = request.Difficulty,
                     InterviewType = request.Type,
                     CurrentPhase = request.Type == "hr" ? "HR" : "Technical",
+                    TotalQuestions = request.Type == "technical" ? 3 : 3,
                     Status = "InProgress"
                 };
 

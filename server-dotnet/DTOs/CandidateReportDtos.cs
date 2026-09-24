@@ -44,6 +44,10 @@ namespace InterviewPro.API.DTOs
     public class TechnicalReportDto
     {
         public float OverallTechnicalScore { get; set; }
+        public float Q1Score { get; set; }
+        public float Q2Score { get; set; }
+        public float Q3Score { get; set; }
+        
         public float TechnicalKnowledge { get; set; }
         public float ProblemSolving { get; set; }
         public float PracticalExperience { get; set; }

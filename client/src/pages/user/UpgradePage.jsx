@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Copy, Zap, Crown } from 'lucide-react';
+import { Check, Copy, Zap, Crown, ShieldCheck, Infinity, Sparkles } from 'lucide-react';
 import { paymentApi } from '../../services/paymentApi';
+import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 const INITIAL_PLANS = [
   {
@@ -10,7 +13,6 @@ const INITIAL_PLANS = [
     price: '99.000đ',
     duration: '30 ngày',
     badge: null,
-    highlight: false,
   },
   {
     id: 'Yearly',
@@ -18,10 +20,10 @@ const INITIAL_PLANS = [
     price: '1.000.000đ',
     duration: '365 ngày',
     badge: 'Tiết kiệm 188.000đ',
-    highlight: true,
   },
 ];
 
+// FEATURES array moved inside component to be dynamic
 export default function UpgradePage() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState(INITIAL_PLANS);
@@ -29,8 +31,31 @@ export default function UpgradePage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [pollingStatus, setPollingStatus] = useState(null); // null | 'polling' | 'completed' | 'wrongAmount' | 'failed'
+  const [pollingStatus, setPollingStatus] = useState(null);
   const [timeLeft, setTimeLeft] = useState(120);
+
+  // Tab state cho UI (Miễn phí / Premium)
+  const [activeTab, setActiveTab] = useState('Premium');
+
+  const currentFeatures = [
+    {
+      icon: <Infinity className="w-5 h-5 text-slate-700" />,
+      title: activeTab === 'Miễn phí' ? '3 lượt luyện tập mỗi ngày' : 'Luyện tập không giới hạn',
+      description: activeTab === 'Miễn phí' 
+        ? 'Mỗi ngày được dùng 3 lượt thi mock interview.' 
+        : 'Không giới hạn số lượt thi mock interview và truy cập ngân hàng câu hỏi VIP.'
+    },
+    {
+      icon: <ShieldCheck className="w-5 h-5 text-slate-700" />,
+      title: 'AI phân tích chuyên sâu',
+      description: 'Đánh giá giọng nói, thái độ và nội dung trả lời chi tiết sau mỗi buổi phỏng vấn.'
+    },
+    {
+      icon: <Sparkles className="w-5 h-5 text-slate-700" />,
+      title: 'Báo cáo độc quyền',
+      description: 'Nhận báo cáo tổng quan và lộ trình phát triển kỹ năng cá nhân hóa.'
+    }
+  ];
 
   useEffect(() => {
     if (order && (pollingStatus === 'polling' || pollingStatus === 'partiallyPaid')) {
@@ -85,7 +110,7 @@ export default function UpgradePage() {
   const startPolling = (orderCode) => {
     setPollingStatus('polling');
     let attempts = 0;
-    const maxAttempts = 24; // 2 minutes × 5s
+    const maxAttempts = 24;
 
     const interval = setInterval(async () => {
       attempts++;
@@ -112,13 +137,11 @@ export default function UpgradePage() {
             qrUrl: newQrUrl
           }));
           setPollingStatus('partiallyPaid');
-          // Không clear interval, tiếp tục chờ lần thanh toán thứ 2
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
           setPollingStatus('failed');
         }
       } catch {
-        // ignore errors during polling
       }
     }, 5000);
   };
@@ -129,203 +152,246 @@ export default function UpgradePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Trạng thái: Thất bại (Quá thời gian)
   if (pollingStatus === 'failed') {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6 font-sans">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-sm bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
             <span className="text-2xl">⏳</span>
           </div>
-          <h2 className="text-xl font-black text-slate-900 mb-2">Quá thời gian thanh toán</h2>
-          <p className="text-slate-500 text-sm mb-6">Bạn đã không hoàn tất thanh toán trong thời gian quy định (2 phút). Vui lòng tạo đơn hàng mới nếu bạn vẫn muốn nâng cấp.</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight">Hết thời gian</h2>
+          <p className="text-slate-500 text-sm mb-8 leading-relaxed">Bạn đã không hoàn tất thanh toán trong thời gian quy định. Đơn hàng đã bị huỷ.</p>
           <button
-            onClick={() => {
-              setOrder(null);
-              setPollingStatus(null);
-              setTimeLeft(120);
-            }}
-            className="w-full py-3 bg-slate-900 text-white font-bold text-sm rounded-xl"
+            onClick={() => { setOrder(null); setPollingStatus(null); setTimeLeft(120); }}
+            className="w-full py-3.5 bg-slate-900 text-white font-semibold text-sm rounded-xl hover:bg-slate-800 transition-colors"
           >
-            Quay lại tạo đơn mới
+            Thử lại
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
-  // Trạng thái: Thanh toán thành công
   if (pollingStatus === 'completed') {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-green-600" />
-          </div>
-          <h2 className="text-xl font-black text-slate-900 mb-2">Thanh toán thành công!</h2>
-          <p className="text-slate-500 text-sm">Tài khoản của bạn đã được nâng cấp Premium. Đang chuyển về Dashboard...</p>
-        </div>
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6 font-sans">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-sm bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.2 }} className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-green-500" />
+          </motion.div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight">Thanh toán thành công!</h2>
+          <p className="text-slate-500 text-sm leading-relaxed">Tuyệt vời! Tài khoản của bạn đã được nâng cấp. Sẵn sàng bứt phá sự nghiệp ngay thôi.</p>
+        </motion.div>
       </div>
     );
   }
 
-  // Trạng thái: Sai số tiền
   if (pollingStatus === 'wrongAmount') {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <h2 className="text-lg font-black text-red-600 mb-2">Thanh toán không thành công</h2>
-          <p className="text-slate-500 text-sm mb-4">
-            Số tiền chuyển không khớp với gói đã chọn. Vui lòng liên hệ hỗ trợ kèm mã đơn hàng:
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6 font-sans">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-sm bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+          <h2 className="text-2xl font-bold text-red-500 mb-3 tracking-tight">Lỗi số tiền</h2>
+          <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            Số tiền chuyển không khớp. Vui lòng liên hệ hỗ trợ kèm mã đơn hàng:
           </p>
-          <div className="bg-slate-50 rounded-xl px-4 py-3 font-mono font-bold text-slate-800 text-lg mb-4">
+          <div className="bg-slate-50 rounded-xl px-4 py-4 font-mono font-bold text-slate-800 text-lg mb-6 border border-slate-100">
             {order?.orderCode}
           </div>
-          <div className="text-sm font-semibold text-slate-700 mb-4 border border-slate-200 p-3 rounded-xl">
-            Hotline Admin: 0987.654.321
-          </div>
-          <a
-            href="https://m.me/YOUR_PAGE"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#B4F290] text-[#111827] font-bold text-sm rounded-xl"
-          >
-            Liên hệ hỗ trợ qua Messenger
-          </a>
-        </div>
+          <button className="w-full py-3.5 bg-slate-900 text-white font-semibold text-sm rounded-xl">
+            Liên hệ hỗ trợ
+          </button>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white py-12 px-6">
-      <div className="max-w-lg mx-auto">
-
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <Crown className="w-6 h-6 text-amber-600" />
+    <div className="h-screen overflow-hidden bg-white font-sans selection:bg-slate-200">
+      <div className="px-6 pt-12">
+        {/* Header Tabs (Full width left aligned) */}
+        {!order && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 w-full">
+          <div className="flex gap-8 border-b border-slate-200 pb-2">
+            {['Miễn phí', 'Premium'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={twMerge(
+                  "text-lg relative font-medium transition-colors pb-2",
+                  activeTab === tab ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute -bottom-[9px] left-0 right-0 h-[2px] bg-slate-900 rounded-full"
+                  />
+                )}
+              </button>
+            ))}
           </div>
-          <h1 className="text-2xl font-black text-slate-900 mb-1">Nâng cấp Premium</h1>
-          <p className="text-slate-400 text-sm">Luyện tập không giới hạn, không bị gián đoạn</p>
-        </div>
+        </motion.div>
+      )}
 
-        {!order ? (
-          <>
-            {/* Chọn gói */}
-            <div className="space-y-3 mb-8">
-              {plans.map((plan) => (
-                <button
-                  key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
-                  className={`w-full text-left p-5 rounded-2xl border-2 transition-all ${
-                    selectedPlan === plan.id
-                      ? 'border-slate-900 bg-slate-50 shadow-md'
-                      : 'border-slate-100 bg-white hover:border-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-bold text-slate-800 text-sm">{plan.label}</span>
-                        {plan.badge && (
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full">
-                            {plan.badge}
-                          </span>
-                        )}
+      <AnimatePresence mode="wait">
+          {!order ? (
+            <motion.div
+              key="plans"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex flex-col md:flex-row gap-12 w-full max-w-5xl"
+            >
+              {/* Features List (Revolut Style) */}
+              <div className="flex-1 bg-[#F8F9FA] rounded-[32px] p-8 border border-slate-100/50 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">Top features</h3>
+                <div className="space-y-6">
+                  {currentFeatures.map((feature, idx) => (
+                    <div key={idx} className="flex gap-4">
+                      <div className="mt-1 flex-shrink-0 w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center">
+                        {feature.icon}
                       </div>
-                      <span className="text-xs text-slate-400">{plan.duration}</span>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mb-1">{feature.title}</h4>
+                        <p className="text-sm text-slate-500 leading-relaxed">{feature.description}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-lg font-black text-slate-900">{plan.price}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Plan Selection */}
+              <div className="flex-1 space-y-3 pt-2">
+                {plans.map((plan) => (
+                  <button
+                    key={plan.id}
+                    onClick={() => setSelectedPlan(plan.id)}
+                    className={twMerge(
+                      "w-full text-left p-5 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden group",
+                      selectedPlan === plan.id
+                        ? "border-slate-900 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                        : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center justify-between relative z-10">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={twMerge("font-bold", selectedPlan === plan.id ? "text-slate-900" : "text-slate-700")}>
+                            {plan.label}
+                          </span>
+                          {plan.badge && (
+                            <span className="px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-full tracking-wide">
+                              {plan.badge}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500 font-medium">{plan.duration}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-slate-900">{plan.price}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Sticky CTA */}
+              <div className="fixed bottom-8 left-0 right-0 px-6 flex justify-center z-50 pointer-events-none">
+                <button
+                  onClick={handleCreateOrder}
+                  disabled={loading}
+                  className="pointer-events-auto w-full max-w-sm py-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[15px] rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      Nâng cấp ngay
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            /* Checkout State */
+            <motion.div
+              key="checkout"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="max-w-md"
+            >
+              <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                
+                {pollingStatus === 'partiallyPaid' && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 bg-red-50/80 border border-red-100 rounded-2xl">
+                    <p className="text-sm font-semibold text-red-600 mb-1">Thanh toán thiếu {(order.actualAmount || 0).toLocaleString('vi-VN')}đ</p>
+                    <p className="text-xs text-red-500/80 leading-relaxed">Vui lòng thanh toán thêm phần còn lại ({(order.remainingAmount || 0).toLocaleString('vi-VN')}đ). Chỉ hỗ trợ nạp bù 1 lần.</p>
+                  </motion.div>
+                )}
+
+                <div className="text-center mb-8">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Mã đơn hàng</p>
+                  <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">{order.orderCode}</p>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-3xl mb-8 border border-slate-100">
+                  <div className="bg-white p-2 rounded-2xl shadow-sm mb-4">
+                    <img src={order.qrUrl} alt="QR Code" className="w-full aspect-square object-cover rounded-xl" />
+                  </div>
+                  <p className="text-center text-xs font-medium text-slate-500">Mở ứng dụng ngân hàng và quét mã</p>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                  {[
+                    { label: 'Ngân hàng', value: order.bankName },
+                    { label: 'Số tài khoản', value: order.bankAccount },
+                    { label: 'Chủ tài khoản', value: order.accountName },
+                    { label: 'Số tiền', value: `${(pollingStatus === 'partiallyPaid' ? order.remainingAmount : order.amount).toLocaleString('vi-VN')}đ` },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                      <span className="text-sm text-slate-500">{label}</span>
+                      <span className="text-sm font-semibold text-slate-900">{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 bg-slate-900 rounded-2xl relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 opacity-50" />
+                  <div className="relative z-10">
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Nội dung chuyển khoản (Bắt buộc)</p>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="font-mono font-bold text-white text-lg truncate">{order.transferContent}</span>
+                      <button
+                        onClick={() => handleCopy(order.transferContent)}
+                        className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Features */}
-            <div className="bg-slate-50 rounded-2xl p-5 mb-8">
-              {['Luyện tập không giới hạn số buổi', 'Đầy đủ tính năng Full Mock + Ngân hàng câu hỏi', 'AI phân tích giọng nói và nội dung', 'Báo cáo chi tiết sau mỗi buổi'].map((f) => (
-                <div key={f} className="flex items-center gap-2 mb-2 last:mb-0">
-                  <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                  <span className="text-xs text-slate-600">{f}</span>
                 </div>
-              ))}
-            </div>
 
-            {/* CTA */}
-            <button
-              onClick={handleCreateOrder}
-              disabled={loading}
-              className="w-full py-4 bg-[#B4F290] hover:bg-[#9de675] text-[#111827] font-black text-sm rounded-2xl transition-all flex items-center justify-center gap-2"
-            >
-              {loading
-                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <Zap className="w-4 h-4" />}
-              {loading ? 'Đang tạo đơn...' : 'Tiếp tục thanh toán'}
-            </button>
-          </>
-        ) : (
-          /* Hướng dẫn chuyển khoản */
-          <div className="space-y-4">
-            {pollingStatus === 'partiallyPaid' && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-4 text-left">
-                <p className="text-sm font-bold text-red-700">⚠️ Bạn đã thanh toán thiếu {(order.actualAmount || 0).toLocaleString('vi-VN')}đ</p>
-                <p className="text-xs text-red-600 mt-1">Vui lòng quét mã QR bên dưới để nạp bù phần còn lại ({(order.remainingAmount || 0).toLocaleString('vi-VN')}đ).</p>
-                <p className="text-[10px] font-bold text-red-700 mt-2 italic">Lưu ý: Chỉ hỗ trợ nạp bù 1 lần duy nhất.</p>
+                {(pollingStatus === 'polling' || pollingStatus === 'partiallyPaid') && (
+                  <div className="mt-8 flex flex-col items-center">
+                    <div className="flex items-center gap-3 text-slate-500 mb-2">
+                      <div className="w-4 h-4 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+                      <span className="text-sm font-medium">Đang chờ xác nhận...</span>
+                    </div>
+                    <span className="text-lg font-bold text-slate-900 font-mono tracking-tight">{formatTime(timeLeft)}</span>
+                  </div>
+                )}
               </div>
-            )}
-
-            <div className="bg-slate-50 rounded-2xl p-5 text-center">
-              <p className="text-xs text-slate-400 mb-1">Mã đơn hàng</p>
-              <p className="text-2xl font-black text-slate-900 font-mono mb-3">{order.orderCode}</p>
-              <img src={order.qrUrl} alt="QR chuyển khoản" className="w-48 h-48 mx-auto rounded-xl mb-3" />
-              <p className="text-xs text-slate-400">Quét mã hoặc chuyển khoản thủ công</p>
-            </div>
-
-            {/* Thông tin TK */}
-            {[
-              { label: 'Ngân hàng', value: order.bankName },
-              { label: 'Số tài khoản', value: order.bankAccount },
-              { label: 'Chủ tài khoản', value: order.accountName },
-              { label: 'Số tiền cần chuyển', value: `${(pollingStatus === 'partiallyPaid' ? order.remainingAmount : order.amount).toLocaleString('vi-VN')}đ` },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl">
-                <span className="text-xs text-slate-400">{label}</span>
-                <span className="text-sm font-bold text-slate-800">{value}</span>
-              </div>
-            ))}
-
-            {/* Nội dung CK — quan trọng nhất */}
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-              <p className="text-xs font-bold text-amber-700 mb-2">⚠️ Nội dung chuyển khoản (BẮT BUỘC)</p>
-              <div className="flex items-center justify-between">
-                <span className="font-mono font-black text-slate-900 text-lg">{order.transferContent}</span>
-                <button
-                  onClick={() => handleCopy(order.transferContent)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-800 font-bold text-xs rounded-lg transition-all"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? 'Đã copy' : 'Copy'}
-                </button>
-              </div>
-            </div>
-
-            {/* Trạng thái chờ */}
-            {(pollingStatus === 'polling' || pollingStatus === 'partiallyPaid') && (
-              <div className="flex flex-col items-center justify-center py-4">
-                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                  <span className="text-xs">Đang chờ xác nhận thanh toán...</span>
-                </div>
-                <div className="text-xl font-bold text-slate-700 font-mono">
-                  {formatTime(timeLeft)}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+              
+              <button 
+                onClick={() => setOrder(null)}
+                className="mt-6 w-full text-center text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Hủy thanh toán
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

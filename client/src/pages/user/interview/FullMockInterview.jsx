@@ -15,7 +15,7 @@ export default function FullMockInterview() {
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
   const [roundSessionGuids, setRoundSessionGuids] = useState({});
   const [abandoning, setAbandoning] = useState(false);
-  const [questionProgress, setQuestionProgress] = useState({ current: 1, total: 10 });
+  const [questionProgress, setQuestionProgress] = useState({ current: 1, total: 3 });
   const [sessionLoading, setSessionLoading] = useState(true);
 
   const handleQuestionChange = useCallback((current, total) => {
@@ -87,8 +87,9 @@ export default function FullMockInterview() {
     } catch (error) {
       console.error('Lỗi complete-round:', error);
       // 400 = vòng đã hoàn thành rồi (re-submit) → tự chuyển tiếp
-      if (error.response?.status === 400) {
-        console.warn(`Round ${round} đã hoàn thành trước đó, chuyển vòng tiếp.`);
+      // 429 = quota issue từ per-round (legacy) → vẫn chuyển tiếp vì vòng đã xong
+      if (error.response?.status === 400 || error.response?.status === 429) {
+        console.warn(`Round ${round} complete-round trả về ${error.response?.status}, chuyển vòng tiếp.`);
         if (currentRoundIndex < ROUNDS.length - 1) {
           setCurrentRoundIndex(prev => prev + 1);
         } else {

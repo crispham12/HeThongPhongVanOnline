@@ -117,7 +117,7 @@ namespace InterviewPro.API.Services
             }
 
             var practiceSessionsList = await practiceQuery.Select(s => new {
-                SessionId = s.CodingProblemId.ToString(), // Navigate to the workspace
+                SessionId = s.Id.ToString(), // Navigate to the attempt details
                 UserId = s.UserId,
                 InterviewType = "CodingPractice",
                 Role = "Software Engineer",
@@ -144,7 +144,7 @@ namespace InterviewPro.API.Services
             }
 
             var questionPracticeSessionsList = await questionPracticeQuery.Select(s => new {
-                SessionId = s.QuestionId.ToString(), // Navigate to the practice question
+                SessionId = s.Id.ToString(), // Navigate to the practice attempt details
                 UserId = s.UserId,
                 InterviewType = s.Question != null && s.Question.Category == "Technical" ? "TechPractice" : "HRPractice",
                 Role = s.Question != null ? s.Question.Role : "General",
@@ -336,46 +336,64 @@ namespace InterviewPro.API.Services
             if (string.IsNullOrWhiteSpace(sessionId))
                 throw new ArgumentException("Session ID is required.");
 
-            var session = await _context.HrInterviewSessions
-                .FirstOrDefaultAsync(s => s.SessionGuid == sessionId);
-
-            if (session == null)
-                throw new KeyNotFoundException("Interview session not found.");
-
-            if (!isAdmin && session.UserId != currentUserId)
-                throw new UnauthorizedAccessException("You do not have permission to archive this interview.");
-
-            // Idempotent: already archived → return success immediately
-            if (session.IsDeleted)
+            // 1. HR Session
+            var hrSession = await _context.HrInterviewSessions.FirstOrDefaultAsync(s => s.SessionGuid == sessionId);
+            if (hrSession != null)
             {
-                sw.Stop();
-                _logger.LogInformation("ArchiveAsync (idempotent): Session {SessionId} already archived. Elapsed={Elapsed}ms", sessionId, sw.ElapsedMilliseconds);
-                return new ArchiveInterviewResponseDto
+                if (!isAdmin && hrSession.UserId != currentUserId) throw new UnauthorizedAccessException("You do not have permission to archive this interview.");
+                if (!hrSession.IsDeleted)
                 {
-                    Success = true,
-                    Message = "Interview archived successfully.",
-                    SessionId = sessionId,
-                    ArchivedAt = session.DeletedAt
-                };
+                    hrSession.IsDeleted = true;
+                    hrSession.DeletedAt = DateTime.UtcNow;
+                    hrSession.DeletedBy = currentUserId.ToString();
+                    await _context.SaveChangesAsync();
+                }
+                return new ArchiveInterviewResponseDto { Success = true, Message = "Interview archived successfully.", SessionId = sessionId };
             }
 
-            // Soft delete — never call Remove()
-            session.IsDeleted = true;
-            session.DeletedAt = DateTime.UtcNow;
-            session.DeletedBy = currentUserId.ToString();
-
-            await _context.SaveChangesAsync();
-
-            sw.Stop();
-            _logger.LogInformation("ArchiveAsync: Session {SessionId} archived by UserId={UserId}. Elapsed={Elapsed}ms", sessionId, currentUserId, sw.ElapsedMilliseconds);
-
-            return new ArchiveInterviewResponseDto
+            // 2. Technical Session
+            var techSession = await _context.TechnicalInterviewSessions.FirstOrDefaultAsync(s => s.SessionGuid == sessionId);
+            if (techSession != null)
             {
-                Success = true,
-                Message = "Interview archived successfully.",
-                SessionId = sessionId,
-                ArchivedAt = session.DeletedAt
-            };
+                if (!isAdmin && techSession.UserId != currentUserId) throw new UnauthorizedAccessException("You do not have permission to archive this interview.");
+                _context.TechnicalInterviewSessions.Remove(techSession);
+                await _context.SaveChangesAsync();
+                return new ArchiveInterviewResponseDto { Success = true, Message = "Interview archived successfully.", SessionId = sessionId };
+            }
+
+            // 3. Full Mock Session
+            var fmSession = await _context.FullMockSessions.FirstOrDefaultAsync(s => s.SessionGuid == sessionId);
+            if (fmSession != null)
+            {
+                if (!isAdmin && fmSession.UserId != currentUserId) throw new UnauthorizedAccessException("You do not have permission to archive this interview.");
+                _context.FullMockSessions.Remove(fmSession);
+                await _context.SaveChangesAsync();
+                return new ArchiveInterviewResponseDto { Success = true, Message = "Interview archived successfully.", SessionId = sessionId };
+            }
+
+            // 4. Practice Sessions (ID is int)
+            if (int.TryParse(sessionId, out int intId))
+            {
+                var codingSession = await _context.CodingPracticeAttempts.FirstOrDefaultAsync(c => c.Id == intId);
+                if (codingSession != null)
+                {
+                    if (!isAdmin && codingSession.UserId != currentUserId) throw new UnauthorizedAccessException("You do not have permission to archive this interview.");
+                    _context.CodingPracticeAttempts.Remove(codingSession);
+                    await _context.SaveChangesAsync();
+                    return new ArchiveInterviewResponseDto { Success = true, Message = "Interview archived successfully.", SessionId = sessionId };
+                }
+
+                var qSession = await _context.UserQuestionPracticeHistories.FirstOrDefaultAsync(q => q.Id == intId);
+                if (qSession != null)
+                {
+                    if (!isAdmin && qSession.UserId != currentUserId) throw new UnauthorizedAccessException("You do not have permission to archive this interview.");
+                    _context.UserQuestionPracticeHistories.Remove(qSession);
+                    await _context.SaveChangesAsync();
+                    return new ArchiveInterviewResponseDto { Success = true, Message = "Interview archived successfully.", SessionId = sessionId };
+                }
+            }
+
+            throw new KeyNotFoundException("Interview session not found.");
         }
 
         public async Task<RestoreInterviewResponseDto> RestoreAsync(string sessionId, int currentUserId, bool isAdmin)

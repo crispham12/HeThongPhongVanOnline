@@ -368,9 +368,20 @@ export default function UserQuestionBank() {
                 <p className="text-sm font-extrabold text-[#8d8a91]">Đang tải...</p>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="py-16 text-center">
-                <BookOpen className="w-10 h-10 text-[#e6e6e6] mx-auto mb-3" />
-                <p className="text-sm font-extrabold text-[#8d8a91]">Không tìm thấy bài tập nào.</p>
+              <div className="py-16 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-[#fafafa] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e6e6e6]">
+                  <BookOpen className="w-8 h-8 text-[#8d8a91]" />
+                </div>
+                <h3 className="text-[15px] font-extrabold text-[#333333] mb-1">Chưa có câu hỏi nào</h3>
+                <p className="text-sm font-semibold text-[#8d8a91] mb-6">Không tìm thấy bài tập phù hợp. Hãy thử thay đổi bộ lọc.</p>
+                {(searchQuery || (difficultyFilter !== 'all' && difficultyFilter !== '') || (statusFilter !== 'all' && statusFilter !== '') || (categoryFilter !== 'all' && categoryFilter !== '')) ? (
+                   <button 
+                     onClick={() => { setSearchQuery(''); setDifficultyFilter('all'); setStatusFilter('all'); setCategoryFilter('all'); setCurrentPage(1); }} 
+                     className="px-4 py-2 bg-white border border-[#e6e6e6] text-[#333333] text-xs font-bold rounded-lg hover:bg-[#fafafa] transition-colors"
+                   >
+                     Xóa bộ lọc
+                   </button>
+                ) : null}
               </div>
             ) : activeTab === 'Lập trình' ? (
               <div className="w-full overflow-x-auto">

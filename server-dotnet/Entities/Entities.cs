@@ -84,7 +84,7 @@ namespace InterviewPro.API.Entities
         
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
-        public int TotalQuestions { get; set; } = 10;
+        public int TotalQuestions { get; set; } = 3;
         public int AnsweredQuestions { get; set; } = 0;
         public int DurationMinutes { get; set; } = 0;
 

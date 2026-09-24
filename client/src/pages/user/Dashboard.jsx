@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/ui/StatCard';
-import { Trophy, Target, Zap, Star, BrainCircuit, ArrowRight, Crown } from 'lucide-react';
+import { Trophy, Target, Zap, Star, BrainCircuit, ArrowRight, Crown, Rocket, BookOpen, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
 import { quotaApi } from '../../services/quotaApi';
 import { userDashboardApi } from '../../services/userDashboardApi';
@@ -78,6 +78,70 @@ export default function Dashboard() {
         const lowestSkill = hasInterviews && stats.skillProgress?.length > 0 
           ? stats.skillProgress.reduce((min, skill) => (skill.score < min.score ? skill : min), stats.skillProgress[0])
           : { name: 'Chưa có dữ liệu', score: 0 };
+
+        if (!hasInterviews) {
+          return (
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="w-24 h-24 bg-neutral-100 rounded-full flex items-center justify-center mb-8">
+                <Rocket className="w-12 h-12 text-neutral-800" />
+              </div>
+              <h1 className="text-3xl font-bold text-neutral-900 mb-4 text-center">Chào mừng bạn, {user?.name}!</h1>
+              <p className="text-neutral-500 text-center max-w-lg mb-10 text-sm">
+                Trang tổng quan của bạn hiện chưa có dữ liệu. Hãy thực hiện bài phỏng vấn thử đầu tiên để AI có thể phân tích và đánh giá kỹ năng của bạn nhé.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-3xl mb-12">
+                <div className="bg-white p-5 rounded-xl border border-neutral-200 text-center flex flex-col items-center">
+                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mb-3">
+                    <Target className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm mb-1 text-neutral-800">1. Chọn chủ đề</h3>
+                  <p className="text-xs text-neutral-500">Lựa chọn ngôn ngữ hoặc kỹ năng bạn muốn luyện tập</p>
+                </div>
+                <div className="bg-white p-5 rounded-xl border border-neutral-200 text-center flex flex-col items-center">
+                  <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center mb-3">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm mb-1 text-neutral-800">2. Phỏng vấn AI</h3>
+                  <p className="text-xs text-neutral-500">Trả lời các câu hỏi do hệ thống AI sinh ra</p>
+                </div>
+                <div className="bg-white p-5 rounded-xl border border-neutral-200 text-center flex flex-col items-center">
+                  <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mb-3">
+                    <Trophy className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm mb-1 text-neutral-800">3. Nhận kết quả</h3>
+                  <p className="text-xs text-neutral-500">Xem điểm số, đánh giá và gợi ý cải thiện</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <button 
+                  onClick={() => navigate('/setup')} 
+                  disabled={quotaLoading || (!quota?.isUnlimited && quota?.remaining === 0)}
+                  className={`inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-md active:scale-[0.98]
+                    ${(quotaLoading || (!quota?.isUnlimited && quota?.remaining === 0))
+                      ? 'bg-neutral-300 cursor-not-allowed opacity-60'
+                      : 'bg-neutral-900 hover:bg-neutral-800 cursor-pointer'
+                    }`}
+                >
+                  <Rocket className="w-5 h-5" />
+                  <span>Bắt đầu bài test đầu tiên</span>
+                </button>
+                <button 
+                  onClick={() => navigate('/question-bank')} 
+                  className="inline-flex items-center justify-center gap-2 text-neutral-700 bg-white border border-neutral-200 font-semibold px-8 py-3.5 rounded-xl hover:bg-neutral-50 transition-all shadow-sm active:scale-[0.98]"
+                >
+                  <BookOpen className="w-5 h-5" />
+                  <span>Xem ngân hàng câu hỏi</span>
+                </button>
+              </div>
+              
+              {(!quotaLoading && !quota?.isUnlimited && quota?.remaining === 0) && (
+                <p className="text-xs text-red-500 mt-4 text-center">Bạn đã dùng hết lượt tập hôm nay. Hãy quay lại vào ngày mai hoặc nâng cấp tài khoản.</p>
+              )}
+            </div>
+          );
+        }
 
         return (
           <>

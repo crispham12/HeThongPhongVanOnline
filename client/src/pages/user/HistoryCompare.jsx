@@ -23,7 +23,7 @@ export default function HistoryCompare() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await api.get('/interviews/history?pageSize=100&sort=newest');
+        const res = await api.get('/interviews/history?pageSize=50&sort=newest');
         const validItems = (res.data.items || []).filter(item => item.hasResult && item.score > 0);
         setHistoryList(validItems);
       } catch {
@@ -34,7 +34,7 @@ export default function HistoryCompare() {
     };
     fetchHistory();
   }, []);
-
+  
   const handleCompare = useCallback(async () => {
     if (!selectedA || !selectedB) {
       setError('Vui lòng chọn cả hai phiên phỏng vấn để so sánh.');
@@ -111,7 +111,10 @@ export default function HistoryCompare() {
             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">PHIÊN PHỎNG VẤN A</p>
             <select
               value={selectedA}
-              onChange={(e) => setSelectedA(e.target.value)}
+              onChange={(e) => {
+                setSelectedA(e.target.value);
+                setSelectedB(''); // Reset B when A changes
+              }}
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             >
               <option value="">-- Chọn phiên A --</option>
@@ -129,16 +132,22 @@ export default function HistoryCompare() {
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
             >
               <option value="">-- Chọn phiên B --</option>
-              {historyList
-                .filter(item => {
+              {(() => {
+                const filteredList = historyList.filter(item => {
                   if (!selectedA) return true;
                   const itemA = historyList.find(x => x.sessionId === selectedA);
                   if (!itemA) return true;
                   return item.interviewType === itemA.interviewType && item.sessionId !== selectedA;
-                })
-                .map(item => (
+                });
+                
+                if (selectedA && filteredList.length === 0) {
+                  return <option value="" disabled>Không có phiên nào khác cùng loại</option>;
+                }
+                
+                return filteredList.map(item => (
                   <option key={`b-${item.sessionId}`} value={item.sessionId}>{getInterviewLabel(item)}</option>
-                ))}
+                ));
+              })()}
             </select>
           </div>
         </div>

@@ -149,19 +149,8 @@ export default function HistoryDetail() {
           </div>
         </div>
 
-        {/* Three Columns: Breakdown, Strengths, Improvements */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="border border-gray-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-[14px] font-bold text-gray-900 mb-3">Chi tiết điểm số</h3>
-            <ul className="space-y-2">
-              {scoreBreakdown && Object.entries(scoreBreakdown).map(([key, val]) => (
-                <li key={key} className="text-[13px] text-gray-700 flex justify-between">
-                  <span className="capitalize">{key}</span>
-                  <span className="font-semibold">{val}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Two Columns: Strengths, Improvements */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="border border-gray-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-[14px] font-bold text-gray-900 mb-3">Điểm mạnh</h3>
             <ul className="space-y-2">
@@ -234,19 +223,8 @@ export default function HistoryDetail() {
           </div>
         )}
 
-        {/* Bottom Two Cards: Roadmap & Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-gray-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-[14px] font-bold text-gray-900 mb-3">Lộ trình học tập</h3>
-            <ul className="space-y-2">
-              {recommendedPractices?.length > 0 ? recommendedPractices.map((item, idx) => (
-                <li key={idx} className="text-[13px] text-gray-700">
-                  {idx + 1}. {item.title}
-                  {item.estimatedTime && <span className="text-gray-400 ml-1">· {item.estimatedTime}</span>}
-                </li>
-              )) : <li className="text-[13px] text-gray-400">Chưa có lộ trình</li>}
-            </ul>
-          </div>
+        {/* Bottom Card: Actions */}
+        <div className="grid grid-cols-1 gap-4">
           <div className="border border-gray-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-[14px] font-bold text-gray-900 mb-3">Hành động tiếp theo</h3>
             <div className="flex flex-wrap items-center gap-2 text-[13px] font-bold text-[#5a6b4c]">

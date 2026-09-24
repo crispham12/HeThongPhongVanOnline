@@ -35,6 +35,10 @@ namespace InterviewPro.API.Services
                     int remaining = Math.Max(0, 3 - user.DailyInterviewUsed);
                     throw new QuotaExceededException($"Bạn cần 3 buổi trống để bắt đầu Full Mock. Hiện tại còn {remaining} buổi.");
                 }
+                // Trừ cả 3 quota ngay khi tạo session để tránh bị 429 ở giữa chừng
+                await _quotaService.ConsumeQuotaAsync(userId);
+                await _quotaService.ConsumeQuotaAsync(userId);
+                await _quotaService.ConsumeQuotaAsync(userId);
             }
 
             var session = new FullMockSession
@@ -70,8 +74,8 @@ namespace InterviewPro.API.Services
                 throw new InvalidOperationException($"Round {request.Round} đã được hoàn thành.");
             }
 
-            // Trừ 1 quota
-            await _quotaService.ConsumeQuotaAsync(userId);
+            // Quota đã được trừ trước khi tạo session (ở CreateSessionAsync)
+            // Không trừ lại ở đây để tránh trừ 3 lần
 
             // Gán SessionGuid cho vòng tương ứng
             if (request.Round == "HR")

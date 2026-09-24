@@ -12,7 +12,7 @@ export default function Landing() {
         <div className="flex items-center gap-12">
           {/* Logo */}
           <Link to="/" className="text-2xl font-black tracking-tight" style={{ color: '#163300' }}>
-            Logo
+            Interview
           </Link>
 
           {/* Links */}
@@ -109,12 +109,19 @@ export default function Landing() {
 
         {/* Demo Video Block */}
         <div
-          className="w-full max-w-4xl aspect-[16/9] rounded-2xl flex items-center justify-center shadow-lg border border-gray-200 overflow-hidden relative"
-          style={{ backgroundColor: '#D9D9D9' }}
+          className="w-full max-w-4xl aspect-[16/9] rounded-2xl flex items-center justify-center shadow-lg border border-gray-200 overflow-hidden relative bg-black"
         >
-          <span className="text-3xl md:text-5xl font-black tracking-tight" style={{ color: '#090A08' }}>
-            demo video
-          </span>
+          <video
+            className="w-full h-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls
+          >
+            <source src="/final.mp4" type="video/mp4" />
+            Trình duyệt của bạn không hỗ trợ thẻ video.
+          </video>
         </div>
       </main>
 

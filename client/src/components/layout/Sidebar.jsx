@@ -44,14 +44,18 @@ export default function Sidebar() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all ${isActive
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-bold transition-all ${isActive
+                  ? 'bg-[#333333] text-white shadow-md shadow-neutral-200'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`
               }
             >
-              <item.icon className={`w-4 h-4 ${location.pathname === item.to ? 'text-primary-600' : ''}`} />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <item.icon className={`w-4 h-4 ${isActive ? 'text-[#B4F290]' : 'text-gray-400'}`} />
+                  {item.label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

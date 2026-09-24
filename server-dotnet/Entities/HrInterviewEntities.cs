@@ -11,7 +11,7 @@ namespace InterviewPro.API.Entities
         public string Role { get; set; } = string.Empty;
         public string Difficulty { get; set; } = string.Empty;
         public string TechStackJson { get; set; } = "[]";
-        public int TotalQuestions { get; set; } = 10;
+        public int TotalQuestions { get; set; } = 3;
         public int CurrentQuestionIndex { get; set; } = 0;
         public string Status { get; set; } = "InProgress"; // InProgress, Completed, Cancelled
         public double? FinalScore { get; set; }
@@ -38,6 +38,7 @@ namespace InterviewPro.API.Entities
         public int Id { get; set; }
         public int SessionId { get; set; }
         public int? QuestionBankId { get; set; } // Null if generated pure AI, else point to DB
+        public virtual HrQuestionBank? QuestionBank { get; set; }
         public string QuestionGuid { get; set; } = Guid.NewGuid().ToString();
         public int QuestionIndex { get; set; }
         public string Category { get; set; } = string.Empty;
@@ -181,6 +182,7 @@ namespace InterviewPro.API.Entities
 
         // UserId nullable — không bắt buộc (anonymous requests)
         public int? UserId { get; set; }
+        public virtual User? User { get; set; }
 
         // Tên người dùng thực hiện request (nullable)
         public string? UserName { get; set; }

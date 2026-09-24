@@ -6,6 +6,7 @@ namespace InterviewPro.API.Entities
     {
         public int Id { get; set; }
         public int SessionId { get; set; }
+        public virtual HrInterviewSession? Session { get; set; }
         
         // Status: Pending, Running, Completed, Failed
         public string Status { get; set; } = "Pending";
@@ -23,6 +24,7 @@ namespace InterviewPro.API.Entities
         public string ErrorMessage { get; set; } = string.Empty;
         
         public int? AnalysisResultId { get; set; }
+        public virtual InterviewAnalysisResult? AnalysisResult { get; set; }
     }
 
     public class InterviewAnalysisResult

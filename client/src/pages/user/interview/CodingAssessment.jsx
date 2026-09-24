@@ -122,7 +122,7 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
         language: language,
         code: code,
         testCases: formattedTestCases,
-        functionName: 'solution'
+        functionName: null
       });
 
       const mappedResults = data.results.map(r => ({
@@ -163,7 +163,7 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
         language: language,
         code: code,
         testCases: formattedTestCases,
-        functionName: 'solution'
+        functionName: null
       });
 
       const allResults = runData.results.map(r => ({
@@ -199,6 +199,13 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
         codeQualityNotes: score.code_quality_notes,
         complexityNotes: score.complexity_notes,
         improvementSuggestions: score.improvement_suggestions,
+        strengths: score.strengths || [],
+        weaknesses: score.weaknesses || [],
+        learningRoadmap: score.learning_roadmap || [],
+        // Sub-scores 0-10 — map thẳng vào CodingReportDto fields
+        problemUnderstandingScore: score.problem_understanding_score ?? 0,
+        algorithmDesignScore: score.algorithm_design_score ?? 0,
+        testingScore: score.testing_score ?? 0,
         passedCount: passedCount,
         totalCount: allResults.length,
         userCode: code,
@@ -216,6 +223,8 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
         difficulty: currentProblem.difficulty,
         score: 0, testScore: 0, qualityScore: 0, complexityScore: 0,
         feedback: 'Lỗi khi chấm bài.',
+        strengths: [], weaknesses: [], learningRoadmap: [],
+        problemUnderstandingScore: 0, algorithmDesignScore: 0, testingScore: 0,
         passedCount: 0, totalCount: currentProblem.test_cases.length,
         userCode: code, language: language
       }]);
@@ -240,28 +249,55 @@ export default function CodingAssessment({ fullMockMode = false, role, difficult
       return;
     }
     try {
-      const { data } = await api.post('/interview/start', {
-        role: role || 'backend',
-        stack: stack || [],
-        difficulty: difficulty || 'fresher',
-        type: 'coding',
-        isFullMock: true
-      });
-
-      // Calculate overall score (0-10) and divide by the total number of problems
       const totalProblems = problems.length || 1;
       const avgScore = problemScores.reduce((sum, item) => sum + (item.score || 0), 0) / totalProblems;
       const overallScore = avgScore / 10.0;
-      const overallFeedback = JSON.stringify(problemScores);
 
-      // Complete session to save score & feedback in InterviewSessions table
-      await api.post('/interview/complete-session', {
-        sessionId: data.sessionId,
-        overallScore: overallScore,
-        overallFeedback: overallFeedback
-      });
-
-      onComplete(String(data.sessionId), problemScores);
+      // ── Fix 4: Lưu vào CodingInterviewSessions (primary path) ──
+      const codingSessionGuid = `full-mock-coding-${Date.now()}`;
+      try {
+        await api.post('/coding-interviews/full-mock/save', {
+          sessionGuid: codingSessionGuid,
+          role: role || 'backend',
+          level: difficulty || 'fresher',
+          language: language || 'python',
+          problems: problemScores.map(s => ({
+            title: s.title,
+            score: s.score,
+            testScore: s.testScore,
+            qualityScore: s.qualityScore,
+            complexityScore: s.complexityScore,
+            problemUnderstandingScore: s.problemUnderstandingScore ?? 0,
+            algorithmDesignScore: s.algorithmDesignScore ?? 0,
+            testingScore: s.testingScore ?? 0,
+            passedCount: s.passedCount,
+            totalCount: s.totalCount,
+            feedback: s.feedback,
+            userCode: s.userCode,
+            strengths: s.strengths ?? [],
+            weaknesses: s.weaknesses ?? [],
+            learningRoadmap: s.learningRoadmap ?? [],
+          }))
+        });
+        // Báo hoàn thành với guid mới (CodingInterviewSessions)
+        onComplete(codingSessionGuid, problemScores);
+      } catch (saveError) {
+        console.warn('[Fix4] primary save failed, falling back to legacy path:', saveError);
+        // ── Fallback: legacy path vào InterviewSessions ──
+        const { data } = await api.post('/interview/start', {
+          role: role || 'backend',
+          stack: stack || [],
+          difficulty: difficulty || 'fresher',
+          type: 'coding',
+          isFullMock: true
+        });
+        await api.post('/interview/complete-session', {
+          sessionId: data.sessionId,
+          overallScore: overallScore,
+          overallFeedback: JSON.stringify(problemScores)
+        });
+        onComplete(String(data.sessionId), problemScores);
+      }
     } catch (error) {
       console.error(error);
       alert('Không thể lưu kết quả. Vui lòng thử lại.');

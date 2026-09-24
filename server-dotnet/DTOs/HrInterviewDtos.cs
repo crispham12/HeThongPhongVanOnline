@@ -17,7 +17,7 @@ namespace InterviewPro.API.DTOs
     public class StartHrInterviewResponse
     {
         public string SessionId { get; set; } = string.Empty;
-        public int TotalQuestions { get; set; } = 10;
+        public int TotalQuestions { get; set; } = 3;
         public List<HrQuestionDto> Questions { get; set; } = new();
     }
 
@@ -89,7 +89,7 @@ namespace InterviewPro.API.DTOs
 
     public class CompositeScoresDto
     {
-        public double StarStructureScore { get; set; }
+        public double StarScore { get; set; }
         public double CommunicationScore { get; set; }
         public double ProfessionalismScore { get; set; }
         public double ConfidenceScore { get; set; }

@@ -246,7 +246,7 @@ namespace InterviewPro.API.Services
             var scoreB = Math.Round((double)(sessionB.Score ?? 0) / 10.0, 1);
             var diff = Math.Round(scoreA - scoreB, 1);
 
-            return new CompareInterviewResponseDto
+            var response = new CompareInterviewResponseDto
             {
                 InterviewA = new CompareInterviewSummaryDto
                 {
@@ -272,6 +272,27 @@ namespace InterviewPro.API.Services
                 BetterInterview = diff > 0 ? "A" : (diff < 0 ? "B" : "Equal"),
                 Metrics = new List<CompareMetricDto>() // No fake metrics
             };
+
+            try 
+            {
+                var fbA = !string.IsNullOrEmpty(sessionA.AiFeedbackJson) ? System.Text.Json.JsonDocument.Parse(sessionA.AiFeedbackJson).RootElement : default;
+                var fbB = !string.IsNullOrEmpty(sessionB.AiFeedbackJson) ? System.Text.Json.JsonDocument.Parse(sessionB.AiFeedbackJson).RootElement : default;
+
+                var strA = (fbA.ValueKind == System.Text.Json.JsonValueKind.Object && fbA.TryGetProperty("strengths", out var sA) && sA.GetArrayLength() > 0) ? sA[0].GetString() : null;
+                var strB = (fbB.ValueKind == System.Text.Json.JsonValueKind.Object && fbB.TryGetProperty("strengths", out var sB) && sB.GetArrayLength() > 0) ? sB[0].GetString() : null;
+
+                response.StrengthsComparison.Add(strA != null ? $"Phiên A: {strA}" : "Phiên A: Không có ghi nhận.");
+                response.StrengthsComparison.Add(strB != null ? $"Phiên B: {strB}" : "Phiên B: Không có ghi nhận.");
+
+                var wA = (fbA.ValueKind == System.Text.Json.JsonValueKind.Object && fbA.TryGetProperty("weaknesses", out var wkA) && wkA.GetArrayLength() > 0) ? wkA[0].GetString() : null;
+                var wB = (fbB.ValueKind == System.Text.Json.JsonValueKind.Object && fbB.TryGetProperty("weaknesses", out var wkB) && wkB.GetArrayLength() > 0) ? wkB[0].GetString() : null;
+
+                response.WeaknessesComparison.Add(wA != null ? $"Phiên A: {wA}" : "Phiên A: Không có ghi nhận.");
+                response.WeaknessesComparison.Add(wB != null ? $"Phiên B: {wB}" : "Phiên B: Không có ghi nhận.");
+            }
+            catch { }
+
+            return response;
         }
 
         private CompareInterviewResponseDto CompareQuestionPractice(UserQuestionPracticeHistory sessionA, UserQuestionPracticeHistory sessionB)
@@ -280,7 +301,7 @@ namespace InterviewPro.API.Services
             var scoreB = Math.Round((double)(sessionB.AiScore ?? 0.0f), 1);
             var diff = Math.Round(scoreA - scoreB, 1);
 
-            return new CompareInterviewResponseDto
+            var response = new CompareInterviewResponseDto
             {
                 InterviewA = new CompareInterviewSummaryDto
                 {
@@ -306,6 +327,24 @@ namespace InterviewPro.API.Services
                 BetterInterview = diff > 0 ? "A" : (diff < 0 ? "B" : "Equal"),
                 Metrics = new List<CompareMetricDto>() // No fake metrics
             };
+
+            try 
+            {
+                var strA = !string.IsNullOrEmpty(sessionA.StrengthsJson) ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(sessionA.StrengthsJson)?.FirstOrDefault() : null;
+                var strB = !string.IsNullOrEmpty(sessionB.StrengthsJson) ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(sessionB.StrengthsJson)?.FirstOrDefault() : null;
+
+                response.StrengthsComparison.Add(strA != null ? $"Phiên A: {strA}" : "Phiên A: Không có ghi nhận.");
+                response.StrengthsComparison.Add(strB != null ? $"Phiên B: {strB}" : "Phiên B: Không có ghi nhận.");
+
+                var wA = !string.IsNullOrEmpty(sessionA.WeaknessesJson) ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(sessionA.WeaknessesJson)?.FirstOrDefault() : null;
+                var wB = !string.IsNullOrEmpty(sessionB.WeaknessesJson) ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(sessionB.WeaknessesJson)?.FirstOrDefault() : null;
+
+                response.WeaknessesComparison.Add(wA != null ? $"Phiên A: {wA}" : "Phiên A: Không có ghi nhận.");
+                response.WeaknessesComparison.Add(wB != null ? $"Phiên B: {wB}" : "Phiên B: Không có ghi nhận.");
+            }
+            catch { }
+
+            return response;
         }
 
 

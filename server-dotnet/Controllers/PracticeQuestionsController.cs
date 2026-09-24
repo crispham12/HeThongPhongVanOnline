@@ -189,27 +189,69 @@ namespace InterviewPro.API.Controllers
 
             if (q.Category == "Technical" || q.Category == "Kỹ thuật")
             {
+                var tags = new List<string>();
+                if (!string.IsNullOrEmpty(q.TagsJson))
+                {
+                    try { tags = System.Text.Json.JsonSerializer.Deserialize<List<string>>(q.TagsJson) ?? new List<string>(); } catch {}
+                }
+
+                var validStages = new[] { "Core Technical Knowledge", "Applied Problem Solving", "Project & System Thinking" };
+                var matchedStages = tags.Where(t => validStages.Contains(t)).ToList();
+                
+                if (matchedStages.Count == 0)
+                {
+                    return BadRequest(new { message = "Câu hỏi Technical này chưa được gán loại đánh giá (Stage). Vui lòng cập nhật câu hỏi." });
+                }
+                if (matchedStages.Count > 1)
+                {
+                    return BadRequest(new { message = "Câu hỏi Technical này được gán nhiều hơn 1 loại đánh giá (Stage). Không hợp lệ." });
+                }
+                
+                string stage = matchedStages.First();
+
                 var techEvalReq = new AiEvaluateAnswerRequest
                 {
                     role = q.Role ?? "Developer",
                     difficulty = q.Difficulty ?? "Fresher",
                     tech_stack = string.Join(",", techStack),
-                    stage = "Practice",
+                    stage = stage,
                     question = q.Content,
-                    answer = req.Answer
+                    answer = req.Answer,
+                    expected_answer_guide = q.ExpectedAnswerGuide ?? ""
                 };
 
                 var techAiResult = await _technicalAiClient.EvaluateAnswerAsync(techEvalReq);
                 if (techAiResult == null) return StatusCode(500, new { message = "Lỗi khi gọi AI chấm điểm kỹ thuật." });
 
-                float calculatedScore = (float)Math.Round((
-                    techAiResult.scores.technicalKnowledge +
-                    techAiResult.scores.problemSolving +
-                    techAiResult.scores.practicalExperience +
-                    techAiResult.scores.systemDesign +
-                    techAiResult.scores.communication +
-                    techAiResult.scores.bestPractices
-                ) / 6.0f, 1);
+                float calculatedScore = 0f;
+                var criteria = techAiResult.criteriaAnalysis ?? new List<AiCriterionAnalysis>();
+
+                if (stage == "Core Technical Knowledge")
+                {
+                    float tk = criteria.FirstOrDefault(c => c.criterion == "Technical Knowledge")?.score ?? 0f;
+                    float cu = criteria.FirstOrDefault(c => c.criterion == "Concept Understanding")?.score ?? 0f;
+                    float tr = criteria.FirstOrDefault(c => c.criterion == "Technical Reasoning")?.score ?? 0f;
+                    float comm = criteria.FirstOrDefault(c => c.criterion == "Communication")?.score ?? 0f;
+                    calculatedScore = (tk * 0.35f) + (cu * 0.30f) + (tr * 0.20f) + (comm * 0.15f);
+                }
+                else if (stage == "Applied Problem Solving")
+                {
+                    float pa = criteria.FirstOrDefault(c => c.criterion == "Problem Analysis")?.score ?? 0f;
+                    float sa = criteria.FirstOrDefault(c => c.criterion == "Solution Approach")?.score ?? 0f;
+                    float tr = criteria.FirstOrDefault(c => c.criterion == "Technical Reasoning")?.score ?? 0f;
+                    float bp = criteria.FirstOrDefault(c => c.criterion == "Best Practices")?.score ?? 0f;
+                    calculatedScore = (pa * 0.30f) + (sa * 0.30f) + (tr * 0.25f) + (bp * 0.15f);
+                }
+                else if (stage == "Project & System Thinking")
+                {
+                    float pe = criteria.FirstOrDefault(c => c.criterion == "Practical Experience & Ownership")?.score ?? 0f;
+                    float au = criteria.FirstOrDefault(c => c.criterion == "Architecture Understanding")?.score ?? 0f;
+                    float tdm = criteria.FirstOrDefault(c => c.criterion == "Technical Decision Making")?.score ?? 0f;
+                    float st = criteria.FirstOrDefault(c => c.criterion == "System Thinking & Trade-offs")?.score ?? 0f;
+                    calculatedScore = (pe * 0.30f) + (au * 0.25f) + (tdm * 0.25f) + (st * 0.20f);
+                }
+                
+                calculatedScore = (float)Math.Round(calculatedScore, 1);
 
                 var history = new Entities.UserQuestionPracticeHistory
                 {
@@ -218,10 +260,10 @@ namespace InterviewPro.API.Controllers
                     UserAnswer = req.Answer,
                     PracticeStatus = "Practiced",
                     AiScore = calculatedScore,
-                    AiFeedback = techAiResult.feedback ?? "",
+                    AiFeedback = techAiResult.summary ?? "",
                     StrengthsJson = System.Text.Json.JsonSerializer.Serialize(techAiResult.strengths ?? new List<string>()),
                     WeaknessesJson = System.Text.Json.JsonSerializer.Serialize(techAiResult.weaknesses ?? new List<string>()),
-                    ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(new List<string> { "Tham khảo câu trả lời mẫu để cải thiện", "Luyện tập thêm qua các bài thực hành" }),
+                    ImprovementSuggestionsJson = System.Text.Json.JsonSerializer.Serialize(techAiResult.improvementSuggestions ?? new List<string>()),
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -240,15 +282,42 @@ namespace InterviewPro.API.Controllers
                     {
                         Action = techAiResult.improvedAnswer
                     },
-                    TechnicalScores = techAiResult.scores
+                    TechnicalCriteriaAnalysis = techAiResult.criteriaAnalysis
                 });
             }
             else
             {
+                // Parse TagsJson to find HR Evaluation Category
+                var tags = new List<string>();
+                if (!string.IsNullOrEmpty(q.TagsJson))
+                {
+                    try
+                    {
+                        tags = System.Text.Json.JsonSerializer.Deserialize<List<string>>(q.TagsJson) ?? new List<string>();
+                    }
+                    catch {}
+                }
+
+                var validCategories = new[] { "Introduction & Motivation", "Behavioral / STAR", "Situational & Career" };
+                var matchedCategories = tags.Where(t => validCategories.Contains(t)).ToList();
+
+                if (matchedCategories.Count == 0)
+                {
+                    return BadRequest(new { message = "Câu hỏi HR này chưa được gán loại đánh giá (HR Evaluation Category). Vui lòng cập nhật câu hỏi." });
+                }
+                if (matchedCategories.Count > 1)
+                {
+                    return BadRequest(new { message = "Câu hỏi HR này được gán nhiều hơn 1 loại đánh giá (HR Evaluation Category). Không hợp lệ." });
+                }
+
+                string hrCategory = matchedCategories.First();
+
                 var aiResult = await _aiClient.EvaluateHrAnswerAsync(
                     q.Role ?? "Developer",
                     q.Difficulty ?? "Fresher",
                     techStack,
+                    hrCategory,
+                    q.ExpectedAnswerGuide ?? "",
                     q.Content,
                     req.Answer
                 );

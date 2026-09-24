@@ -57,6 +57,7 @@ namespace InterviewPro.API.DTOs
         public string stage { get; set; } = string.Empty;
         public string question { get; set; } = string.Empty;
         public string answer { get; set; } = string.Empty;
+        public string expected_answer_guide { get; set; } = string.Empty;
     }
 
     public class AiScores
@@ -69,13 +70,26 @@ namespace InterviewPro.API.DTOs
         public float bestPractices { get; set; }
     }
 
+    public class AiCriterionAnalysis
+    {
+        public string criterion { get; set; } = string.Empty;
+        public List<string> evidence { get; set; } = new();
+        public List<string> missingEvidence { get; set; } = new();
+        public float score { get; set; }
+        public string reason { get; set; } = string.Empty;
+    }
+
     public class AiEvaluateAnswerResponse
     {
-        public AiScores scores { get; set; } = new();
-        public string feedback { get; set; } = string.Empty;
+        public string summary { get; set; } = string.Empty;
+        public string stage { get; set; } = string.Empty;
+        public float questionScore { get; set; }
+        public List<AiCriterionAnalysis> criteriaAnalysis { get; set; } = new();
         public List<string> strengths { get; set; } = new();
         public List<string> weaknesses { get; set; } = new();
+        public List<string> improvementSuggestions { get; set; } = new();
         public string improvedAnswer { get; set; } = string.Empty;
+        public string nextRecommendation { get; set; } = string.Empty;
     }
 
     public class AiFinalEvaluationRequest
@@ -99,8 +113,6 @@ namespace InterviewPro.API.DTOs
 
     public class AiFinalEvaluationResponse
     {
-        public float overallScore { get; set; }
-        public AiScores scores { get; set; } = new();
         public string summary { get; set; } = string.Empty;
         public List<AiFinalStrength> strengths { get; set; } = new();
         public List<AiFinalWeakness> weaknesses { get; set; } = new();

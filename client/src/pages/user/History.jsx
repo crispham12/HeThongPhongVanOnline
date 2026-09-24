@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
+import { Inbox, Rocket } from 'lucide-react';
 
 const STATUS_MAP = {
   Ready: { label: 'SẴN SÀNG', color: 'text-green-700' },
@@ -250,10 +251,14 @@ export default function History() {
                         <div className="flex items-center gap-2 text-[13px] text-gray-500 whitespace-nowrap">
                           {row.hasResult && (
                             <>
-                              <button onClick={() => navigate(`/history/${row.sessionId}`)} className="font-medium hover:text-blue-600 transition-colors">Xem</button>
+                              <button onClick={() => navigate(row.interviewType === 'FullMock' ? `/interview/fullmock/${row.sessionId}/report` : `/history/${row.sessionId}`)} className="font-medium hover:text-blue-600 transition-colors">Xem</button>
                               <span>·</span>
-                              <button onClick={() => navigate(`/history/compare?a=${row.sessionId}`)} className="font-medium hover:text-green-600 transition-colors">So sánh</button>
-                              <span>·</span>
+                              {row.score > 0 && (
+                                <>
+                                  <button onClick={() => navigate(`/history/compare?a=${row.sessionId}`)} className="font-medium hover:text-green-600 transition-colors">So sánh</button>
+                                  <span>·</span>
+                                </>
+                              )}
                             </>
                           )}
                           <button onClick={() => setDeleteItem(row)} className="font-medium hover:text-red-600 text-gray-400 transition-colors">Xoá</button>
@@ -269,17 +274,31 @@ export default function History() {
 
         {/* Empty State */}
         {!loading && !error && items.length === 0 && (
-          <div className="border border-dashed border-gray-300 rounded-2xl p-8 bg-white flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-green-50 text-green-700 flex items-center justify-center font-bold text-xl border border-green-100">Ø</div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Chưa có lịch sử phỏng vấn</h3>
-                <p className="text-gray-500 text-sm mt-1">Hãy hoàn thành một buổi phỏng vấn để hệ thống theo dõi tiến độ của bạn.</p>
-              </div>
+          <div className="border border-dashed border-gray-300 rounded-2xl p-10 bg-white flex flex-col items-center justify-center text-center mt-4">
+            <div className="w-16 h-16 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center mb-4 border border-gray-100">
+              <Inbox className="w-8 h-8" />
             </div>
-            <button onClick={() => navigate('/setup')} className="px-6 py-2.5 bg-[#6B705C] text-white rounded-xl text-sm font-semibold hover:bg-[#5a5f4c] transition-colors shadow-sm">
-              Bắt đầu phỏng vấn
-            </button>
+            <h3 className="text-[17px] font-bold text-gray-900 mb-2">Chưa có dữ liệu hiển thị</h3>
+            <p className="text-gray-500 text-sm max-w-md mb-6">
+              Không tìm thấy lịch sử phỏng vấn nào. Nếu bạn chưa từng phỏng vấn, hãy bắt đầu thử sức ngay hôm nay!
+            </p>
+            <div className="flex items-center gap-3">
+              {(search || interviewType !== 'All' || status !== 'All' || dateRange !== 'all') ? (
+                <button 
+                  onClick={() => { setSearch(''); setInterviewType('All'); setStatus('All'); setDateRange('all'); setPage(1); }} 
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  Xoá bộ lọc
+                </button>
+              ) : null}
+              <button 
+                onClick={() => navigate('/setup')} 
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#333333] text-white rounded-xl text-sm font-semibold hover:bg-[#1a1a1a] transition-colors shadow-sm"
+              >
+                <Rocket className="w-4 h-4" />
+                Bắt đầu phỏng vấn
+              </button>
+            </div>
           </div>
         )}
 

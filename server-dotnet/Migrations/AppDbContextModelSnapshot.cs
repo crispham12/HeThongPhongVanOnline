@@ -675,6 +675,8 @@ namespace InterviewPro.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("FullMockSessions");
                 });
 
@@ -986,6 +988,8 @@ namespace InterviewPro.API.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("QuestionBankId");
 
                     b.HasIndex("SessionId");
 
@@ -1327,6 +1331,10 @@ namespace InterviewPro.API.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AnalysisResultId");
+
+                    b.HasIndex("SessionId");
 
                     b.ToTable("InterviewAnalysisJobs");
                 });
@@ -2223,6 +2231,15 @@ namespace InterviewPro.API.Migrations
                     b.ToTable("UserQuestionPracticeHistories");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.AiRequestLog", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.CandidateReport", b =>
                 {
                     b.HasOne("InterviewPro.API.Entities.User", "User")
@@ -2300,6 +2317,17 @@ namespace InterviewPro.API.Migrations
                     b.Navigation("CandidateReport");
                 });
 
+            modelBuilder.Entity("InterviewPro.API.Entities.FullMockSession", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("InterviewPro.API.Entities.HRReport", b =>
                 {
                     b.HasOne("InterviewPro.API.Entities.CandidateReport", "CandidateReport")
@@ -2349,11 +2377,17 @@ namespace InterviewPro.API.Migrations
 
             modelBuilder.Entity("InterviewPro.API.Entities.HrInterviewQuestion", b =>
                 {
+                    b.HasOne("InterviewPro.API.Entities.HrQuestionBank", "QuestionBank")
+                        .WithMany()
+                        .HasForeignKey("QuestionBankId");
+
                     b.HasOne("InterviewPro.API.Entities.HrInterviewSession", null)
                         .WithMany("Questions")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("QuestionBank");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.HrInterviewQuestionEvaluation", b =>
@@ -2381,6 +2415,23 @@ namespace InterviewPro.API.Migrations
                         .HasForeignKey("EvaluationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("InterviewPro.API.Entities.InterviewAnalysisJob", b =>
+                {
+                    b.HasOne("InterviewPro.API.Entities.InterviewAnalysisResult", "AnalysisResult")
+                        .WithMany()
+                        .HasForeignKey("AnalysisResultId");
+
+                    b.HasOne("InterviewPro.API.Entities.HrInterviewSession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AnalysisResult");
+
+                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("InterviewPro.API.Entities.InterviewImprovement", b =>

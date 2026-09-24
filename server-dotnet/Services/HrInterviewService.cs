@@ -28,7 +28,7 @@ namespace InterviewPro.API.Services
         private readonly IInterviewQuotaService _quotaService;
         private readonly ILogger<HrInterviewService> _logger;
 
-        private const int TotalQuestions = 10;
+        private const int TotalQuestions = 3;
         private const int MinAnswerLength = 20;
 
         public HrInterviewService(
@@ -355,7 +355,7 @@ namespace InterviewPro.API.Services
                 if (finalResult.CompositeScores != null)
                 {
                     var c = finalResult.CompositeScores;
-                    double overall = (c.StarStructureScore * 0.30)
+                    double overall = (c.StarScore * 0.30)
                                    + (c.CommunicationScore * 0.20)
                                    + (c.ProfessionalismScore * 0.10)
                                    + (c.ConfidenceScore * 0.10)
@@ -389,7 +389,7 @@ namespace InterviewPro.API.Services
             var dbFinalResult = new HrInterviewEvaluation
             {
                 SessionId = session.Id,
-                StarStructureScore = finalResult.CompositeScores?.StarStructureScore ?? 0,
+                StarStructureScore = finalResult.CompositeScores?.StarScore ?? 0,
                 CommunicationScore = finalResult.CompositeScores?.CommunicationScore ?? 0,
                 ProfessionalismScore = finalResult.CompositeScores?.ProfessionalismScore ?? 0,
                 ConfidenceScore = finalResult.CompositeScores?.ConfidenceScore ?? 0,
@@ -595,7 +595,7 @@ namespace InterviewPro.API.Services
                 OverallScore = fr.OverallScore,
                 CompositeScores = new CompositeScoresDto
                 {
-                    StarStructureScore = fr.StarStructureScore,
+                    StarScore = fr.StarStructureScore,
                     CommunicationScore = fr.CommunicationScore,
                     ProfessionalismScore = fr.ProfessionalismScore,
                     ConfidenceScore = fr.ConfidenceScore,

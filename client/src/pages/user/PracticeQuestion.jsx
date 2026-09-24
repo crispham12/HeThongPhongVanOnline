@@ -29,8 +29,30 @@ export default function PracticeQuestion() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // Silence detection
+  const [silenceWarning, setSilenceWarning] = useState(false);
+  const silenceTimerRef = useRef(null);
+  const silenceWarnRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const silenceCheckRef = useRef(null);
+  const SILENCE_TIMEOUT_MS = 120000; // 2 phút
+  const SILENCE_WARN_MS = 90000;     // 90 giây
+  const SILENCE_THRESHOLD = 0.01;
+
+  const clearSilenceDetection = () => {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    if (silenceWarnRef.current) { clearTimeout(silenceWarnRef.current); silenceWarnRef.current = null; }
+    if (silenceCheckRef.current) { clearInterval(silenceCheckRef.current); silenceCheckRef.current = null; }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => { });
+      audioContextRef.current = null;
+    }
+    setSilenceWarning(false);
+  };
+
   useEffect(() => {
     return () => {
+      clearSilenceDetection();
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -39,6 +61,7 @@ export default function PracticeQuestion() {
 
   const toggleRecording = async () => {
     if (isRecording) {
+      clearSilenceDetection();
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -57,10 +80,11 @@ export default function PracticeQuestion() {
 
         mediaRecorder.onstop = async () => {
           // Stop all tracks to release microphone
+          clearSilenceDetection();
           stream.getTracks().forEach(track => track.stop());
 
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          
+
           setIsTranscribing(true);
           try {
             const transcribedText = await practiceQuestionApi.transcribeAudio(audioBlob);
@@ -76,6 +100,50 @@ export default function PracticeQuestion() {
         mediaRecorder.start();
         mediaRecorderRef.current = mediaRecorder;
         setIsRecording(true);
+        setSilenceWarning(false);
+
+        // ── Silence detection ──────────────────────────────────
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          audioContextRef.current = audioCtx;
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+          silenceCheckRef.current = setInterval(() => {
+            analyser.getByteFrequencyData(dataArray);
+            const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
+            if (avg > SILENCE_THRESHOLD) {
+              if (silenceWarnRef.current) { clearTimeout(silenceWarnRef.current); silenceWarnRef.current = null; }
+              if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+              setSilenceWarning(false);
+              silenceWarnRef.current = setTimeout(() => setSilenceWarning(true), SILENCE_WARN_MS);
+              silenceTimerRef.current = setTimeout(() => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                  console.info('[Practice] Im lặng 2 phút → tự tắt mic');
+                  mediaRecorderRef.current.stop();
+                  setIsRecording(false);
+                }
+              }, SILENCE_TIMEOUT_MS);
+            }
+          }, 500);
+
+          // Khởi động lần đầu
+          silenceWarnRef.current = setTimeout(() => setSilenceWarning(true), SILENCE_WARN_MS);
+          silenceTimerRef.current = setTimeout(() => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              console.info('[Practice] Im lặng 2 phút → tự tắt mic');
+              mediaRecorderRef.current.stop();
+              setIsRecording(false);
+            }
+          }, SILENCE_TIMEOUT_MS);
+        } catch (audioErr) {
+          console.warn('Silence detection không khả dụng:', audioErr);
+        }
+        // ──────────────────────────────────────────────────────
+
       } catch (err) {
         alert("Không thể truy cập microphone. Vui lòng cấp quyền trong trình duyệt.");
         console.error("Mic error:", err);
@@ -351,6 +419,11 @@ export default function PracticeQuestion() {
                   {isTranscribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isRecording ? <Square className="w-3.5 h-3.5 fill-red-600 text-red-600" /> : <Mic className="w-3.5 h-3.5" />}
                   {isTranscribing ? 'Đang nhận diện...' : isRecording ? 'Dừng ghi âm' : 'Ghi âm trả lời'}
                 </button>
+                {silenceWarning && isRecording && (
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg animate-pulse">
+                    ⚠️ Im lặng — mic tắt sau 30s
+                  </span>
+                )}
                 <span className={`text-xs font-semibold ${wordCount >= 200 && wordCount <= 500 ? 'text-emerald-500' : 'text-gray-400'}`}>
                   Gợi ý: 200 - 500 từ ({wordCount} từ)
                 </span>
@@ -545,50 +618,57 @@ export default function PracticeQuestion() {
             </h3>
 
             <div className="space-y-3">
-              {(isTechnical ? [
-                {
-                  label: 'Kiến thức kỹ thuật',
-                  value: result?.technicalScores?.technicalKnowledge ? Math.round(result.technicalScores.technicalKnowledge * 10) : 0,
-                  color: 'bg-emerald-500',
-                  trackColor: 'bg-emerald-100',
-                  textColor: 'text-emerald-600',
-                },
-                {
-                  label: 'Giải quyết vấn đề',
-                  value: result?.technicalScores?.problemSolving ? Math.round(result.technicalScores.problemSolving * 10) : 0,
-                  color: 'bg-amber-400',
-                  trackColor: 'bg-amber-100',
-                  textColor: 'text-amber-600',
-                },
-                {
-                  label: 'Kinh nghiệm thực tế',
-                  value: result?.technicalScores?.practicalExperience ? Math.round(result.technicalScores.practicalExperience * 10) : 0,
-                  color: 'bg-blue-500',
-                  trackColor: 'bg-blue-100',
-                  textColor: 'text-blue-600',
-                },
-                {
-                  label: 'Thiết kế hệ thống',
-                  value: result?.technicalScores?.systemDesign ? Math.round(result.technicalScores.systemDesign * 10) : 0,
-                  color: 'bg-indigo-500',
-                  trackColor: 'bg-indigo-100',
-                  textColor: 'text-indigo-600',
-                },
-                {
-                  label: 'Giao tiếp',
-                  value: result?.technicalScores?.communication ? Math.round(result.technicalScores.communication * 10) : 0,
-                  color: 'bg-purple-500',
-                  trackColor: 'bg-purple-100',
-                  textColor: 'text-purple-600',
-                },
-                {
-                  label: 'Thực hành chuẩn',
-                  value: result?.technicalScores?.bestPractices ? Math.round(result.technicalScores.bestPractices * 10) : 0,
-                  color: 'bg-rose-500',
-                  trackColor: 'bg-rose-100',
-                  textColor: 'text-rose-600',
-                },
-              ] : [
+              {(isTechnical ? (() => {
+                if (result?.technicalCriteriaAnalysis) return result.technicalCriteriaAnalysis;
+
+                // If not submitted yet, determine from tags
+                let stage = null;
+                try {
+                  const tags = JSON.parse(question?.tagsJson || '[]');
+                  const validStages = ["Core Technical Knowledge", "Applied Problem Solving", "Project & System Thinking"];
+                  stage = tags.find(t => validStages.includes(t));
+                } catch (e) { }
+
+                if (stage === "Core Technical Knowledge") {
+                  return [
+                    { criterion: 'Technical Knowledge', score: 0 },
+                    { criterion: 'Concept Understanding', score: 0 },
+                    { criterion: 'Technical Reasoning', score: 0 },
+                    { criterion: 'Communication', score: 0 }
+                  ];
+                } else if (stage === "Applied Problem Solving") {
+                  return [
+                    { criterion: 'Problem Analysis', score: 0 },
+                    { criterion: 'Solution Approach', score: 0 },
+                    { criterion: 'Technical Reasoning', score: 0 },
+                    { criterion: 'Best Practices', score: 0 }
+                  ];
+                } else if (stage === "Project & System Thinking") {
+                  return [
+                    { criterion: 'Practical Experience & Ownership', score: 0 },
+                    { criterion: 'Architecture Understanding', score: 0 },
+                    { criterion: 'Technical Decision Making', score: 0 },
+                    { criterion: 'System Thinking & Trade-offs', score: 0 }
+                  ];
+                }
+                return []; // No valid stage, don't show fake criteria
+              })().map((c, idx) => {
+                const colors = [
+                  { color: 'bg-emerald-500', trackColor: 'bg-emerald-100', textColor: 'text-emerald-600' },
+                  { color: 'bg-amber-400', trackColor: 'bg-amber-100', textColor: 'text-amber-600' },
+                  { color: 'bg-blue-500', trackColor: 'bg-blue-100', textColor: 'text-blue-600' },
+                  { color: 'bg-indigo-500', trackColor: 'bg-indigo-100', textColor: 'text-indigo-600' }
+                ];
+                const theme = colors[idx % colors.length];
+                return {
+                  label: c.criterion,
+                  value: c.score ? Math.round(c.score * 10) : 0,
+                  feedback: c.reason || '',
+                  color: theme.color,
+                  trackColor: theme.trackColor,
+                  textColor: theme.textColor
+                };
+              }) : [
                 {
                   label: 'Situation',
                   value: result?.starAnalysis?.situation?.score ? Math.round(result.starAnalysis.situation.score * 10) : 0,
@@ -646,7 +726,7 @@ export default function PracticeQuestion() {
                       style={{ width: `${value}%` }}
                     />
                   </div>
-                  {result && feedback && !isTechnical && (
+                  {result && feedback && (
                     <p className="text-[10px] text-gray-400 font-medium italic pl-1 leading-normal">
                       {feedback}
                     </p>

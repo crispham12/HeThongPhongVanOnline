@@ -101,7 +101,7 @@ namespace InterviewPro.API.Services
         // ─────────────────────────────────────────────
         public async Task<AiEvaluationResult> EvaluateHrAnswerAsync(
             string role, string difficulty, List<string> techStack,
-            string question, string answer)
+            string category, string expectedAnswerGuide, string question, string answer)
         {
             var sw = Stopwatch.StartNew();
             int inputTokens = 0, outputTokens = 0, totalTokens = 0;
@@ -112,7 +112,7 @@ namespace InterviewPro.API.Services
             try
             {
                 var client = _httpClientFactory.CreateClient("AIService");
-                var payload = new { role, difficulty, tech_stack = techStack, question, answer };
+                var payload = new { role, difficulty, tech_stack = techStack, category, expected_answer_guide = expectedAnswerGuide, question, answer };
 
                 var response = await client.PostAsJsonAsync("/ai/hr/evaluate-answer", payload);
                 response.EnsureSuccessStatusCode();

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Trophy, ArrowRight, RotateCcw, CheckCircle, AlertTriangle, 
+import {
+  Trophy, ArrowRight, RotateCcw, CheckCircle, AlertTriangle,
   Terminal, ShieldAlert, Cpu, Heart, Check, Play, User, BookOpen,
   Printer, ChevronDown, ChevronUp, Star, Award, Code
 } from 'lucide-react';
@@ -169,7 +169,7 @@ export default function FullMockReport() {
       `}</style>
 
       <div className="max-w-5xl mx-auto space-y-8">
-        
+
         {/* Header Options */}
         <div className="no-print flex items-center justify-between bg-white p-6 rounded-2xl border border-slate-150 shadow-sm">
           <div className="flex items-center gap-4">
@@ -202,17 +202,8 @@ export default function FullMockReport() {
           <div className="space-y-4">
             <p className="text-xs uppercase font-extrabold tracking-wider text-slate-400">Đánh giá tuyển dụng</p>
             <div className="flex items-center gap-3">
-              <span className={`px-4 py-1.5 text-xs font-black rounded-full uppercase ${
-                report.hiringRecommendation.includes("Strong") 
-                  ? "bg-emerald-100 text-emerald-800" 
-                  : report.hiringRecommendation.includes("Hire") 
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-amber-100 text-amber-800"
-              }`}>
-                {report.hiringRecommendation}
-              </span>
               <div className="text-xs font-bold text-slate-550">
-                Confidence: <span className="text-slate-900">{report.confidenceScore}%</span>
+                Độ tự tin: <span className="text-slate-900">{report.confidenceScore}%</span>
               </div>
             </div>
             <div className="pt-2">
@@ -251,19 +242,19 @@ export default function FullMockReport() {
                   const angle = (Math.PI * 2 / total) * i - Math.PI / 2;
                   const x = center + radius * Math.cos(angle);
                   const y = center + radius * Math.sin(angle);
-                  
+
                   // Label coordinates slightly pushed out
                   const labelX = center + (radius + 25) * Math.cos(angle);
                   const labelY = center + (radius + 15) * Math.sin(angle);
-                  
+
                   return (
                     <g key={i}>
                       <line x1={center} y1={center} x2={x} y2={y} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
-                      <text 
-                        x={labelX} 
-                        y={labelY} 
-                        textAnchor="middle" 
-                        alignmentBaseline="middle" 
+                      <text
+                        x={labelX}
+                        y={labelY}
+                        textAnchor="middle"
+                        alignmentBaseline="middle"
                         className="text-[9px] font-extrabold fill-slate-500"
                       >
                         {c.label}
@@ -299,7 +290,7 @@ export default function FullMockReport() {
 
           {/* HR Interview Accordion */}
           <div className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm">
-            <button 
+            <button
               onClick={() => setExpandedCard(expandedCard === 'hr' ? 'summary' : 'hr')}
               className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 transition cursor-pointer"
             >
@@ -348,7 +339,7 @@ export default function FullMockReport() {
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-800 uppercase">AI Review & Chứng cứ</h4>
                     <p className="text-slate-650 text-xs leading-relaxed">{report.hrReport?.aiSummary}</p>
-                    
+
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Điểm mạnh HR</p>
                       <ul className="space-y-1">
@@ -368,7 +359,7 @@ export default function FullMockReport() {
 
           {/* Technical Interview Accordion */}
           <div className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm">
-            <button 
+            <button
               onClick={() => setExpandedCard(expandedCard === 'tech' ? 'summary' : 'tech')}
               className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 transition cursor-pointer"
             >
@@ -394,12 +385,9 @@ export default function FullMockReport() {
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-800 uppercase">Chỉ số kỹ thuật</h4>
                     {[
-                      { l: "Kiến thức chuyên môn", v: report.technicalReport?.technicalKnowledge },
-                      { l: "Giải quyết vấn đề", v: report.technicalReport?.problemSolving },
-                      { l: "Kinh nghiệm thực tế", v: report.technicalReport?.practicalExperience },
-                      { l: "Tư duy hệ thống", v: report.technicalReport?.systemThinking },
-                      { l: "Giao tiếp kỹ thuật", v: report.technicalReport?.communication },
-                      { l: "Best Practices", v: report.technicalReport?.bestPractices }
+                      { l: "Core Technical Knowledge", v: report.technicalReport?.q1Score },
+                      { l: "Applied Problem Solving", v: report.technicalReport?.q2Score },
+                      { l: "Project & System Thinking", v: report.technicalReport?.q3Score }
                     ].map((comp, i) => (
                       <div key={i} className="space-y-1">
                         <div className="flex justify-between text-xs">
@@ -449,7 +437,7 @@ export default function FullMockReport() {
 
           {/* Coding Assessment Accordion */}
           <div className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm">
-            <button 
+            <button
               onClick={() => setExpandedCard(expandedCard === 'coding' ? 'summary' : 'coding')}
               className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 transition cursor-pointer"
             >
@@ -468,60 +456,122 @@ export default function FullMockReport() {
               </div>
             </button>
 
-            {expandedCard === 'coding' && (
-              <div className="accordion-content border-t border-slate-100 p-6 space-y-6 bg-slate-50/20">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Competency breakdown */}
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase">Chỉ số viết code</h4>
-                    {[
-                      { l: "Thấu hiểu đề bài", v: report.codingReport?.problemUnderstanding },
-                      { l: "Thiết kế giải thuật", v: report.codingReport?.algorithmDesign },
-                      { l: "Độ chính xác (Correctness)", v: report.codingReport?.codeCorrectness },
-                      { l: "Chất lượng code (Quality)", v: report.codingReport?.codeQuality },
-                      { l: "Tối ưu độ phức tạp (Complexity)", v: report.codingReport?.complexityAnalysis },
-                      { l: "Kiểm thử (Testing)", v: report.codingReport?.testingValidation }
-                    ].map((comp, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-600">{comp.l}</span>
-                          <span className="font-bold text-slate-800">{comp.v?.toFixed(1)}</span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div className="bg-amber-600 h-full rounded-full" style={{ width: `${(comp.v ?? 0) * 10}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Coding weaknesses and roadmaps */}
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase">Chỉ số tối ưu & Roadmap nâng cao</h4>
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Điểm cộng thuật toán</p>
-                      <ul className="space-y-1">
-                        {report.codingReport?.strengths.map((s, i) => (
-                          <li key={i} className="text-xs text-slate-700 flex items-start gap-1.5">
-                            <span className="text-amber-600 mt-0.5"><Check className="w-3.5 h-3.5 shrink-0" /></span>
-                            <span>{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+            {expandedCard === 'coding' && (() => {
+              const cr = report.codingReport;
+              const overall = cr?.overallCodingScore ?? 0;
 
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Lộ trình học tập chi tiết</p>
-                      {report.learningRoadmap.map((item, i) => (
-                        <div key={i} className="p-3 bg-white border border-slate-100 rounded-xl space-y-1">
-                          <div className="text-xs font-bold text-slate-800">{item.topic}</div>
-                          <div className="text-[10px] text-slate-500">{item.resource}</div>
+              // Hàm resolve score: nếu có dữ liệu thực (>0) dùng thật, ngược lại fallback về overall
+              const resolveScore = (v) => {
+                const num = typeof v === 'number' ? v : parseFloat(v);
+                return (!isNaN(num) && num > 0) ? { val: num, estimated: false } : { val: overall, estimated: true };
+              };
+
+              const metrics = [
+                { l: "Thấu hiểu đề bài",            raw: cr?.problemUnderstanding },
+                { l: "Thiết kế giải thuật",          raw: cr?.algorithmDesign },
+                { l: "Độ chính xác (Correctness)",   raw: cr?.codeCorrectness },
+                { l: "Chất lượng code (Quality)",    raw: cr?.codeQuality },
+                { l: "Tối ưu độ phức tạp (Complexity)", raw: cr?.complexityAnalysis },
+                { l: "Kiểm thử (Testing)",           raw: cr?.testingValidation },
+              ].map(m => ({ ...m, ...resolveScore(m.raw) }));
+
+              // Roadmap: ưu tiên codingReport.learningRoadmap, fallback sang report.learningRoadmap
+              const roadmapItems = (cr?.learningRoadmap?.length > 0)
+                ? cr.learningRoadmap.map(r => (typeof r === 'string' ? { topic: r, resource: 'Chủ đề nâng cao kỹ năng' } : r))
+                : (report.learningRoadmap ?? []);
+
+              return (
+                <div className="accordion-content border-t border-slate-100 p-6 space-y-6 bg-slate-50/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Chỉ số viết code */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-800 uppercase">Chỉ số viết code</h4>
+                      {metrics.map((comp, i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="flex justify-between text-xs items-center gap-1">
+                            <span className="text-slate-600">{comp.l}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="font-bold text-slate-800">{comp.val.toFixed(1)}</span>
+                              {comp.estimated && (
+                                <span
+                                  title="Ước tính dựa trên điểm tổng — chạy lại phỏng vấn để có chỉ số chính xác"
+                                  className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded cursor-help"
+                                >
+                                  ước tính
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${comp.estimated ? 'bg-slate-300' : 'bg-amber-500'}`}
+                              style={{ width: `${comp.val * 10}%` }}
+                            />
+                          </div>
                         </div>
                       ))}
+                      {metrics.some(m => m.estimated) && (
+                        <p className="text-[10px] text-slate-400 italic leading-relaxed">
+                          * Chỉ số màu xám là ước tính từ điểm tổng. Thực hiện phỏng vấn sau Fix 2 để hiển thị chính xác.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Strengths / Weaknesses / Roadmap */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-800 uppercase">AI Nhận xét & Roadmap</h4>
+
+                      {/* Strengths */}
+                      {cr?.strengths?.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Điểm mạnh</p>
+                          <ul className="space-y-1">
+                            {cr.strengths.map((s, i) => (
+                              <li key={i} className="text-xs text-slate-700 flex items-start gap-1.5">
+                                <span className="text-amber-500 mt-0.5"><Check className="w-3.5 h-3.5 shrink-0" /></span>
+                                <span>{s}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Weaknesses */}
+                      {cr?.weaknesses?.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Điểm cần cải thiện</p>
+                          <ul className="space-y-1">
+                            {cr.weaknesses.map((w, i) => (
+                              <li key={i} className="text-xs text-slate-700 flex items-start gap-1.5">
+                                <span className="text-red-400 mt-0.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /></span>
+                                <span>{w}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Learning Roadmap */}
+                      <div className="space-y-2 pt-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Lộ trình học tập</p>
+                        {roadmapItems.length > 0 ? (
+                          roadmapItems.map((item, i) => (
+                            <div key={i} className="p-3 bg-white border border-slate-100 rounded-xl space-y-0.5">
+                              <div className="text-xs font-bold text-slate-800">{item.topic}</div>
+                              {item.resource && <div className="text-[10px] text-slate-500">{item.resource}</div>}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">Chưa có lộ trình học tập — sẽ được tạo trong buổi phỏng vấn tiếp theo.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
+
         </div>
 
         {/* Section 4: Recommended Practice (Bug 3 Fix) */}
@@ -543,7 +593,7 @@ export default function FullMockReport() {
                     </div>
                     <h4 className="text-sm font-bold text-slate-800 line-clamp-2">{q.title}</h4>
                   </div>
-                  <button 
+                  <button
                     onClick={() => navigate(q.type === 'Technical' ? `/practice` : `/coding/problems/${q.id}`)}
                     className="mt-4 flex items-center justify-center gap-1.5 w-full py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
                   >

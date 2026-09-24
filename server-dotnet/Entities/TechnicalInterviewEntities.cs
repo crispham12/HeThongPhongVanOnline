@@ -42,8 +42,8 @@ namespace InterviewPro.API.Entities
         [ForeignKey("SessionId")]
         public virtual TechnicalInterviewSession? Session { get; set; }
 
-        public int QuestionIndex { get; set; } // 1 to 10
-        public string Stage { get; set; } = string.Empty; // Warm-up, Core, Applied, Project, System
+        public int QuestionIndex { get; set; } // 1 to 3
+        public string Stage { get; set; } = string.Empty; // Core Technical Knowledge, Applied Problem Solving, Project & System Thinking
 
         public string Content { get; set; } = string.Empty;
         public string? ExpectedAnswer { get; set; }

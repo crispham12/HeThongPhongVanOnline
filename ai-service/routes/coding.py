@@ -469,6 +469,13 @@ class EvaluateFullMockCodingResponse(BaseModel):
     code_quality_notes: str           # Nhận xét code quality
     complexity_notes: str             # Nhận xét độ phức tạp
     improvement_suggestions: List[str] # 2-3 gợi ý cải thiện
+    strengths: List[str]              # 2-3 điểm mạnh của ứng viên
+    weaknesses: List[str]             # 2-3 điểm yếu / lỗi cần khắc phục
+    learning_roadmap: List[str]       # 2-3 chủ đề cần học thêm
+    # Sub-scores (thang 0-10) — dùng trực tiếp cho CodingReportDto
+    problem_understanding_score: float  # Mức độ hiểu đề bài (0-10)
+    algorithm_design_score: float       # Chất lượng giải thuật đề xuất (0-10)
+    testing_score: float                # Kỹ năng kiểm thử / phân tích test (0-10)
 
 @router.post("/full-mock/evaluate", response_model=EvaluateFullMockCodingResponse)
 async def evaluate_full_mock_coding(req: EvaluateFullMockCodingRequest):
@@ -496,25 +503,43 @@ KẾT QUẢ CHẠY TEST ({req.passed_count}/{req.total_count} tests passed):
 
 ĐIỂM TEST CASES ĐÃ TÍNH: {test_score}/50
 
-Hãy chấm thêm 2 tiêu chí sau và trả về JSON:
+Hãy chấm thêm 5 tiêu chí sau và trả về JSON:
 
-1. CODE QUALITY (0-30 điểm):
+1. PROBLEM UNDERSTANDING (0-10 điểm):
+   - Ứng viên giải quyết đúng vấn đề mà đề bài yêu cầu không?
+   - Có xử lý đúng các edge cases của bài toán không?
+
+2. ALGORITHM DESIGN (0-10 điểm):
+   - Thuật toán chọn có phù hợp và hiệu quả không?
+   - Có tránh được brute force thừa kông?
+
+3. TESTING (0-10 điểm):
+   - Code có xử lý input rỗng / giá trị biên không?
+   - Trường hợp dữ liệu lớn / âm / 0 có được cân nhắc không?
+
+4. CODE QUALITY (0-30 điểm):
    - Đặt tên biến/hàm rõ ràng: 0-10
    - Cấu trúc code sạch, dễ đọc: 0-10  
    - Xử lý edge cases: 0-10
 
-2. COMPLEXITY (0-20 điểm):
+5. COMPLEXITY (0-20 điểm):
    - Time complexity phù hợp: 0-10
    - Space complexity phù hợp: 0-10
 
 Trả về JSON (không có markdown):
 {{
+  "problem_understanding_score": <0-10>,
+  "algorithm_design_score": <0-10>,
+  "testing_score": <0-10>,
   "quality_score": <0-30>,
   "complexity_score": <0-20>,
   "feedback": "<nhận xét tổng quan 2-3 câu tiếng Việt>",
   "code_quality_notes": "<nhận xét code quality 1-2 câu>",
   "complexity_notes": "<nhận xét độ phức tạp 1-2 câu, ước tính Big O>",
-  "improvement_suggestions": ["<gợi ý 1>", "<gợi ý 2>", "<gợi ý 3>"]
+  "improvement_suggestions": ["<gợi ý 1>", "<gợi ý 2>", "<gợi ý 3>"],
+  "strengths": ["<điểm mạnh 1 — chứng cứ cụ thể từ code>", "<điểm mạnh 2>"],
+  "weaknesses": ["<điểm yếu 1 — lỗi/hạn chế cụ thể trong code>", "<điểm yếu 2>"],
+  "learning_roadmap": ["<chủ đề cần học 1>", "<chủ đề cần học 2>"]
 }}"""
 
     try:
@@ -522,6 +547,9 @@ Trả về JSON (không có markdown):
         # response is already a dict
         quality_score = min(30, max(0, response.get("quality_score", 0)))
         complexity_score = min(20, max(0, response.get("complexity_score", 0)))
+        problem_understanding_score = round(min(10.0, max(0.0, float(response.get("problem_understanding_score", 0)))), 1)
+        algorithm_design_score = round(min(10.0, max(0.0, float(response.get("algorithm_design_score", 0)))), 1)
+        testing_score = round(min(10.0, max(0.0, float(response.get("testing_score", 0)))), 1)
         total_score = test_score + quality_score + complexity_score
         
         return EvaluateFullMockCodingResponse(
@@ -532,7 +560,13 @@ Trả về JSON (không có markdown):
             feedback=response.get("feedback", ""),
             code_quality_notes=response.get("code_quality_notes", ""),
             complexity_notes=response.get("complexity_notes", ""),
-            improvement_suggestions=response.get("improvement_suggestions", [])
+            improvement_suggestions=response.get("improvement_suggestions", []),
+            strengths=response.get("strengths", []),
+            weaknesses=response.get("weaknesses", []),
+            learning_roadmap=response.get("learning_roadmap", []),
+            problem_understanding_score=problem_understanding_score,
+            algorithm_design_score=algorithm_design_score,
+            testing_score=testing_score,
         )
     except Exception as e:
         err_str = str(e)
@@ -547,15 +581,26 @@ Trả về JSON (không có markdown):
             friendly_feedback = "Không thể phân tích chi tiết do lỗi AI. Điểm dựa trên test cases (đã quy đổi thang 100)."
 
         # Fallback: Quy đổi test_score (max 50) lên thang điểm 100 để ứng viên không bị trừ điểm oan
+        fallback_quality = int((test_score / 50.0) * 30) if test_score > 0 else 0
+        fallback_complexity = int((test_score / 50.0) * 20) if test_score > 0 else 0
+        # Nội suy sub-scores từ tỷ lệ test pass
+        fallback_sub = round((test_score / 50.0) * 10, 1) if test_score > 0 else 0.0
+        
         return EvaluateFullMockCodingResponse(
-            score=test_score * 2,
+            score=test_score + fallback_quality + fallback_complexity,
             test_score=test_score,
-            quality_score=0,
-            complexity_score=0,
+            quality_score=fallback_quality,
+            complexity_score=fallback_complexity,
             feedback=friendly_feedback,
-            code_quality_notes="Bỏ qua đánh giá do AI quá tải.",
-            complexity_notes="Bỏ qua đánh giá do AI quá tải.",
-            improvement_suggestions=["Không có gợi ý do giới hạn kết nối API."]
+            code_quality_notes="Điểm thành phần được nội suy từ kết quả test cases do AI quá tải.",
+            complexity_notes="Điểm thành phần được nội suy từ kết quả test cases do AI quá tải.",
+            improvement_suggestions=["Không có gợi ý do giới hạn kết nối API."],
+            strengths=[],
+            weaknesses=[],
+            learning_roadmap=[],
+            problem_understanding_score=fallback_sub,
+            algorithm_design_score=fallback_sub,
+            testing_score=fallback_sub,
         )
 
 

@@ -133,7 +133,7 @@ export default function CodingPracticeWorkspace() {
         language: language.toLowerCase(),
         code: code,
         testCases: formattedTestCases,
-        functionName: 'solution',
+        functionName: null,
         methodSignature: null,
       });
 
@@ -179,7 +179,7 @@ export default function CodingPracticeWorkspace() {
         language: language.toLowerCase(),
         code: code,
         testCases: allPublicTests,
-        functionName: 'solution',
+        functionName: null,
         methodSignature: null,
       });
 

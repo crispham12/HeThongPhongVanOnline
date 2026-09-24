@@ -52,6 +52,17 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
   const [voiceAnalysis, setVoiceAnalysis] = useState(null); // null | VoiceAnalysisResponse
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
 
+  // Silence detection
+  const [silenceWarning, setSilenceWarning] = useState(false); // true khi im lặng > 90s
+  const silenceTimerRef = useRef(null);   // timeout 2 phút → tự tắt mic
+  const silenceWarnRef = useRef(null);    // timeout 90s → hiện cảnh báo
+  const audioContextRef = useRef(null);   // AudioContext để đo volume
+  const silenceCheckRef = useRef(null);   // interval kiểm tra volume
+  const speechRecognitionRef = useRef(null); // Web Speech API
+  const SILENCE_TIMEOUT_MS = 60000;       // 1 phút
+  const SILENCE_WARN_MS = 30000;          // 30 giây
+  const SILENCE_THRESHOLD = 0.01;        // ngưỡng volume (0..1)
+
   // Auto-save debounce
   const draftTimerRef = useRef(null);
 
@@ -243,6 +254,22 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
     }, 1000);
   };
 
+  // Dọn dẹp silence detection
+  const clearSilenceDetection = () => {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    if (silenceWarnRef.current) { clearTimeout(silenceWarnRef.current); silenceWarnRef.current = null; }
+    if (silenceCheckRef.current) { clearInterval(silenceCheckRef.current); silenceCheckRef.current = null; }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+      speechRecognitionRef.current = null;
+    }
+    setSilenceWarning(false);
+  };
+
   const startAnswer = async () => {
     if (prepTimerRef.current) clearInterval(prepTimerRef.current);
     if (cameraStatus !== 'enabled') {
@@ -256,6 +283,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
     setTranscript('');
     setWordCount(0);
     setFillerWords(0);
+    setSilenceWarning(false);
 
     // Bật timer
     answerTimerRef.current = setInterval(() => {
@@ -275,6 +303,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
       };
 
       mediaRecorder.onstop = async () => {
+        clearSilenceDetection();
         stream.getTracks().forEach(track => track.stop());
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
@@ -305,6 +334,73 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
 
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
+
+      // ── Silence & Real Speech detection ──────────────────────────────────
+      try {
+        const resetTimers = () => {
+          if (silenceWarnRef.current) { clearTimeout(silenceWarnRef.current); silenceWarnRef.current = null; }
+          if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+          setSilenceWarning(false);
+          
+          silenceWarnRef.current = setTimeout(() => setSilenceWarning(true), SILENCE_WARN_MS);
+          silenceTimerRef.current = setTimeout(() => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              console.info('[HR] Không có tiếng người nói 1 phút → tự tắt mic');
+              mediaRecorderRef.current.stop();
+              if (answerTimerRef.current) clearInterval(answerTimerRef.current);
+            }
+          }, SILENCE_TIMEOUT_MS);
+        };
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'vi-VN';
+
+          recognition.onresult = (event) => {
+            // Nhận diện được chữ -> Đích thị là tiếng người
+            resetTimers();
+          };
+          
+          recognition.onend = () => {
+            // Khởi động lại liên tục khi vẫn còn ghi âm
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              try { recognition.start(); } catch(e){}
+            }
+          };
+
+          recognition.start();
+          speechRecognitionRef.current = recognition;
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        silenceCheckRef.current = setInterval(() => {
+          analyser.getByteFrequencyData(dataArray);
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
+          if (avg > SILENCE_THRESHOLD) {
+             // Fallback: Nếu không có SpeechRecognition, dùng volume base
+             if (!SpeechRecognition) {
+                 resetTimers();
+             }
+          }
+        }, 500);
+
+        // Khởi động lần đầu
+        resetTimers();
+      } catch (audioErr) {
+        console.warn('Silence/Speech detection không khả dụng:', audioErr);
+      }
+      // ──────────────────────────────────────────────────────
+
     } catch (err) {
       alert("Không thể truy cập microphone.");
       setAnswerState('stopped');
@@ -312,6 +408,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
   };
 
   const stopAnswer = () => {
+    clearSilenceDetection();
     if (answerTimerRef.current) clearInterval(answerTimerRef.current);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -400,6 +497,7 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
   // Dọn dẹp
   useEffect(() => {
     return () => {
+      clearSilenceDetection();
       if (prepTimerRef.current) clearInterval(prepTimerRef.current);
       if (answerTimerRef.current) clearInterval(answerTimerRef.current);
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
@@ -469,6 +567,11 @@ export default function HRInterview({ fullMockMode = false, role, difficulty, st
                 {answerState === 'submitted' && (
                   <div className="flex items-center gap-1.5 text-green-600 font-bold text-xs bg-green-50 border border-green-200 px-3 py-1 rounded-full">
                     <Check className="w-3.5 h-3.5" /> Đã ghi nhận câu trả lời
+                  </div>
+                )}
+                {silenceWarning && answerState === 'recording' && (
+                  <div className="flex items-center gap-1.5 text-amber-600 font-bold text-xs bg-amber-50 border border-amber-200 px-3 py-1 rounded-full animate-pulse">
+                    ⚠️ Không phát hiện giọng nói người — mic sẽ tắt sau 30s
                   </div>
                 )}
               </div>

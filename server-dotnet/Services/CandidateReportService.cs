@@ -50,7 +50,27 @@ namespace InterviewPro.API.Services
                 }
             }
 
-            return MapToResponse(report);
+            var response = MapToResponse(report);
+
+            // Populate Q1, Q2, Q3 scores for TechnicalReportDto dynamically without DB migration
+            if (response.TechnicalReport != null)
+            {
+                var fullMock = await _db.FullMockSessions.FirstOrDefaultAsync(s => s.SessionGuid == sessionGuid);
+                if (fullMock != null && !string.IsNullOrEmpty(fullMock.TechnicalSessionGuid))
+                {
+                    var techSession = await _db.TechnicalInterviewSessions
+                        .Include(t => t.Questions)
+                        .FirstOrDefaultAsync(t => t.SessionGuid == fullMock.TechnicalSessionGuid);
+                    if (techSession != null)
+                    {
+                        response.TechnicalReport.Q1Score = techSession.Questions.FirstOrDefault(q => q.QuestionIndex == 1)?.Score ?? 0f;
+                        response.TechnicalReport.Q2Score = techSession.Questions.FirstOrDefault(q => q.QuestionIndex == 2)?.Score ?? 0f;
+                        response.TechnicalReport.Q3Score = techSession.Questions.FirstOrDefault(q => q.QuestionIndex == 3)?.Score ?? 0f;
+                    }
+                }
+            }
+
+            return response;
         }
 
         public async Task<HRReportDto> GetHrReportAsync(int userId, string sessionGuid)
@@ -102,6 +122,9 @@ namespace InterviewPro.API.Services
             var techDto = tech != null ? new TechnicalReportDto
             {
                 OverallTechnicalScore = tech.OverallTechnicalScore,
+                Q1Score = tech.TechnicalKnowledgeScore > 0 ? tech.TechnicalKnowledgeScore : 0f,
+                Q2Score = tech.ProblemSolvingScore > 0 ? tech.ProblemSolvingScore : 0f,
+                Q3Score = tech.SystemThinkingScore > 0 ? tech.SystemThinkingScore : 0f,
                 TechnicalKnowledge = tech.TechnicalKnowledgeScore,
                 ProblemSolving = tech.ProblemSolvingScore,
                 PracticalExperience = tech.PracticalExperienceScore,
@@ -131,13 +154,18 @@ namespace InterviewPro.API.Services
             } : null;
 
             // Tính toán Competency Profile (Trọng số phối hợp từ các vòng)
+            float techComm = (techDto != null && techDto.Communication > 0) ? techDto.Communication : (techDto?.OverallTechnicalScore ?? 7.0f);
+            float techPS = (techDto != null && techDto.Q2Score > 0) ? techDto.Q2Score : (techDto?.ProblemSolving > 0 ? techDto.ProblemSolving : 7.0f);
+            float techTK = (techDto != null && techDto.Q1Score > 0) ? techDto.Q1Score : (techDto?.TechnicalKnowledge > 0 ? techDto.TechnicalKnowledge : 7.0f);
+            float techST = (techDto != null && techDto.Q3Score > 0) ? techDto.Q3Score : (techDto?.SystemThinking > 0 ? techDto.SystemThinking : 6.5f);
+
             var profile = new CompetencyProfileDto
             {
-                Communication = (float)Math.Round((hrDto?.Communication * 0.5f ?? 4.0f) + (techDto?.Communication * 0.3f ?? 2.4f) + (codingDto?.Communication * 0.2f ?? 1.6f), 1),
-                ProblemSolving = (float)Math.Round((hrDto?.ProblemSolvingMindset * 0.3f ?? 2.4f) + (techDto?.ProblemSolving * 0.4f ?? 3.2f) + (codingDto?.ProblemUnderstanding * 0.3f ?? 2.4f), 1),
-                TechnicalKnowledge = techDto?.TechnicalKnowledge ?? 7.0f,
+                Communication = (float)Math.Round((hrDto?.Communication * 0.5f ?? 4.0f) + (techComm * 0.3f) + (codingDto?.Communication * 0.2f ?? 1.6f), 1),
+                ProblemSolving = (float)Math.Round((hrDto?.ProblemSolvingMindset * 0.3f ?? 2.4f) + (techPS * 0.4f) + (codingDto?.ProblemUnderstanding * 0.3f ?? 2.4f), 1),
+                TechnicalKnowledge = techTK,
                 CodingAbility = codingDto?.CodeCorrectness ?? 7.0f,
-                SystemThinking = techDto?.SystemThinking ?? 6.5f,
+                SystemThinking = techST,
                 Professionalism = hrDto?.Professionalism ?? 7.5f,
                 Teamwork = hrDto?.Teamwork ?? 8.0f,
                 LearningAbility = (float)Math.Round((hrDto?.SelfAwareness * 0.4f ?? 3.2f) + (codingDto?.ComplexityAnalysis * 0.6f ?? 4.2f), 1)
@@ -235,28 +263,29 @@ namespace InterviewPro.API.Services
             // 2. Technical Session evaluation
             bool techSkipped = string.IsNullOrEmpty(techGuid) || techGuid.Contains("skipped");
             float techScore = 0f;
+            float q1Score = -1f;
+            float q2Score = -1f;
+            float q3Score = -1f;
             string techAiSummary = techSkipped ? "Vòng Technical đã bị bỏ qua." : "Ứng viên chưa hoàn thành vòng Technical hoặc chưa có báo cáo.";
             var techFeedbackDict = new Dictionary<string, object>();
             
             if (!techSkipped)
             {
-                var techSession = await _db.TechnicalInterviewSessions.FirstOrDefaultAsync(t => t.SessionGuid == techGuid);
+                var techSession = await _db.TechnicalInterviewSessions
+                    .Include(t => t.Questions)
+                    .FirstOrDefaultAsync(t => t.SessionGuid == techGuid);
                 if (techSession != null)
                 {
                     techScore = techSession.OverallScore;
+                    q1Score = techSession.Questions?.FirstOrDefault(q => q.QuestionIndex == 1)?.Score ?? -1f;
+                    q2Score = techSession.Questions?.FirstOrDefault(q => q.QuestionIndex == 2)?.Score ?? -1f;
+                    q3Score = techSession.Questions?.FirstOrDefault(q => q.QuestionIndex == 3)?.Score ?? -1f;
                     if (!string.IsNullOrEmpty(techSession.FinalFeedbackJson))
                     {
                         try {
                             using var doc = JsonDocument.Parse(techSession.FinalFeedbackJson);
                             var root = doc.RootElement;
-                            if (root.TryGetProperty("scores", out var scoresEl)) {
-                                if (scoresEl.TryGetProperty("technicalKnowledge", out var tk)) techFeedbackDict["technicalKnowledge"] = tk.GetDouble();
-                                if (scoresEl.TryGetProperty("problemSolving", out var ps)) techFeedbackDict["problemSolving"] = ps.GetDouble();
-                                if (scoresEl.TryGetProperty("practicalExperience", out var pe)) techFeedbackDict["practicalExperience"] = pe.GetDouble();
-                                if (scoresEl.TryGetProperty("systemDesign", out var sd)) techFeedbackDict["systemDesign"] = sd.GetDouble();
-                                if (scoresEl.TryGetProperty("communication", out var cm)) techFeedbackDict["communication"] = cm.GetDouble();
-                                if (scoresEl.TryGetProperty("bestPractices", out var bp)) techFeedbackDict["bestPractices"] = bp.GetDouble();
-                            }
+                            // Legacy scores removed in AI update. Defaulting DB columns to -1f below.
                             
                             // Handling array of objects to array of strings
                             if (root.TryGetProperty("strengths", out var strEl) && strEl.ValueKind == JsonValueKind.Array) 
@@ -349,16 +378,58 @@ namespace InterviewPro.API.Services
                             if (legacyScores != null && legacyScores.Count > 0)
                             {
                                 var listStrengths = new List<string>();
+                                var listWeaknesses = new List<string>();
+                                var listRoadmap = new List<string>();
                                 float totalCorrectness = 0;
                                 float totalQuality = 0;
                                 float totalComplexity = 0;
+                                // Sub-scores mới — thang 0-10, map trực tiếp
+                                float totalProblemUnderstanding = 0;
+                                float totalAlgorithmDesign = 0;
+                                float totalTesting = 0;
 
                                 foreach (var p in legacyScores)
                                 {
-                                    var title = p.GetProperty("title").GetString();
-                                    var feedback = p.GetProperty("feedback").GetString() ?? "";
-                                    listStrengths.Add($"{title}: {feedback}");
+                                    var title = p.TryGetProperty("title", out var tEl) ? tEl.GetString() : "";
+                                    var feedback = p.TryGetProperty("feedback", out var fEl) ? fEl.GetString() ?? "" : "";
 
+                                    // ── Đọc strengths từ field mới (array) hoặc tổng hợp từ feedback ──
+                                    if (p.TryGetProperty("strengths", out var strEl) && strEl.ValueKind == JsonValueKind.Array)
+                                    {
+                                        foreach (var s in strEl.EnumerateArray())
+                                            if (s.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(s.GetString()))
+                                                listStrengths.Add(s.GetString()!);
+                                    }
+                                    else if (!string.IsNullOrEmpty(feedback))
+                                    {
+                                        listStrengths.Add($"{title}: {feedback}");
+                                    }
+
+                                    // ── Đọc weaknesses từ field mới ──
+                                    if (p.TryGetProperty("weaknesses", out var weakEl) && weakEl.ValueKind == JsonValueKind.Array)
+                                    {
+                                        foreach (var w in weakEl.EnumerateArray())
+                                            if (w.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(w.GetString()))
+                                                listWeaknesses.Add(w.GetString()!);
+                                    }
+
+                                    // ── Đọc learningRoadmap từ field mới ──
+                                    if (p.TryGetProperty("learningRoadmap", out var rmEl) && rmEl.ValueKind == JsonValueKind.Array)
+                                    {
+                                        foreach (var r in rmEl.EnumerateArray())
+                                            if (r.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(r.GetString()))
+                                                listRoadmap.Add(r.GetString()!);
+                                    }
+
+                                    // ── Sub-scores 0-10 (map trực tiếp, không chia) ──
+                                    if (p.TryGetProperty("problemUnderstandingScore", out var puEl))
+                                        totalProblemUnderstanding += (float)puEl.GetDouble();
+                                    if (p.TryGetProperty("algorithmDesignScore", out var adEl))
+                                        totalAlgorithmDesign += (float)adEl.GetDouble();
+                                    if (p.TryGetProperty("testingScore", out var tsEl))
+                                        totalTesting += (float)tsEl.GetDouble();
+
+                                    // ── Tính điểm sub-components (quy về thang 0-10) ──
                                     if (p.TryGetProperty("score", out var sc))
                                     {
                                         float sVal = (float)sc.GetDouble();
@@ -374,11 +445,25 @@ namespace InterviewPro.API.Services
                                     }
                                 }
 
-                                codeCorrectness = (float)Math.Round(totalCorrectness / legacyScores.Count, 1);
-                                codeQuality = (float)Math.Round(totalQuality / legacyScores.Count, 1);
-                                complexityAnalysis = (float)Math.Round(totalComplexity / legacyScores.Count, 1);
-                                
-                                strengthsJson = JsonSerializer.Serialize(listStrengths);
+                                int n = legacyScores.Count;
+                                codeCorrectness = (float)Math.Round(totalCorrectness / n, 1);
+                                codeQuality = (float)Math.Round(totalQuality / n, 1);
+                                complexityAnalysis = (float)Math.Round(totalComplexity / n, 1);
+
+                                // Ghi sub-scores mới nếu có (>0 nghĩa là AI đã trả về)
+                                if (totalProblemUnderstanding > 0)
+                                    problemUnderstanding = (float)Math.Round(totalProblemUnderstanding / n, 1);
+                                if (totalAlgorithmDesign > 0)
+                                    algorithmDesign = (float)Math.Round(totalAlgorithmDesign / n, 1);
+                                if (totalTesting > 0)
+                                    testingValidation = (float)Math.Round(totalTesting / n, 1);
+
+                                if (listStrengths.Any())
+                                    strengthsJson = JsonSerializer.Serialize(listStrengths.Distinct().ToList());
+                                if (listWeaknesses.Any())
+                                    weaknessesJson = JsonSerializer.Serialize(listWeaknesses.Distinct().ToList());
+                                if (listRoadmap.Any())
+                                    learningRoadmapJson = JsonSerializer.Serialize(listRoadmap.Distinct().ToList());
                             }
                         }
                         catch
@@ -432,12 +517,12 @@ namespace InterviewPro.API.Services
             {
                 CandidateReportId = report.Id,
                 OverallTechnicalScore = techScore,
-                TechnicalKnowledgeScore = techFeedbackDict.ContainsKey("technicalKnowledge") ? (float)(double)techFeedbackDict["technicalKnowledge"] : 0f,
-                ProblemSolvingScore = techFeedbackDict.ContainsKey("problemSolving") ? (float)(double)techFeedbackDict["problemSolving"] : 0f,
-                PracticalExperienceScore = techFeedbackDict.ContainsKey("practicalExperience") ? (float)(double)techFeedbackDict["practicalExperience"] : 0f,
-                SystemThinkingScore = techFeedbackDict.ContainsKey("systemDesign") ? (float)(double)techFeedbackDict["systemDesign"] : 0f,
-                CommunicationScore = techFeedbackDict.ContainsKey("communication") ? (float)(double)techFeedbackDict["communication"] : 0f,
-                BestPracticesScore = techFeedbackDict.ContainsKey("bestPractices") ? (float)(double)techFeedbackDict["bestPractices"] : 0f,
+                TechnicalKnowledgeScore = q1Score,
+                ProblemSolvingScore = q2Score,
+                PracticalExperienceScore = -1f,
+                SystemThinkingScore = q3Score,
+                CommunicationScore = -1f,
+                BestPracticesScore = -1f,
                 StrengthsJson = techFeedbackDict.ContainsKey("strengths") ? (string)techFeedbackDict["strengths"] : "[]",
                 WeaknessesJson = techFeedbackDict.ContainsKey("weaknesses") ? (string)techFeedbackDict["weaknesses"] : "[]",
                 AiSummary = techAiSummary,

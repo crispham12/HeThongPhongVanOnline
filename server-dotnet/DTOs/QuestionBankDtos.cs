@@ -222,7 +222,7 @@ public class SubmitQuestionAnswerResult
     public string NextRecommendation { get; set; } = string.Empty;
     
     // Technical scores
-    public InterviewPro.API.DTOs.AiScores? TechnicalScores { get; set; }
+    public List<InterviewPro.API.DTOs.AiCriterionAnalysis>? TechnicalCriteriaAnalysis { get; set; }
 }
 
 // ══════════════════════════════════════════════════

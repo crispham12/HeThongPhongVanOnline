@@ -81,6 +81,8 @@ class EvaluateHrAnswerRequest(BaseModel):
     role: str
     difficulty: str
     tech_stack: List[str] = []
+    category: str
+    expected_answer_guide: str = ""
     question: str
     answer: str
 
@@ -203,7 +205,7 @@ async def generate_hr_questions(req: GenerateHrQuestionsRequest):
     4. Nếu API key lỗi → trả fallback 10 câu hỏi mẫu
     """
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key or api_key.startswith("AIza"):
+    if not api_key:
         raise HTTPException(status_code=500, detail="OpenAI API Key is missing or invalid.")
 
     try:
@@ -372,12 +374,20 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
     Đánh giá câu trả lời HR theo framework STAR với rubric đầy đủ.
     Output gồm: starAnalysis, starChecklist, improvedAnswer, nextRecommendation.
     """
+    valid_categories = ["Introduction & Motivation", "Behavioral / STAR", "Situational & Career"]
+    if req.category not in valid_categories:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid HR evaluation category '{req.category}'. Must be one of: {', '.join(valid_categories)}"
+        )
+
     # 2. CHẶN CÂU TRẢ LỜI QUÁ NGẮN HOẶC VÔ NGHĨA TRƯỚC KHI GỌI AI
     if not req.answer or len(req.answer.strip()) < 30:
         return _build_fallback_evaluation(question=req.question, answer=req.answer, role=req.role, difficulty=req.difficulty)
 
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key or api_key.startswith("AIza"):
+    if not api_key:
         return _build_fallback_evaluation(question=req.question, answer=req.answer, role=req.role, difficulty=req.difficulty)
 
     try:
@@ -386,6 +396,8 @@ async def evaluate_hr_answer(req: EvaluateHrAnswerRequest):
             role=req.role,
             difficulty=req.difficulty,
             tech_stack=tech_str,
+            category=req.category,
+            expected_answer_guide=req.expected_answer_guide,
             question=req.question,
             answer=req.answer
         )
@@ -462,9 +474,8 @@ async def final_evaluation(req: FinalEvaluationRequest):
     Tổng kết toàn bộ phiên phỏng vấn HR sau 10 câu.
     """
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key or api_key.startswith("AIza"):
-        avg = round(sum(a.score for a in req.answers) / max(len(req.answers), 1), 1)
-        return _build_fallback_final(avg, req.difficulty)
+    if not api_key:
+        return _build_fallback_final()
 
     try:
         # Tạo bản tóm tắt 10 câu cho AI

@@ -3,6 +3,35 @@ using System.Collections.Generic;
 
 namespace InterviewPro.API.DTOs
 {
+    // ── Full Mock Coding Save ──────────────────────────────────────────────────
+    public class SaveFullMockCodingRequest
+    {
+        public string SessionGuid { get; set; } = string.Empty;
+        public string? Role { get; set; }
+        public string? Level { get; set; }
+        public string? Language { get; set; }
+        public List<FullMockProblemScoreDto> Problems { get; set; } = new();
+    }
+
+    public class FullMockProblemScoreDto
+    {
+        public string? Title { get; set; }
+        public int Score { get; set; }               // 0-100 tổng
+        public int TestScore { get; set; }            // 0-50
+        public int QualityScore { get; set; }         // 0-30
+        public int ComplexityScore { get; set; }      // 0-20
+        public float ProblemUnderstandingScore { get; set; } // 0-10
+        public float AlgorithmDesignScore { get; set; }      // 0-10
+        public float TestingScore { get; set; }              // 0-10
+        public int PassedCount { get; set; }
+        public int TotalCount { get; set; }
+        public string? Feedback { get; set; }
+        public string? UserCode { get; set; }
+        public List<string>? Strengths { get; set; }
+        public List<string>? Weaknesses { get; set; }
+        public List<string>? LearningRoadmap { get; set; }
+    }
+
     public class StartCodingInterviewRequest
     {
         public string Role { get; set; } = string.Empty;

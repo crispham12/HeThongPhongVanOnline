@@ -99,6 +99,7 @@ class EvaluateAnswerRequest(BaseModel):
     stage: str
     question: str
     answer: str
+    expected_answer_guide: str = ""
 
 class Scores(BaseModel):
     technicalKnowledge: float = 0.0
@@ -108,16 +109,31 @@ class Scores(BaseModel):
     communication: float = 0.0
     bestPractices: float = 0.0
 
+class CriterionAnalysis(BaseModel):
+    criterion: str
+    evidence: List[str]
+    missingEvidence: List[str]
+    score: float
+    reason: str
+
 class EvaluateAnswerResponse(BaseModel):
-    scores: Scores
-    feedback: str
-    strengths: List[str]
-    weaknesses: List[str]
-    improvedAnswer: str
+    summary: str = ""
+    stage: str = ""
+    questionScore: float = 0.0
+    criteriaAnalysis: List[CriterionAnalysis] = Field(default_factory=list)
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)
+    improvementSuggestions: List[str] = Field(default_factory=list)
+    improvedAnswer: str = ""
+    nextRecommendation: str = ""
     usage: Optional[TokenUsageInfo] = None
 
 @router.post("/evaluate-answer", response_model=EvaluateAnswerResponse)
 async def evaluate_answer(req: EvaluateAnswerRequest):
+    valid_stages = ["Core Technical Knowledge", "Applied Problem Solving", "Project & System Thinking"]
+    if req.stage not in valid_stages:
+        raise HTTPException(status_code=400, detail=f"Invalid stage: {req.stage}. Must be one of {valid_stages}")
+
     try:
         prompt = TECHNICAL_EVALUATE_ANSWER_PROMPT.format(
             role=req.role,
@@ -125,33 +141,41 @@ async def evaluate_answer(req: EvaluateAnswerRequest):
             tech_stack=req.tech_stack,
             stage=req.stage,
             question=req.question,
+            expected_answer_guide=req.expected_answer_guide,
             answer=req.answer
         )
         result, usage = await call_openai_with_usage(prompt)
+        
         return EvaluateAnswerResponse(
-            scores=Scores(**result.get("scores", {})),
-            feedback=result.get("feedback", ""),
+            summary=result.get("summary", ""),
+            stage=req.stage,
+            questionScore=float(result.get("questionScore", 0.0)),
+            criteriaAnalysis=[CriterionAnalysis(**c) for c in result.get("criteriaAnalysis", [])],
             strengths=result.get("strengths", []),
             weaknesses=result.get("weaknesses", []),
+            improvementSuggestions=result.get("improvementSuggestions", []),
             improvedAnswer=result.get("improvedAnswer", ""),
+            nextRecommendation=result.get("nextRecommendation", ""),
             usage=TokenUsageInfo(**usage)
         )
     except Exception as e:
         print(f"[Technical] Evaluate Answer Error: {e}. Using fallback score.")
         traceback.print_exc()
+        fallback_criteria = [
+            CriterionAnalysis(criterion="Fallback Criteria 1", evidence=[], missingEvidence=[], score=5.0, reason="Lỗi hệ thống"),
+            CriterionAnalysis(criterion="Fallback Criteria 2", evidence=[], missingEvidence=[], score=5.0, reason="Lỗi hệ thống"),
+            CriterionAnalysis(criterion="Fallback Criteria 3", evidence=[], missingEvidence=[], score=5.0, reason="Lỗi hệ thống"),
+            CriterionAnalysis(criterion="Fallback Criteria 4", evidence=[], missingEvidence=[], score=5.0, reason="Lỗi hệ thống")
+        ]
         return EvaluateAnswerResponse(
-            scores=Scores(
-                technicalKnowledge=7.5,
-                problemSolving=7.0,
-                practicalExperience=7.0,
-                systemDesign=6.5,
-                communication=8.0,
-                bestPractices=7.0
-            ),
-            feedback="Hệ thống AI đang bận nên đánh giá tạm thời được đưa ra dựa trên độ dài và từ khóa câu trả lời của bạn. Gợi ý: Hãy giải thích chi tiết hơn bằng các ví dụ thực tế.",
-            strengths=["Giao tiếp rõ ràng", "Nỗ lực trả lời đúng trọng tâm"],
-            weaknesses=["Cần làm rõ thêm các chi tiết kỹ thuật"],
-            improvedAnswer="Câu trả lời của bạn đã khá đầy đủ, có thể cải thiện bằng cách đưa thêm ví dụ thực tế và số liệu minh chứng.",
+            summary="Hệ thống AI đang bận nên đánh giá tạm thời được đưa ra.",
+            stage=req.stage,
+            questionScore=5.0,
+            criteriaAnalysis=fallback_criteria,
+            strengths=["Giao tiếp rõ ràng"],
+            weaknesses=["Hệ thống bận"],
+            improvementSuggestions=["Vui lòng thử lại sau"],
+            improvedAnswer="Hệ thống AI đang bận.",
             usage=TokenUsageInfo(inputTokens=0, outputTokens=0, totalTokens=0, model="fallback-mode")
         )
 
@@ -170,8 +194,6 @@ class FinalWeakness(BaseModel):
     description: str
 
 class FinalEvaluationResponse(BaseModel):
-    overallScore: float
-    scores: Scores
     summary: str
     strengths: List[FinalStrength]
     weaknesses: List[FinalWeakness]
@@ -189,8 +211,6 @@ async def final_evaluation(req: FinalEvaluationRequest):
         )
         result, usage = await call_openai_with_usage(prompt)
         return FinalEvaluationResponse(
-            overallScore=result.get("overallScore", 0.0),
-            scores=Scores(**result.get("scores", {})),
             summary=result.get("summary", ""),
             strengths=[FinalStrength(**s) for s in result.get("strengths", [])],
             weaknesses=[FinalWeakness(**w) for w in result.get("weaknesses", [])],
@@ -202,15 +222,6 @@ async def final_evaluation(req: FinalEvaluationRequest):
         print(f"[Technical] Final Evaluation Error: {e}. Using fallback evaluation report.")
         traceback.print_exc()
         return FinalEvaluationResponse(
-            overallScore=7.5,
-            scores=Scores(
-                technicalKnowledge=7.5,
-                problemSolving=7.0,
-                practicalExperience=7.0,
-                systemDesign=6.5,
-                communication=8.0,
-                bestPractices=7.0
-            ),
             summary="Đánh giá tổng hợp được hoàn thành tự động. Ứng viên thể hiện thái độ phỏng vấn tốt và có kỹ năng nền tảng vững chắc.",
             strengths=[FinalStrength(title="Thái độ phỏng vấn", description="Tập trung và trả lời đúng trọng tâm câu hỏi")],
             weaknesses=[FinalWeakness(title="Độ sâu kỹ thuật", description="Cần đi sâu hơn vào chi tiết kiến trúc của các công cụ sử dụng")],
